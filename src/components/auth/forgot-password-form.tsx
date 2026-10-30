@@ -23,8 +23,10 @@ import {
 } from "@/lib/validations/auth"
 import { forgotPassword } from "@/app/actions/auth"
 import { toast } from "sonner"
+import { useI18n } from "@/lib/i18n/provider"
 
 export function ForgotPasswordForm() {
+  const { t } = useI18n()
   const {
     register,
     handleSubmit,
@@ -37,12 +39,12 @@ export function ForgotPasswordForm() {
     const result = await forgotPassword(data)
 
     if (!result.success) {
-      toast.error("Error", { description: result.errors?.[0]?.message })
+      toast.error(t.auth.forgot.toast.error, { description: result.errors?.[0]?.message })
       return
     }
 
-    toast.success("Check your email", {
-      description: "If an account exists, you'll receive a reset link.",
+    toast.success(t.auth.forgot.toast.checkEmail, {
+      description: t.auth.forgot.toast.checkEmailDescription,
     })
   }
 
@@ -54,17 +56,16 @@ export function ForgotPasswordForm() {
             <Logo variant="auth" />
           </div>
           <CardTitle className="text-center text-2xl">
-            Forgot your password?
+            {t.auth.forgot.title}
           </CardTitle>
           <CardDescription className="text-center">
-            Enter your email address and we&apos;ll send you a link to reset
-            your password.
+            {t.auth.forgot.description}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t.auth.forgot.email}</Label>
               <div className="relative">
                 <EnvelopeIcon
                   size={18}
@@ -101,18 +102,17 @@ export function ForgotPasswordForm() {
                   className="mr-2 animate-spin"
                 />
               )}
-              Send Reset Link
+              {t.auth.forgot.sendResetLink}
             </Button>
 
             <Separator />
 
             <div className="text-muted-foreground text-center text-sm">
-              Remember your password?{" "}
               <Link
                 href="/login"
                 className="text-primary font-medium hover:underline"
               >
-                Back to login
+                {t.auth.forgot.backToLogin}
               </Link>
             </div>
 
@@ -121,7 +121,7 @@ export function ForgotPasswordForm() {
                 href="/"
                 className="text-muted-foreground hover:text-primary text-sm"
               >
-                &larr; Back to home
+                {t.auth.forgot.backToHome}
               </Link>
             </div>
           </CardFooter>

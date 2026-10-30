@@ -25,10 +25,11 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { resetPassword } from "@/app/actions/auth"
 import { ResetPasswordFormProps } from "@/lib/interfaces"
-
+import { useI18n } from "@/lib/i18n/provider"
 
 export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   const router = useRouter()
+  const { t } = useI18n()
 
   const {
     register,
@@ -45,12 +46,12 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
     const result = await resetPassword(data)
 
     if (!result?.success) {
-      toast.error("Error", { description: result?.errors?.[0]?.message })
+      toast.error(t.auth.reset.toast.error, { description: result?.errors?.[0]?.message })
       return
     }
 
-    toast.success("Password reset successful", {
-      description: "You can now log in with your new password.",
+    toast.success(t.auth.reset.toast.success, {
+      description: t.auth.reset.toast.successDescription,
     })
 
     router.push("/login")
@@ -64,17 +65,17 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
             <Logo variant="auth" />
           </div>
           <CardTitle className="text-center text-2xl">
-            Reset your password
+            {t.auth.reset.title}
           </CardTitle>
           <CardDescription className="text-center">
-            Enter your new password below.
+            {t.auth.reset.description}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <input type="hidden" {...register("token")} />
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">New Password</Label>
+              <Label htmlFor="password">{t.auth.reset.newPassword}</Label>
               <div className="relative">
                 <LockIcon
                   size={18}
@@ -83,7 +84,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Enter your new password"
+                  placeholder={t.auth.reset.newPasswordPlaceholder}
                   disabled={isSubmitting}
                   autoComplete="new-password"
                   className="pl-10"
@@ -98,7 +99,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">{t.auth.reset.confirmPassword}</Label>
               <div className="relative">
                 <LockIcon
                   size={18}
@@ -107,7 +108,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
                 <Input
                   id="confirmPassword"
                   type="password"
-                  placeholder="Confirm your new password"
+                  placeholder={t.auth.reset.confirmPlaceholder}
                   disabled={isSubmitting}
                   autoComplete="new-password"
                   className="pl-10"
@@ -135,18 +136,17 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
                   className="mr-2 animate-spin"
                 />
               )}
-              Reset Password
+              {t.auth.reset.resetBtn}
             </Button>
 
             <Separator />
 
             <div className="text-muted-foreground text-center text-sm">
-              Remember your password?{" "}
               <Link
                 href="/login"
                 className="text-primary font-medium hover:underline"
               >
-                Back to login
+                {t.auth.reset.backToLogin}
               </Link>
             </div>
 
@@ -155,7 +155,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
                 href="/"
                 className="text-muted-foreground hover:text-primary text-sm"
               >
-                &larr; Back to home
+                {t.auth.forgot.backToHome}
               </Link>
             </div>
           </CardFooter>

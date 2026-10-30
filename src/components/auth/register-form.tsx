@@ -21,9 +21,11 @@ import { toast } from "sonner"
 import { Logo } from "@/components/ui/logo"
 import { registerSchema, type RegisterInput } from "@/lib/validations/auth"
 import { registerUser } from "@/app/actions/auth"
+import { useI18n } from "@/lib/i18n/provider"
 
 export function RegisterForm() {
   const router = useRouter()
+  const { t } = useI18n()
 
   const {
     register,
@@ -38,15 +40,15 @@ export function RegisterForm() {
 
     if (!result.success) {
       const errorMessage =
-        result.errors?.[0]?.message || "Registration failed. Please try again."
-      toast.error("Registration failed", {
+        result.errors?.[0]?.message || t.auth.register.toast.failedDescription
+      toast.error(t.auth.register.toast.failed, {
         description: errorMessage,
       })
       return
     }
 
-    toast.success("Account created successfully!", {
-      description: "Please check your email to verify your account before logging in.",
+    toast.success(t.auth.register.toast.created, {
+      description: t.auth.register.toast.createdDescription,
       duration: 6000,
     })
 
@@ -61,16 +63,16 @@ export function RegisterForm() {
             <Logo variant="auth" />
           </div>
           <CardTitle className="text-center text-2xl">
-            Create an account
+            {t.auth.register.createAccountTitle}
           </CardTitle>
           <CardDescription className="text-center">
-            Enter your information to get started
+            {t.auth.register.getStarted}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">{t.auth.register.fullName}</Label>
               <Input
                 id="name"
                 type="text"
@@ -87,7 +89,7 @@ export function RegisterForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t.auth.register.email}</Label>
               <Input
                 id="email"
                 type="email"
@@ -104,7 +106,7 @@ export function RegisterForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t.auth.register.password}</Label>
               <Input
                 id="password"
                 type="password"
@@ -120,7 +122,7 @@ export function RegisterForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">{t.auth.register.confirmPassword}</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -149,18 +151,18 @@ export function RegisterForm() {
                   className="mr-2 animate-spin"
                 />
               )}
-              Create Account
+              {t.auth.register.createAccountBtn}
             </Button>
 
             <Separator />
 
             <div className="text-muted-foreground text-center text-sm">
-              Already have an account?{" "}
+              {t.auth.register.haveAccount}{" "}
               <Link
                 href="/login"
                 className="text-primary font-medium hover:underline"
               >
-                Sign in
+                {t.auth.register.signIn}
               </Link>
             </div>
 
@@ -169,7 +171,7 @@ export function RegisterForm() {
                 href="/"
                 className="text-muted-foreground hover:text-primary text-sm"
               >
-                ← Back to home
+                {t.auth.register.backToHome}
               </Link>
             </div>
           </CardFooter>

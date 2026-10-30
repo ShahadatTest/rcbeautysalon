@@ -14,10 +14,12 @@ import { SpinnerIcon } from "@/components/icons"
 import { toast } from "sonner"
 import { Logo } from "@/components/ui/logo"
 import { loginSchema, type LoginInput } from "@/lib/validations/auth"
+import { useI18n } from "@/lib/i18n/provider"
 
 export function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { t } = useI18n()
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
 
   const {
@@ -39,29 +41,29 @@ export function LoginForm() {
       if (result?.error) {
         // Check if error is about email verification
         if (result.code === "EMAIL_NOT_VERIFIED" || result.error.includes("EMAIL_NOT_VERIFIED")) {
-          toast.error("Email verification required", {
-            description: "Please check your inbox and verify your email address before logging in. If you didn't receive the email, check your spam folder.",
+          toast.error(t.auth.login.toast.verifyRequired, {
+            description: t.auth.login.toast.verifyDescription,
             duration: 8000,
           })
           return
         }
 
         // Show generic error for invalid credentials
-        toast.error("Login failed", {
-          description: "Invalid email or password. Please try again.",
+        toast.error(t.auth.login.toast.loginFailed, {
+          description: t.auth.login.toast.invalidCredentials,
         })
         return
       } else {
-        toast.success("Login successful!", {
-          description: "Redirecting to dashboard...",
+        toast.success(t.auth.login.toast.loginSuccess, {
+          description: t.auth.login.toast.redirecting,
         })
         router.push(callbackUrl)
         router.refresh()
       }
     } catch (error) {
       console.log("Login error:", error)
-      toast.error("Login failed", {
-        description: "Something went wrong. Please try again.",
+      toast.error(t.auth.login.toast.loginFailed, {
+        description: t.auth.login.toast.somethingWrong,
       })
     }
   }
@@ -73,15 +75,15 @@ export function LoginForm() {
           <div className="mb-6 flex justify-center">
             <Logo variant="auth" />
           </div>
-          <CardTitle className="text-center text-2xl">Welcome back</CardTitle>
+          <CardTitle className="text-center text-2xl">{t.auth.login.welcomeBack}</CardTitle>
           <CardDescription className="text-center">
-            Sign in to your account to continue
+            {t.auth.login.signInSubtitle}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t.auth.login.email}</Label>
               <Input
                 id="email"
                 type="email"
@@ -97,12 +99,12 @@ export function LoginForm() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t.auth.login.password}</Label>
                 <Link
                   href="/forgot-password"
                   className="text-sm text-muted-foreground hover:text-primary"
                 >
-                  Forgot password?
+                  {t.auth.login.forgotPassword}
                 </Link>
               </div>
               <Input
@@ -122,20 +124,20 @@ export function LoginForm() {
               {isSubmitting && (
                 <SpinnerIcon size={16} weight="bold" className="mr-2 animate-spin" />
               )}
-              Sign In
+              {t.auth.login.signIn}
             </Button>
 
             <Separator />
 
             <div className="text-center text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
+              {t.auth.login.noAccount}{" "}
               <Link href="/register" className="font-medium text-primary hover:underline">
-                Create account
+                {t.auth.login.createAccount}
               </Link>
             </div>
 
             <div className="text-center text-sm text-muted-foreground">
-              Own a salon?{" "}
+              {t.auth.login.ownSalon}{" "}
               <Link href="/start" className="font-medium text-primary hover:underline">
                 Ustvari svoj salon
               </Link>
@@ -143,23 +145,23 @@ export function LoginForm() {
 
             <div className="text-center">
               <Link href="/" className="text-sm text-muted-foreground hover:text-primary">
-                ← Back to home
+                {t.auth.login.backToHome}
               </Link>
             </div>
 
             <div className="rounded-lg bg-muted p-3 text-xs text-muted-foreground">
-              <p className="font-semibold mb-2">Demo Credentials:</p>
+              <p className="font-semibold mb-2">{t.auth.login.demoCredentials}</p>
               <div className="space-y-2">
                 <div>
-                  <p className="font-medium text-foreground">Admin (Full Access):</p>
+                  <p className="font-medium text-foreground">{t.auth.login.adminFullAccess}</p>
                   <p>admin@rcbeautysalon.org / admin123</p>
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">Staff (Staff Portal):</p>
+                  <p className="font-medium text-foreground">{t.auth.login.staffAccess}</p>
                   <p>staff@rcbeautysalon.org / staff123</p>
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">Client (My Account):</p>
+                  <p className="font-medium text-foreground">{t.auth.login.clientAccess}</p>
                   <p>cliente@rcbeautysalon.org / cliente123</p>
                 </div>
               </div>

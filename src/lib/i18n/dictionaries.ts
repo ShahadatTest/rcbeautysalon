@@ -10,6 +10,7 @@ import { productsSl, productsEn } from "./dict/products"
 import { ordersSl, ordersEn } from "./dict/orders"
 import { staffSl, staffEn } from "./dict/staff"
 import { settingsSl, settingsEn } from "./dict/settings"
+import { authSl, authEn } from "./dict/auth"
 
 const dictionaries = {
   sl: {
@@ -23,6 +24,7 @@ const dictionaries = {
     orders: ordersSl,
     staff: staffSl,
     settings: settingsSl,
+    auth: authSl,
   },
   en: {
     common: commonEn,
@@ -35,6 +37,7 @@ const dictionaries = {
     orders: ordersEn,
     staff: staffEn,
     settings: settingsEn,
+    auth: authEn,
   },
 } as const
 

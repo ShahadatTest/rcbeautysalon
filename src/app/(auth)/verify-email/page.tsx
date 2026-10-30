@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { VerifyEmailSkeleton } from "@/components/auth/verify-email-skeleton"
+import { getServerI18n } from "@/lib/i18n/server"
 import { CheckCircleIcon } from "@/components/icons/check-circle-icon"
 import { XCircleIcon } from "@/components/icons/x-circle-icon"
 
@@ -27,7 +28,7 @@ interface VerifyEmailPageProps {
 }
 
 async function VerifyEmailContent({ token }: { token: string }) {
-  const result = await verifyEmail(token)
+  const [{ t }, result] = await Promise.all([getServerI18n(), verifyEmail(token)])
 
   if (result?.success) {
     return (
@@ -40,16 +41,15 @@ async function VerifyEmailContent({ token }: { token: string }) {
             <CheckCircleIcon size={64} weight="fill" className="text-green-500" />
           </div>
           <CardTitle className="text-center text-2xl">
-            Email Verified!
+            {t.auth.verifyEmail.successTitle}
           </CardTitle>
           <CardDescription className="text-center">
-            Your email has been successfully verified. You can now log in to
-            your account.
+            {t.auth.verifyEmail.successDescription}
           </CardDescription>
         </CardHeader>
         <CardFooter>
           <Button asChild className="w-full" size="lg">
-            <Link href="/login">Go to Login</Link>
+            <Link href="/login">{t.auth.verifyEmail.signIn}</Link>
           </Button>
         </CardFooter>
       </Card>
@@ -66,24 +66,24 @@ async function VerifyEmailContent({ token }: { token: string }) {
           <XCircleIcon size={64} weight="fill" className="text-destructive" />
         </div>
         <CardTitle className="text-center text-2xl">
-          Verification Failed
+          {t.auth.verifyEmail.errorTitle}
         </CardTitle>
         <CardDescription className="text-center">
           {result?.errors?.[0]?.message ||
-            "The verification link is invalid or has expired."}
+            t.auth.verifyEmail.errorDescription}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-muted-foreground text-center text-sm">
-          Please try registering again to receive a new verification link.
+          {t.auth.verifyEmail.errorDescription}
         </p>
       </CardContent>
       <CardFooter className="flex flex-col space-y-2">
         <Button asChild className="w-full" size="lg">
-          <Link href="/register">Register Again</Link>
+          <Link href="/register">{t.auth.register.createAccountBtn}</Link>
         </Button>
         <Button asChild variant="ghost" className="w-full">
-          <Link href="/">Back to Home</Link>
+          <Link href="/">{t.auth.verifyEmail.backToHome}</Link>
         </Button>
       </CardFooter>
     </Card>
