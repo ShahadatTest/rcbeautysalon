@@ -16,7 +16,7 @@ export async function sendAccountActivatedEmail(
     const { data, error } = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL!,
       to: email,
-      subject: "Your Account is Now Active - RC Beauty Salon",
+      subject: "Your Account is Now Active - Business Platform",
       html,
     })
 

@@ -25,17 +25,28 @@ import { formatSalonTime } from "@/lib/booking-time"
 import { getSessionSalonTimezone } from "@/lib/tenant"
 import { formatCurrency, formatChange } from "@/lib/utils/format"
 import { getServerI18n } from "@/lib/i18n/server"
+import { getSessionOrg } from "@/lib/tenant"
+import { getProfile, term as profileTerm } from "@/lib/profiles/registry"
 
 export default async function AdminDashboard() {
-  const [{ t, dateFnsLocale }, salonTz] = await Promise.all([
+  const [{ t, locale, dateFnsLocale }, salonTz] = await Promise.all([
     getServerI18n(),
     getSessionSalonTimezone(),
   ])
-  const [stats, todaysAppointments, recentActivities] = await Promise.all([
+  const [stats, todaysAppointments, recentActivities, org] = await Promise.all([
     getDashboardStats(),
     getTodaysAppointments(),
     getRecentActivities(),
+    getSessionOrg(),
   ])
+
+  // Capability-gated dashboard (EPIC #1 §21): irrelevant modules never render.
+  const profile = getProfile(org?.vertical)
+  const showAppointments = profile.capabilities.appointments !== "disabled"
+  const workOrdersEnabled = profile.capabilities.workOrders !== "disabled"
+  const ordersLabel = workOrdersEnabled
+    ? profileTerm(profile, "orderPlural", locale)
+    : t.dashboard.shopSales
 
   return (
     <div className="space-y-8">
@@ -51,7 +62,7 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className={`grid gap-4 md:grid-cols-2 ${showAppointments ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -78,6 +89,7 @@ export default async function AdminDashboard() {
           </CardContent>
         </Card>
 
+        {showAppointments && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -94,6 +106,7 @@ export default async function AdminDashboard() {
             </p>
           </CardContent>
         </Card>
+        )}
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -115,7 +128,7 @@ export default async function AdminDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {t.dashboard.shopSales}
+              {ordersLabel}
             </CardTitle>
             <ShoppingBagIcon size={16} className="text-muted-foreground" />
           </CardHeader>
@@ -136,7 +149,8 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        {/* Today's Appointments */}
+        {/* Today's Appointments — only for appointment-capable profiles */}
+        {showAppointments && (
         <Card className="col-span-4">
           <CardHeader>
             <CardTitle>{t.dashboard.todaysAppointments}</CardTitle>
@@ -193,20 +207,23 @@ export default async function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+        )}
 
         {/* Quick Actions */}
-        <Card className="col-span-3">
+        <Card className={showAppointments ? "col-span-3" : "col-span-7"}>
           <CardHeader>
             <CardTitle>{t.dashboard.quickActions}</CardTitle>
             <CardDescription>{t.dashboard.commonTasks}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
+            {showAppointments && (
             <Link href="/dashboard/appointments/new">
               <Button className="w-full justify-start" variant="outline">
                 <CalendarIcon size={16} className="mr-2" />
                 {t.dashboard.newAppointment}
               </Button>
             </Link>
+            )}
             <Link href="/dashboard/products/new">
               <Button className="w-full justify-start" variant="outline">
                 <ShoppingBagIcon size={16} className="mr-2" />

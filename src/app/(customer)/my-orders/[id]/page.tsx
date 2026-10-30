@@ -21,7 +21,7 @@ import { getOrderByIdForCustomer } from "@/app/actions/orders"
 import { formatCurrency } from "@/lib/utils/format"
 
 export const metadata: Metadata = {
-  title: "Podrobnosti naročila | RC Beauty Salon",
+  title: "Podrobnosti naročila | Poslovna platforma",
   description: "Pregledajte podrobnosti svojega naročila.",
 }
 
@@ -208,9 +208,10 @@ export default async function OrderDetailPage({
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-sm">
-                <p className="font-medium">RC Beauty Salon</p>
-                <p className="text-muted-foreground">123 Beauty Street</p>
-                <p className="text-muted-foreground">New York, NY 10001</p>
+                <p className="font-medium">{order.organization?.name ?? "Spletna trgovina"}</p>
+                <p className="text-muted-foreground">
+                  Natančna lokacija prevzema je navedena ob potrditvi naročila.
+                </p>
                 <Separator className="my-3" />
                 <div className="flex items-center gap-2">
                   {order.status === "COMPLETED" ? (

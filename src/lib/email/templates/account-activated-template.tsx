@@ -26,7 +26,7 @@ export function AccountActivatedTemplate({
   return (
     <Html>
       <Head />
-      <Preview>Your RC Beauty Salon account is now active!</Preview>
+      <Preview>Your Business Platform account is now active!</Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Header */}
@@ -35,14 +35,14 @@ export function AccountActivatedTemplate({
               src={logoUrl}
               width="200"
               height="200"
-              alt="RC Beauty Salon"
+              alt="Business Platform"
               style={logo}
             />
           </Section>
 
           {/* Content */}
           <Section style={content}>
-            <Heading style={title}>Welcome to RC Beauty Salon!</Heading>
+            <Heading style={title}>Welcome to Business Platform!</Heading>
             <Text style={text}>
               Hello{userName ? ` ${userName}` : ""},
             </Text>
@@ -99,10 +99,10 @@ export function AccountActivatedTemplate({
 
           {/* Footer */}
           <Section style={footer}>
-            <Text style={footerBrand}>RC Beauty Salon</Text>
+            <Text style={footerBrand}>Business Platform</Text>
             <Text style={footerTagline}>Your Beauty, Our Passion</Text>
             <Text style={footerCopyright}>
-              © {new Date().getFullYear()} RC Beauty Salon. All rights reserved.
+              © {new Date().getFullYear()} Business Platform. All rights reserved.
             </Text>
           </Section>
         </Container>

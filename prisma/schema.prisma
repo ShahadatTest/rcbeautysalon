@@ -46,12 +46,18 @@ model Organization {
   slug      String   @unique // URL: /s/[slug] — validated against reserved routes
   name      String
   logo      String?
-  vertical  String   @default("beauty") // frizer | barber | nails | beauty | massage | epilation | generic
+  vertical  String   @default("beauty") // activity profile id (see src/lib/profiles/registry.ts)
   palette   String   @default("rose") // theme palette key (see src/lib/verticals.ts)
   plan      String   @default("free")
   status    String   @default("ACTIVE") // ACTIVE | SUSPENDED
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Activity profile engine (EPIC #1): resolved profile version the tenant was
+  // onboarded/materialized against, and tenant-level overrides that never mutate
+  // the shared profile definition. See src/lib/profiles/.
+  profileVersion   String?
+  profileOverrides Json?
 
   // Owner-supplied Stripe integration (entered by the admin in Settings →
   // Plačila). Optional: when absent, payments fall back to env keys and
@@ -60,16 +66,19 @@ model Organization {
   stripeWebhookSecret String?   @db.Text
   stripeConfiguredAt  DateTime?
 
-  users        User[]
-  salonConfig  SalonConfig?
-  categories   Category[]
-  services     Service[]
-  products     Product[]
-  staff        Staff[]
-  customers    Customer[]
-  appointments Appointment[]
-  orders       Order[]
-  media        Media[]
+  users               User[]
+  salonConfig         SalonConfig?
+  categories          Category[]
+  services            Service[]
+  products            Product[]
+  staff               Staff[]
+  customers           Customer[]
+  appointments        Appointment[]
+  orders              Order[]
+  media               Media[]
+  formDefinitions     FormDefinition[]
+  formSubmissions     FormSubmission[]
+  workflowDefinitions WorkflowDefinition[]
 
   @@index([slug])
   @@index([status])
@@ -369,8 +378,9 @@ model Customer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  appointments Appointment[]
-  orders       Order[]
+  appointments    Appointment[]
+  orders          Order[]
+  formSubmissions FormSubmission[]
 
   @@index([userId])
   @@index([organizationId])
@@ -536,4 +546,97 @@ enum OrderStatus {
   COMPLETED // Entregado en tienda
   CANCELLED
   REFUNDED
+}
+
+// ============================================================
+// ACTIVITY PROFILE ENGINE (EPIC #1) — per-tenant materialized
+// definitions. Profile templates (src/lib/profiles/registry.ts)
+// are copied on-write at onboarding so the owner can customize
+// forms/workflows without code and without mutating the shared
+// profile. All rows are strictly org-scoped.
+// ============================================================
+
+/// Reusable dynamic form template (fields + validation) owned by a tenant.
+model FormDefinition {
+  id             String   @id @default(cuid())
+  organizationId String
+  key            String // stable template key, e.g. "order-details", "vehicle-intake"
+  name           String
+  description    String?
+  version        Int      @default(1)
+  isActive       Boolean  @default(true)
+  fields         Json // ProfileFieldDef[] — validated server-side on read/write
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  submissions  FormSubmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, key])
+  @@index([organizationId])
+}
+
+/// A filled-in form. Context is polymorphic (contextType + contextId) because
+/// the universal core must not assume which entity the form belongs to
+/// (appointment, work order, vehicle, batch, …). customer is a real FK since
+/// customers are a universal primitive.
+model FormSubmission {
+  id               String   @id @default(cuid())
+  organizationId   String
+  formDefinitionId String
+  data             Json
+  status           String   @default("NEW") // NEW | IN_REVIEW | PROCESSED
+  customerId       String?
+  contextType      String? // "appointment" | "order" | custom entity key
+  contextId        String?
+
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  formDefinition FormDefinition @relation(fields: [formDefinitionId], references: [id], onDelete: Cascade)
+  customer       Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([formDefinitionId])
+  @@index([customerId])
+  @@index([contextType, contextId])
+}
+
+/// Configurable business process (e.g. seamstress production pipeline)
+/// owned by a tenant; stages define the allowed progression.
+model WorkflowDefinition {
+  id             String   @id @default(cuid())
+  organizationId String
+  key            String // stable key, e.g. "production-order"
+  name           String
+  entity         String // "order" | "appointment" | custom entity key
+  version        Int      @default(1)
+  isActive       Boolean  @default(true)
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stages       WorkflowStage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, key])
+  @@index([organizationId])
+}
+
+model WorkflowStage {
+  id           String  @id @default(cuid())
+  definitionId String
+  key          String
+  name         String
+  description  String?
+  order        Int
+  slaHours     Int?
+  isFinal      Boolean @default(false)
+
+  definition WorkflowDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+
+  @@unique([definitionId, key])
+  @@index([definitionId])
 }

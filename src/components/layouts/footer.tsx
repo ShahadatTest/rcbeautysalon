@@ -266,9 +266,9 @@ const Footer = async () => {
           <p className="text-muted-foreground text-center text-sm md:text-left">
             &copy; {new Date().getFullYear()}{" "}
             <span className="from-accent to-primary bg-linear-to-r bg-clip-text font-semibold text-transparent">
-              {org?.name ?? "Salon Platform"}
+              {org?.name ?? "Poslovna platforma"}
             </span>{" "}
-            — Oblikovano s ❤ na Salon Platformi
+            — Oblikovano s ❤ na Poslovni platformi
           </p>
           <div className="flex gap-6 text-sm">
             {legalLinks.map((link) => (

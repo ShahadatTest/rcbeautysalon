@@ -43,7 +43,7 @@ export function NoShowNotificationTemplate({
   return (
     <Html>
       <Head />
-      <Preview>Missed Appointment - RC Beauty Salon</Preview>
+      <Preview>Missed Appointment - Business Platform</Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Header */}
@@ -52,7 +52,7 @@ export function NoShowNotificationTemplate({
               src={logoUrl}
               width="200"
               height="200"
-              alt="RC Beauty Salon"
+              alt="Business Platform"
               style={logo}
             />
           </Section>
@@ -63,7 +63,7 @@ export function NoShowNotificationTemplate({
             <Text style={text}>Hello {customerName},</Text>
             <Text style={text}>
               We noticed that you were unable to attend your scheduled
-              appointment at RC Beauty Salon. We missed seeing you!
+              appointment at Business Platform. We missed seeing you!
             </Text>
 
             {/* Appointment Details Box */}
@@ -160,13 +160,13 @@ export function NoShowNotificationTemplate({
 
           {/* Footer */}
           <Section style={footer}>
-            <Text style={footerBrand}>RC Beauty Salon</Text>
+            <Text style={footerBrand}>Business Platform</Text>
             <Text style={footerTagline}>Your Beauty, Our Passion</Text>
             <Text style={footerAddress}>
               123 Beauty Street, City, State 12345
             </Text>
             <Text style={footerCopyright}>
-              © {new Date().getFullYear()} RC Beauty Salon. All rights reserved.
+              © {new Date().getFullYear()} Business Platform. All rights reserved.
             </Text>
           </Section>
         </Container>

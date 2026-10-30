@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ShoppingCartIcon, StorefrontIcon } from "@/components/icons"
 
 export const metadata: Metadata = {
-  title: "Nakup preklican | RC Beauty Salon",
+  title: "Nakup preklican | Poslovna platforma",
   description: "Vaš nakup je bil preklican. Vaša košarica je še vedno shranjena.",
 }
 

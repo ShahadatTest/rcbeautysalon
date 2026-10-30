@@ -4,8 +4,8 @@ import { RegisterForm } from "@/components/auth/register-form"
 import { RegisterSkeleton } from "@/components/auth/register-skeleton"
 
 export const metadata: Metadata = {
-  title: "Registracija | RC Beauty Salon",
-  description: "Ustvarite račun RC Beauty Salon za rezervacijo terminov, nakup izdelkov in upravljanje svoje lepote izkušnje.",
+  title: "Registracija | Poslovna platforma",
+  description: "Ustvarite račun za rezervacijo terminov, nakup izdelkov in upravljanje svoje lepote izkušnje.",
 }
 
 export default function RegisterPage() {

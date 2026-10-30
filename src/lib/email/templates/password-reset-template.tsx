@@ -26,7 +26,7 @@ export function PasswordResetTemplate({
   return (
     <Html>
       <Head />
-      <Preview>Reset your RC Beauty Salon password</Preview>
+      <Preview>Reset your Business Platform password</Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Header */}
@@ -35,7 +35,7 @@ export function PasswordResetTemplate({
               src={logoUrl}
               width="240"
               height="240"
-              alt="RC Beauty Salon"
+              alt="Business Platform"
               style={logo}
             />
           </Section>
@@ -78,10 +78,10 @@ export function PasswordResetTemplate({
 
           {/* Footer */}
           <Section style={footer}>
-            <Text style={footerBrand}>RC Beauty Salon</Text>
+            <Text style={footerBrand}>Business Platform</Text>
             <Text style={footerTagline}>Your Beauty, Our Passion</Text>
             <Text style={footerCopyright}>
-              © {new Date().getFullYear()} RC Beauty Salon. All rights
+              © {new Date().getFullYear()} Business Platform. All rights
               reserved.
             </Text>
           </Section>

@@ -17,7 +17,7 @@ import { getCustomerOrders } from "@/app/actions/orders"
 import { formatCurrency } from "@/lib/utils/format"
 
 export const metadata: Metadata = {
-  title: "Moja naročila | RC Beauty Salon",
+  title: "Moja naročila | Poslovna platforma",
   description: "Pregledajte zgodovino svojih naročil in spremljajte nakupe.",
 }
 

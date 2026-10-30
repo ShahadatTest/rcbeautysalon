@@ -10,7 +10,7 @@ import {
 } from "@/app/actions/staff"
 
 export const metadata: Metadata = {
-  title: "Portal za osebje | RC Beauty Salon",
+  title: "Portal za osebje | Poslovna platforma",
   description: "Upravljajte svoje termine in urnik",
 }
 

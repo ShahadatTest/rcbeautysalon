@@ -5,7 +5,7 @@ import { MyReviewsList } from "@/components/reviews/my-reviews-list"
 import { getUserReviews } from "@/app/actions/reviews"
 
 export const metadata: Metadata = {
-  title: "Moje ocene | RC Beauty Salon",
+  title: "Moje ocene | Poslovna platforma",
   description: "Pregledajte in upravljajte svoje ocene storitev.",
 }
 

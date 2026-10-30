@@ -28,7 +28,7 @@ export function VerificationEmailTemplate({
   return (
     <Html>
       <Head />
-      <Preview>Verify your RC Beauty Salon account</Preview>
+      <Preview>Verify your Business Platform account</Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Header */}
@@ -37,19 +37,19 @@ export function VerificationEmailTemplate({
               src={logoUrl}
               width="240"
               height="240"
-              alt="RC Beauty Salon"
+              alt="Business Platform"
               style={logo}
             />
           </Section>
 
           {/* Content */}
           <Section style={content}>
-            <Heading style={title}>Welcome to RC Beauty Salon!</Heading>
+            <Heading style={title}>Welcome to Business Platform!</Heading>
             <Text style={text}>
               Hello{userName ? ` ${userName}` : ""},
             </Text>
             <Text style={text}>
-              Thank you for creating an account with RC Beauty Salon. Please
+              Thank you for creating an account with Business Platform. Please
               verify your email address by clicking the button below:
             </Text>
 
@@ -82,10 +82,10 @@ export function VerificationEmailTemplate({
 
           {/* Footer */}
           <Section style={footer}>
-            <Text style={footerBrand}>RC Beauty Salon</Text>
+            <Text style={footerBrand}>Business Platform</Text>
             <Text style={footerTagline}>Your Beauty, Our Passion</Text>
             <Text style={footerCopyright}>
-              © {new Date().getFullYear()} RC Beauty Salon. All rights
+              © {new Date().getFullYear()} Business Platform. All rights
               reserved.
             </Text>
           </Section>

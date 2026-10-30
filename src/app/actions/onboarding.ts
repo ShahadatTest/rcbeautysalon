@@ -4,7 +4,9 @@ import { Prisma } from "@prisma/client"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
 import { isReservedSlug, isSlugAvailable, slugify } from "@/lib/tenant"
-import { PALETTES, VERTICALS, seedOrganizationCatalog, verticalSiteContent } from "@/lib/verticals"
+import { PALETTES, seedOrganizationCatalog, verticalSiteContent, getVertical } from "@/lib/verticals"
+import { listProfileOptions } from "@/lib/profiles/registry"
+import { materializeProfileAssets } from "@/lib/profiles/materialize"
 import { PALETTE_OPTIONS } from "@/lib/palettes-client"
 
 export interface CreateSalonInput {
@@ -34,16 +36,17 @@ export async function checkSlugAvailability(slug: string): Promise<{ available: 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 /**
- * Creates a complete salon tenant in one logical flow:
+ * Creates a complete business tenant in one logical flow:
  * Organization -> User (ADMIN) + Staff + WorkingHours -> catalog seed ->
- * staff services -> SalonConfig (site content, locale, booking policy).
+ * profile asset materialization (forms + workflows) -> staff services ->
+ * SalonConfig (site content, locale, booking policy).
  */
 export async function createSalonOrganization(input: CreateSalonInput): Promise<CreateSalonResult> {
   try {
     // --- Validation (friendly Slovenian messages) ---
     const name = (input.name ?? "").trim()
     if (name.length < 2) {
-      return { success: false, error: "Ime salona mora imeti vsaj 2 znaka." }
+      return { success: false, error: "Ime podjetja mora imeti vsaj 2 znaka." }
     }
 
     const slug = slugify(input.slug ?? "")
@@ -57,9 +60,12 @@ export async function createSalonOrganization(input: CreateSalonInput): Promise<
       return { success: false, error: "Ta URL naslov je že zaseden. Izberite drugega." }
     }
 
-    const vertical = VERTICALS.find((v) => v.id === input.vertical)?.id
-    if (!vertical) {
-      return { success: false, error: "Izberite veljavno panogo." }
+    // Validate the activity profile against the single-source registry
+    // (EPIC #1) — the profile determines modules, terminology, forms and
+    // workflows, not just appearance.
+    const profile = listProfileOptions().find((p) => p.id === input.vertical)
+    if (!profile) {
+      return { success: false, error: "Izberite veljavno dejavnost." }
     }
 
     const palette = PALETTES[input.palette] ? input.palette : undefined
@@ -92,7 +98,7 @@ export async function createSalonOrganization(input: CreateSalonInput): Promise<
 
     // --- Tenant creation ---
     const org = await prisma.organization.create({
-      data: { slug, name, vertical, palette },
+      data: { slug, name, vertical: profile.id, palette },
     })
 
     let userId: string | null = null
@@ -130,8 +136,12 @@ export async function createSalonOrganization(input: CreateSalonInput): Promise<
       userId = user.id
       const staffId = user.staff?.id
 
-      // Sample categories + services for the chosen vertical
-      await seedOrganizationCatalog(org.id, vertical)
+      // Sample categories + services + products for the chosen activity
+      await seedOrganizationCatalog(org.id, profile.id)
+
+      // Materialize profile-owned definitions (forms + workflows) so the
+      // owner can customize them per-tenant without code (EPIC #1 §4).
+      await materializeProfileAssets(org.id, profile.id)
 
       // Assign every created service to the owner's staff profile
       const services = await prisma.service.findMany({
@@ -145,19 +155,21 @@ export async function createSalonOrganization(input: CreateSalonInput): Promise<
         })
       }
 
-      // Salon configuration with vertical site content (site goes live instantly)
+      // Salon configuration with profile-driven defaults (locale, currency,
+      // timezone come from the activity preset — no more hardcoded values).
+      const preset = getVertical(profile.id)
       await prisma.salonConfig.create({
         data: {
           organizationId: org.id,
           name,
           email,
           country: "SI",
-          currency: "EUR",
-          locale: "sl",
-          timezone: "Europe/Ljubljana",
+          currency: preset.currency || "EUR",
+          locale: preset.locale || "sl",
+          timezone: preset.timezone || "Europe/Ljubljana",
           bookingDeposit: 10,
           cancellationPolicy: "Odpoved možna najkasneje 24 ur pred terminom.",
-          siteContent: verticalSiteContent(vertical) as unknown as object,
+          siteContent: verticalSiteContent(profile.id) as unknown as object,
           primaryColor: paletteOption?.primary ?? "#000000",
           secondaryColor: "#ffffff",
           accentColor: paletteOption?.accent ?? "#d4af37",
@@ -186,10 +198,10 @@ export async function createSalonOrganization(input: CreateSalonInput): Promise<
       }
       return { success: false, error: "Ti podatki so že v uporabi. Preverite vnesene podatke." }
     }
-    console.error("Salon onboarding error:", error)
+    console.error("Business onboarding error:", error)
     return {
       success: false,
-      error: "Pri ustvarjanju salona je prišlo do napake. Poskusite znova.",
+      error: "Pri ustvarjanju podjetja je prišlo do napake. Poskusite znova.",
     }
   }
 }

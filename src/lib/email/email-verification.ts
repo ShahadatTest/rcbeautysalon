@@ -17,7 +17,7 @@ export async function sendVerificationEmail(email: string, token: string) {
     const { data, error } = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL!,
       to: email,
-      subject: "Verify Your Email - RC Beauty Salon",
+      subject: "Verify Your Email - Business Platform",
       html,
     })
 

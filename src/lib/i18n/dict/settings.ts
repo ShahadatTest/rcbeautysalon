@@ -4,6 +4,15 @@ export const settingsSl = {
   title: "Nastavitve",
   subtitle: "Prilagodite nastavitve svojega salona",
   loadError: "Nastavitev ni bilo mogoče naložiti. Poskusite osvežiti stran.",
+  profile: {
+    title: "Profil dejavnosti",
+    loadError: "Profila ni bilo mogoče naložiti.",
+    capabilities: "Zmogljivosti (moduli)",
+    workflows: "Poslovni procesi",
+    forms: "Obrazci",
+    fieldsCount: "polj",
+    extensions: "Razširitve",
+  },
   tabs: {
     basic: "Osnovne nastavitve",
     branding: "Izgled in vsebina",
@@ -314,6 +323,15 @@ export const settingsEn: SettingsDict = {
   title: "Settings",
   subtitle: "Configure your salon settings",
   loadError: "Settings could not be loaded. Try refreshing the page.",
+  profile: {
+    title: "Activity profile",
+    loadError: "Could not load the profile.",
+    capabilities: "Capabilities (modules)",
+    workflows: "Business workflows",
+    forms: "Forms",
+    fieldsCount: "fields",
+    extensions: "Extensions",
+  },
   tabs: {
     basic: "Basic Settings",
     branding: "Branding",

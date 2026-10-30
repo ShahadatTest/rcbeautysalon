@@ -4,8 +4,8 @@ import { ForgotPasswordForm } from "@/components/auth/forgot-password-form"
 import { ForgotPasswordSkeleton } from "@/components/auth/forgot-password-skeleton"
 
 export const metadata: Metadata = {
-  title: "Pozabljeno geslo | RC Beauty Salon",
-  description: "Ponastavite geslo za svoj račun RC Beauty Salon.",
+  title: "Pozabljeno geslo | Poslovna platforma",
+  description: "Ponastavite geslo za svoj račun.",
 }
 
 export default function ForgotPasswordPage() {

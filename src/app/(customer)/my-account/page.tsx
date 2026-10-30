@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth/auth"
 
 export const metadata: Metadata = {
-  title: "Moj račun | RC Beauty Salon",
+  title: "Moj račun | Poslovna platforma",
   description: "Upravljajte svoj profil, si oglejte termine in posodobite nastavitve računa.",
 }
 import {

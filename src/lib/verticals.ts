@@ -132,6 +132,15 @@ export interface PresetCategory {
   services: PresetService[]
 }
 
+export interface PresetProduct {
+  name: string
+  description: string
+  price: number
+  stockQuantity: number
+  trackInventory?: boolean
+  isFeatured?: boolean
+}
+
 export interface VerticalPreset {
   id: string
   label: string
@@ -141,6 +150,8 @@ export interface VerticalPreset {
   locale: string
   timezone: string
   categories: PresetCategory[]
+  /** Sample products seeded for product-centric profiles (e.g. beekeeping). */
+  products?: PresetProduct[]
   siteContent: SiteContent
 }
 
@@ -319,7 +330,7 @@ export const VERTICALS: VerticalPreset[] = [
   {
     id: "generic",
     label: "Univerzalno",
-    description: "Za salone z lastnim katalogom storitev",
+    description: "Za podjetja z lastnim katalogom storitev",
     palette: "coral",
     currency: "EUR",
     locale: "sl",
@@ -332,10 +343,80 @@ export const VERTICALS: VerticalPreset[] = [
     ],
     siteContent: defaultSiteContent("beauty"),
   },
+
+  // --- §21 acceptance profiles: genuinely different business models ---
+  {
+    id: "seamstress",
+    label: "Šiviljstvo",
+    description: "Spremembe, popravila in šivanje po meri",
+    palette: "teal",
+    currency: "EUR",
+    locale: "sl",
+    timezone: "Europe/Ljubljana",
+    categories: [
+      { name: "Spremembe oblačil", slug: "spremembe-oblacil", services: [
+        { name: "Krajšanje hlač", description: "Krajšanje hlač z ohranitvijo originalnega roba", duration: 30, price: 12, isFeatured: true },
+        { name: "Prižemanje v pasu", description: "Prižemanje hlač, sukjenj in jakn v pasu", duration: 45, price: 18, isFeatured: true },
+        { name: "Krajšanje rokavov", description: "Krajšanje rokavov pri jaknah in srajcah", duration: 40, price: 15 },
+      ]},
+      { name: "Popravila", slug: "popravila", services: [
+        { name: "Zamenjava zadrgle", description: "Zamenjava zadrgle na oblačilih in torbah", duration: 45, price: 15, isFeatured: true },
+        { name: "Popravilo prekinitve", description: "Skrivanje in popravilo prekinitvenih mest", duration: 30, price: 10 },
+      ]},
+      { name: "Šivanje po meri", slug: "sivanje-po-meri", services: [
+        { name: "Posvet in snemanje mer", description: "Svetovanje o materialih in snemanje merilnega lista", duration: 45, price: 0 },
+        { name: "Obleka po meri", description: "Šivanje obleke po merilnem listu (cena od, glede na material)", duration: 240, price: 180 },
+      ]},
+    ],
+    siteContent: defaultSiteContent("seamstress"),
+  },
+  {
+    id: "tire-service",
+    label: "Vulkanizer & avtoservis",
+    description: "Menjava guma, servis vozil, deli in delovni nalogi",
+    palette: "charcoal",
+    currency: "EUR",
+    locale: "sl",
+    timezone: "Europe/Ljubljana",
+    categories: [
+      { name: "Vulkanizerija", slug: "vulkanizerija", services: [
+        { name: "Menjava gum (komplet)", description: "Demontaža, montaža in balansiranje štirih gum", duration: 60, price: 40, isFeatured: true },
+        { name: "Balansiranje", description: "Balansiranje kolesa s svinčenimi utežmi", duration: 20, price: 10 },
+        { name: "Popravilo punkture", description: "Popravilo preboja z vstavljanjem gumene zamaške", duration: 30, price: 15 },
+      ]},
+      { name: "Servis vozil", slug: "servis-vozil", services: [
+        { name: "Menjava olja in filtra", description: "Menjava motornega olja in oljnega filtra", duration: 45, price: 55, isFeatured: true },
+        { name: "Diagnostika napak", description: "Pregled z diagnostično napravo in razlaga napak", duration: 30, price: 25 },
+        { name: "Menjava zavorških blazinic", description: "Menjava zavorških blazinic na eni osi", duration: 60, price: 45 },
+      ]},
+    ],
+    siteContent: defaultSiteContent("tire-service"),
+  },
+  {
+    id: "beekeeping",
+    label: "Čebelarstvo",
+    description: "Med in čebelji izdelki — prodaja brez rezervacij",
+    palette: "amber",
+    currency: "EUR",
+    locale: "sl",
+    timezone: "Europe/Ljubljana",
+    categories: [],
+    products: [
+      { name: "Cvetlični med 500 g", description: "Odcejen cvetlični med iz lastnih panjskih postaj.", price: 9, stockQuantity: 120, isFeatured: true },
+      { name: "Lipov med 500 g", description: "Aromaten lipov med — priljubljen za prehladne dni.", price: 11, stockQuantity: 80, isFeatured: true },
+      { name: "Gozdni med 500 g", description: "Temni gozdni med z izrazito mineralno noto.", price: 12, stockQuantity: 60 },
+      { name: "Akačijski med 500 g", description: "Bister, blag akačijski med, ki ostane tekoč dlje časa.", price: 13, stockQuantity: 40 },
+      { name: "Propolisna tinktura 30 ml", description: "Naravna propolisna tinktura lastne proizvodnje.", price: 14, stockQuantity: 35 },
+      { name: "Čebelji vosek — sveča", description: "Ročno vlita sveča iz čistega čebeljega voska.", price: 6, stockQuantity: 90 },
+    ],
+    siteContent: defaultSiteContent("beekeeping"),
+  },
 ]
 
 export function getVertical(id: string): VerticalPreset {
-  return VERTICALS.find((v) => v.id === id) ?? VERTICALS[0]
+  // Unknown profile ids fall back to the universal preset — never to a
+  // salon-specific one (EPIC #1 §21: no silent industry assumptions).
+  return VERTICALS.find((v) => v.id === id) ?? (VERTICALS.find((v) => v.id === "generic") ?? VERTICALS[0])
 }
 
 /** Fill content with vertical-specific default imagery. */
@@ -346,7 +427,7 @@ export function verticalSiteContent(id: string): SiteContent {
   return withImages(v.id, v.siteContent, aboutImg)
 }
 
-/** Creates categories + sample services for a fresh organization. */
+/** Creates categories + sample services + sample products for a fresh organization. */
 export async function seedOrganizationCatalog(orgId: string, verticalId: string): Promise<void> {
   const existing = await prisma.category.count({ where: { organizationId: orgId } })
   if (existing > 0) return
@@ -370,6 +451,25 @@ export async function seedOrganizationCatalog(orgId: string, verticalId: string)
           organizationId: orgId,
           categoryId: category.id,
         },
+      })
+    }
+  }
+  // Sample products for product-centric profiles (e.g. beekeeping).
+  if (preset.products?.length) {
+    const existingProducts = await prisma.product.count({ where: { organizationId: orgId } })
+    if (existingProducts === 0) {
+      await prisma.product.createMany({
+        data: preset.products.map((p) => ({
+          name: p.name,
+          description: p.description,
+          price: p.price,
+          trackInventory: p.trackInventory ?? true,
+          stockQuantity: p.stockQuantity,
+          images: [],
+          isActive: true,
+          isFeatured: !!p.isFeatured,
+          organizationId: orgId,
+        })),
       })
     }
   }

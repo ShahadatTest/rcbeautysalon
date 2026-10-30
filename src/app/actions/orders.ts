@@ -161,6 +161,7 @@ export async function getOrderByIdForCustomer(id: string) {
     },
     include: {
       customer: true,
+      organization: { select: { name: true, slug: true } },
       items: {
         include: {
           product: true,

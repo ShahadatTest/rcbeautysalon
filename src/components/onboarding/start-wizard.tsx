@@ -19,9 +19,13 @@ import {
   StorefrontIcon,
   XCircleIcon,
 } from "@/components/icons"
-import { PALETTE_OPTIONS, VERTICAL_OPTIONS } from "@/lib/palettes-client"
+import { PALETTE_OPTIONS } from "@/lib/palettes-client"
+import { listProfileOptions } from "@/lib/profiles/registry"
 import { checkSlugAvailability, createSalonOrganization } from "@/app/actions/onboarding"
 import { cn } from "@/lib/utils"
+
+// Single-source activity options (EPIC #1 registry).
+const ACTIVITY_OPTIONS = listProfileOptions()
 
 // Client-safe slugify (mirror of src/lib/tenant.ts, which is server-only)
 function slugifyLocal(input: string): string {
@@ -39,8 +43,8 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 type SlugStatus = "idle" | "checking" | "available" | "taken"
 
 const STEPS = [
-  { id: 1, label: "Panoga" },
-  { id: 2, label: "Salon" },
+  { id: 1, label: "Dejavnost" },
+  { id: 2, label: "Podjetje" },
   { id: 3, label: "Lastnik" },
 ] as const
 
@@ -67,7 +71,7 @@ export function StartWizard() {
   const [confirmPassword, setConfirmPassword] = useState("")
 
   const selectedVertical = useMemo(
-    () => VERTICAL_OPTIONS.find((v) => v.id === vertical) ?? null,
+    () => ACTIVITY_OPTIONS.find((v) => v.id === vertical) ?? null,
     [vertical]
   )
   const selectedPalette = useMemo(
@@ -114,7 +118,7 @@ export function StartWizard() {
 
   function selectVertical(id: string) {
     setVertical(id)
-    const preset = VERTICAL_OPTIONS.find((v) => v.id === id)
+    const preset = ACTIVITY_OPTIONS.find((v) => v.id === id)
     if (preset) setPalette(preset.palette)
   }
 
@@ -197,7 +201,7 @@ export function StartWizard() {
       })
 
       if (!res.success) {
-        toast.error(res.error ?? "Pri ustvarjanju salona je prišlo do napake. Poskusite znova.")
+        toast.error(res.error ?? "Pri ustvarjanju podjetja je prišlo do napake. Poskusite znova.")
         setCreating(false)
         return
       }
@@ -209,7 +213,7 @@ export function StartWizard() {
       })
 
       if (login?.error) {
-        toast.error("Salon je ustvarjen, avtomatska prijava pa ni uspela.", {
+        toast.error("Podjetje je ustvarjeno, avtomatska prijava pa ni uspela.", {
           description: "Prijavite se ročno z vašo e-pošto in geslom.",
           duration: 8000,
         })
@@ -217,13 +221,13 @@ export function StartWizard() {
         return
       }
 
-      toast.success("Salon je ustvarjen!", {
+      toast.success("Podjetje je ustvarjeno!", {
         description: `Vaša stran je na voljo na /s/${res.slug}`,
       })
       router.push("/dashboard?welcome=1")
       router.refresh()
     } catch {
-      toast.error("Pri ustvarjanju salona je prišlo do napake. Poskusite znova.")
+      toast.error("Pri ustvarjanju podjetja je prišlo do napake. Poskusite znova.")
       setCreating(false)
     }
   }
@@ -295,13 +299,13 @@ export function StartWizard() {
         {step === 1 && (
           <section aria-labelledby="step-1-title">
             <h1 id="step-1-title" className="text-2xl font-bold tracking-tight sm:text-3xl">
-              Kaj počnete v vašem salonu?
+              Kaj je vaša dejavnost?
             </h1>
             <p className="mt-2 text-muted-foreground">
-              Izberite panogo — prilagodili vam bomo katalog storitev, barve in vsebino strani.
+              Izberite dejavnost — pripravili vam bomo module, katalog, obrazce, procese in vsebino strani.
             </p>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {VERTICAL_OPTIONS.map((v) => {
+              {ACTIVITY_OPTIONS.map((v) => {
                 const paletteOption = PALETTE_OPTIONS.find((p) => p.id === v.palette)
                 const isSelected = vertical === v.id
                 return (
@@ -340,7 +344,7 @@ export function StartWizard() {
         {step === 2 && (
           <section aria-labelledby="step-2-title">
             <h1 id="step-2-title" className="text-2xl font-bold tracking-tight sm:text-3xl">
-              Podatki o salonu
+              Podatki o podjetju
             </h1>
             <p className="mt-2 text-muted-foreground">
               To se bo prikazalo vašim strankam na vaši spletni strani.
@@ -348,9 +352,9 @@ export function StartWizard() {
 
             <div className="mt-6 space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="salon-name">Ime salona</Label>
+                <Label htmlFor="company-name">Ime podjetja</Label>
                 <Input
-                  id="salon-name"
+                  id="company-name"
                   value={name}
                   onChange={(e) => handleNameChange(e.target.value)}
                   placeholder="npr. Studio Nika"
@@ -546,7 +550,7 @@ export function StartWizard() {
                   Ustvarjam salon …
                 </>
               ) : (
-                "Ustvari salon"
+                "Ustvari podjetje"
               )}
             </Button>
           )}

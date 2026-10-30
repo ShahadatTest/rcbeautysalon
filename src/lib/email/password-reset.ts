@@ -15,7 +15,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
     const { data, error } = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL!,
       to: email,
-      subject: "Reset Your Password - RC Beauty Salon",
+      subject: "Reset Your Password - Business Platform",
       html,
     })
 

@@ -59,7 +59,8 @@ import {
   type StatContent,
 } from "@/lib/site-content"
 import { uploadImage } from "@/lib/upload-client"
-import { PALETTE_OPTIONS, VERTICAL_OPTIONS } from "@/lib/palettes-client"
+import { PALETTE_OPTIONS } from "@/lib/palettes-client"
+import { listProfileOptions } from "@/lib/profiles/registry"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/lib/i18n/provider"
 
@@ -508,7 +509,7 @@ export function BrandingEditor() {
 
   const handleVertical = async () => {
     if (!org || savingVertical) return
-    const label = VERTICAL_OPTIONS.find((v) => v.id === vertical)?.label ?? vertical
+    const label = listProfileOptions().find((v) => v.id === vertical)?.label ?? vertical
     const confirmed = window.confirm(
       b.vertical.changeConfirm(label) + (reseed ? b.vertical.reseedConfirmNote : "")
     )
@@ -689,7 +690,7 @@ export function BrandingEditor() {
   const hours = normalizeHours(content.openingHours)
   const paragraph0 = content.about.paragraphs[0] ?? ""
   const paragraph1 = content.about.paragraphs[1] ?? ""
-  const selectedVertical = VERTICAL_OPTIONS.find((v) => v.id === vertical)
+  const selectedVertical = listProfileOptions().find((v) => v.id === vertical)
 
   return (
     <div className="mx-auto w-full max-w-3xl">
@@ -1236,7 +1237,7 @@ export function BrandingEditor() {
                     <SelectValue placeholder={b.vertical.select} />
                   </SelectTrigger>
                   <SelectContent>
-                    {VERTICAL_OPTIONS.map((v) => (
+                    {listProfileOptions().map((v) => (
                       <SelectItem key={v.id} value={v.id}>
                         {v.label}
                       </SelectItem>

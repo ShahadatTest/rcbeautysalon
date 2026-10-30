@@ -18,20 +18,9 @@ export const PALETTE_OPTIONS: PaletteOption[] = [
   { id: "coral", label: "Koralna", primary: "#e07060", accent: "#e0a040" },
 ]
 
-export interface VerticalOption {
-  id: string
-  label: string
-  description: string
-  palette: string
-}
-
-export const VERTICAL_OPTIONS: VerticalOption[] = [
-  { id: "beauty", label: "Lepotni salon", description: "Kombinacija frizerije, nohtov in kozmetike", palette: "rose" },
-  { id: "frizer", label: "Frizerski salon", description: "Striženje, barvanje in oblikovanje las", palette: "amber" },
-  { id: "barber", label: "Barber shop", description: "Moško striženje, brada, vroča brisača", palette: "charcoal" },
-  { id: "nails", label: "Nail studio", description: "Manikira, pedikura in nail art", palette: "violet" },
-  { id: "cosmetica", label: "Kozmetični salon", description: "Tretmaji obraza, nega kože, make-up", palette: "burgundy" },
-  { id: "massage", label: "Masaža & wellness", description: "Relax, športne in terapevtske masaže", palette: "emerald" },
-  { id: "epilation", label: "Epilacija & laser", description: "Laser epilacija, voščanje", palette: "teal" },
-  { id: "generic", label: "Univerzalno", description: "Za salone z lastnim katalogom storitev", palette: "coral" },
-]
+// Profile options come from the single-source profile registry
+// (EPIC #1) — adding a new activity no longer requires edits here.
+export {
+  listProfileOptions as listActivityOptions,
+  getProfile as getActivityProfile,
+} from "@/lib/profiles/registry"

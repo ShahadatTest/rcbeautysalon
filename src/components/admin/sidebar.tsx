@@ -14,6 +14,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { useI18n } from "@/lib/i18n/provider"
+import type { CapabilityKey } from "@/lib/profiles/types"
 import {
   LayoutDashboardIcon,
   ChartBarIcon,
@@ -27,17 +28,29 @@ import {
   CloseIcon,
 } from "@/components/icons"
 
-const navigation = [
+interface NavItem {
+  nameKey: "dashboard" | "analytics" | "appointments" | "customers" | "services" | "products" | "shopOrders" | "staff" | "settings"
+  href: string
+  icon: React.ComponentType<{ size?: number; className?: string }>
+  /** Capability that must not be "disabled" for this item to render. */
+  capability?: CapabilityKey
+  /** Alternative capability — item renders when EITHER is enabled. */
+  alternateCapability?: CapabilityKey
+  /** Terminology key overriding the generic dictionary label. */
+  termKey?: "appointmentPlural" | "servicePlural" | "productPlural" | "orderPlural"
+}
+
+const navigation: NavItem[] = [
   { nameKey: "dashboard", href: "/dashboard", icon: LayoutDashboardIcon },
-  { nameKey: "analytics", href: "/dashboard/analytics", icon: ChartBarIcon },
-  { nameKey: "appointments", href: "/dashboard/appointments", icon: CalendarIcon },
-  { nameKey: "customers", href: "/dashboard/users", icon: UsersIcon },
-  { nameKey: "services", href: "/dashboard/services", icon: ScissorsIcon },
-  { nameKey: "products", href: "/dashboard/products", icon: PackageIcon },
-  { nameKey: "shopOrders", href: "/dashboard/orders", icon: ShoppingBagIcon },
-  { nameKey: "staff", href: "/dashboard/staff", icon: UserCogIcon },
+  { nameKey: "analytics", href: "/dashboard/analytics", icon: ChartBarIcon, capability: "analytics" },
+  { nameKey: "appointments", href: "/dashboard/appointments", icon: CalendarIcon, capability: "appointments", termKey: "appointmentPlural" },
+  { nameKey: "customers", href: "/dashboard/users", icon: UsersIcon, capability: "customers" },
+  { nameKey: "services", href: "/dashboard/services", icon: ScissorsIcon, capability: "services", termKey: "servicePlural" },
+  { nameKey: "products", href: "/dashboard/products", icon: PackageIcon, capability: "shop", termKey: "productPlural" },
+  { nameKey: "shopOrders", href: "/dashboard/orders", icon: ShoppingBagIcon, capability: "workOrders", alternateCapability: "shop", termKey: "orderPlural" },
+  { nameKey: "staff", href: "/dashboard/staff", icon: UserCogIcon, capability: "staff" },
   { nameKey: "settings", href: "/dashboard/settings", icon: SettingsIcon },
-] as const
+]
 
 interface SidebarNavProps {
   onNavigate?: () => void
@@ -45,14 +58,33 @@ interface SidebarNavProps {
 
 function SidebarNav({ onNavigate }: SidebarNavProps) {
   const pathname = usePathname()
-  const { t } = useI18n()
+  const { t, term, profile } = useI18n()
+
+  // Capability-gated navigation (EPIC #1 §21): irrelevant modules never render.
+  const visible = navigation.filter((item) => {
+    if (!item.capability) return true
+    const main = profile.capabilities[item.capability] !== "disabled"
+    const alt = item.alternateCapability
+      ? profile.capabilities[item.alternateCapability] !== "disabled"
+      : false
+    return main || alt
+  })
 
   return (
     <nav className="space-y-1 px-3">
-      {navigation.map((item) => {
+      {visible.map((item) => {
         const isActive = pathname === item.href ||
           (item.href !== "/dashboard" && pathname.startsWith(item.href))
         const IconComponent = item.icon
+        // Industry terminology (order type) — falls back to the dictionary.
+        const label =
+          item.termKey && item.termKey === "orderPlural"
+            ? profile.capabilities.workOrders !== "disabled"
+              ? term(item.termKey)
+              : t.common.nav[item.nameKey]
+            : item.termKey
+              ? term(item.termKey)
+              : t.common.nav[item.nameKey]
         return (
           <Link
             key={item.nameKey}
@@ -66,7 +98,7 @@ function SidebarNav({ onNavigate }: SidebarNavProps) {
             )}
           >
             <IconComponent size={18} className={cn(isActive && "text-primary-foreground")} />
-            {t.common.nav[item.nameKey]}
+            {label}
           </Link>
         )
       })}
@@ -75,6 +107,7 @@ function SidebarNav({ onNavigate }: SidebarNavProps) {
 }
 
 export function AdminSidebar() {
+  const { t } = useI18n()
   return (
     <aside className="hidden w-64 shrink-0 bg-card shadow-sm lg:block">
       <div className="flex h-full flex-col">
@@ -96,7 +129,7 @@ export function AdminSidebar() {
             <LanguageSwitcher />
           </div>
           <p className="text-center text-xs text-muted-foreground">
-            RC Beauty Salon Admin
+            {t.common.platformTagline}
           </p>
         </div>
       </div>

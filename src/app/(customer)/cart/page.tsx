@@ -5,7 +5,7 @@ import { ArrowLeftIcon } from "@/components/icons"
 import { CartContent } from "@/components/shop/cart-content"
 
 export const metadata: Metadata = {
-  title: "Nakupovalna košarica | RC Beauty Salon",
+  title: "Nakupovalna košarica | Poslovna platforma",
   description: "Pregledajte in upravljajte izdelke v svoji košarici.",
 }
 

@@ -367,6 +367,116 @@ export function defaultSiteContent(vertical: string): SiteContent {
         buttonHref: "/booking",
       },
     },
+
+    // --- §21 acceptance profiles: genuinely different business models ---
+    seamstress: {
+      hero: {
+        eyebrow: "Šiviljstvo",
+        title: "Vsako oblačilo, popolno prileganje",
+        subtitle:
+          "Spremembe, popravila in šivanje po meri — z merilnim listom in dogovorjenim rokom. Oddajte povpraševanje.",
+        primaryCta: { label: "Oddaj povpraševanje", href: "/booking" },
+        secondaryCta: { label: "Cenik storitev", href: "/services" },
+      },
+      about: {
+        title: "Obrt z nitjo in iglo",
+        paragraphs: [
+          "Vsako naročilo začnemo s posvetom in meritvami — vaše želje, material in pričakovanja so zapisana v merilnem listu, ki ga upoštevamo od prvega do zadnjega šiva.",
+          "Delamo s preciznostjo: od krajšanja hlač do šivanja oblek po meri. Vsak kos pregledamo še pred predajo.",
+        ],
+        stats: [
+          { value: "15+", label: "Let izkušenj" },
+          { value: "2K+", label: "Zadovoljnih strank" },
+        ],
+      },
+      features: {
+        title: "Zakaj k nam",
+        subtitle: "Preciznost, rok in pošten dogovor",
+        items: [
+          { icon: "Scissors", title: "Natančne spremembe", description: "Vsak poseg naredimo po merilnem listu." },
+          { icon: "CalendarCheck", title: "Dogovorjeni roki", description: "Naročilo ima jasen proces od povpraševanja do prevzema." },
+          { icon: "HeartHandshake", title: "Poštene cene", description: "Predračun pred delom — brez presenečenj." },
+        ],
+      },
+      cta: {
+        title: "Oblačilo, ki čaka na popravek?",
+        text: "Oddajte povpraševanje — odgovorimo z rokom in ceno v najkrajšem možnem času.",
+        buttonLabel: "Oddaj povpraševanje",
+        buttonHref: "/booking",
+      },
+    },
+    "tire-service": {
+      hero: {
+        eyebrow: "Vulkanizer & avtoservis",
+        title: "Vaše vozilo v najboljših rokah",
+        subtitle:
+          "Menjava gum, balansiranje, servis in diagnostika — z delovnim nalogom, ki sledi vsakemu posegu. Rezervirajte termin menjave.",
+        primaryCta: { label: "Rezerviraj menjavo gum", href: "/booking" },
+        secondaryCta: { label: "Cenik storitev", href: "/services" },
+      },
+      about: {
+        title: "Hitro, pošteno, profesionalno",
+        paragraphs: [
+          "Vsak obisk se začne s sprejemom vozila in zapisom stanja. Naš delovni nalog sledi vsemu: od diagnostike, preko rezervnih delov, do prevzema in plačila.",
+          "Delamo z kakovostnimi materiali in za vsako delo vnaprej dogovorimo obseg ter ceno.",
+        ],
+        stats: [
+          { value: "12+", label: "Let izkušenj" },
+          { value: "8K+", label: "Servisiranih vozil" },
+        ],
+      },
+      features: {
+        title: "Zakaj k nam",
+        subtitle: "Servis, ki mu zaupate",
+        items: [
+          { icon: "ShieldCheck", title: "Delovni nalog", description: "Vsak poseg dokumentiran — od sprejema do oddaje." },
+          { icon: "ShoppingBag", title: "Gume in deli", description: "Zaloge priljubljenih dimenzij in rezervnih delov." },
+          { icon: "CalendarCheck", title: "Rezervacija menjave", description: "Sezonske menjave brez čakanja." },
+        ],
+      },
+      cta: {
+        title: "Čas za zimske gume?",
+        text: "Rezervirajte termin menjave in prepustite preostalo nam.",
+        buttonLabel: "Rezerviraj termin",
+        buttonHref: "/booking",
+      },
+    },
+    beekeeping: {
+      hero: {
+        eyebrow: "Čebelarstvo",
+        title: "Med, kot ga daje narava",
+        subtitle:
+          "Odvjet med iz lastnih panjskih postaj, propolis, vosek in drugi čebelji izdelki. Naročite izdelke s svežo žetvijo.",
+        primaryCta: { label: "Naroči izdelke", href: "/shop" },
+        secondaryCta: { label: "Poglej izdelke", href: "/shop" },
+      },
+      about: {
+        title: "Družinsko čebelarstvo",
+        paragraphs: [
+          "Vsaka serija medu je sledljiva — zapisan je datum žetve, panjska postaja in količina. Zato veste, točno kaj pojete.",
+          "Med črpamo ob načrtovanih terminih žetve in ga pakiramo v kakovostno embalažo. Količine so odvisne od sezone.",
+        ],
+        stats: [
+          { value: "120+", label: "Čebeljih družin" },
+          { value: "1.5t", label: "Letne žetve" },
+        ],
+      },
+      features: {
+        title: "Zakaj naš med",
+        subtitle: "Sledljivo od panja do kozarca",
+        items: [
+          { icon: "Leaf", title: "Naravna žetev", description: "Brez aditivov — samo med, kot so ga pripravile čebele." },
+          { icon: "ShieldCheck", title: "Sledljive serije", description: "Vsak lot ima oznako in datum žetve." },
+          { icon: "ShoppingBag", title: "Naročilo na spletu", description: "Izdelke naročite preprosto prek spletne trgovine." },
+        ],
+      },
+      cta: {
+        title: "Med s sveže žetve",
+        text: "Naročite svoj paket — količine se spreminjajo s sezono, zato hitite.",
+        buttonLabel: "Naroči izdelke",
+        buttonHref: "/shop",
+      },
+    },
   }
 
   const v = byVertical[vertical] ?? byVertical.beauty

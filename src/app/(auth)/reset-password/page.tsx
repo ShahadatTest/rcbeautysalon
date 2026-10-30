@@ -5,8 +5,8 @@ import { ResetPasswordForm } from "@/components/auth/reset-password-form"
 import { ResetPasswordSkeleton } from "@/components/auth/reset-password-skeleton"
 
 export const metadata: Metadata = {
-  title: "Ponastavitev gesla | RC Beauty Salon",
-  description: "Ustvarite novo geslo za svoj račun RC Beauty Salon.",
+  title: "Ponastavitev gesla | Poslovna platforma",
+  description: "Ustvarite novo geslo za svoj račun.",
 }
 
 interface ResetPasswordPageProps {

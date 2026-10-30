@@ -1,4 +1,5 @@
 export const commonSl = {
+  platformTagline: "Poslovna platforma",
   language: {
     label: "Jezik",
     sl: "Slovenščina",
@@ -65,6 +66,7 @@ export const commonSl = {
 export type CommonDict = typeof commonSl
 
 export const commonEn: CommonDict = {
+  platformTagline: "Business platform",
   language: {
     label: "Language",
     sl: "Slovenian",

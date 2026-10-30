@@ -43,7 +43,7 @@ export function AppointmentCancelledTemplate({
   return (
     <Html>
       <Head />
-      <Preview>Appointment Cancelled - RC Beauty Salon</Preview>
+      <Preview>Appointment Cancelled - Business Platform</Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Header */}
@@ -52,7 +52,7 @@ export function AppointmentCancelledTemplate({
               src={logoUrl}
               width="200"
               height="200"
-              alt="RC Beauty Salon"
+              alt="Business Platform"
               style={logo}
             />
           </Section>
@@ -63,8 +63,8 @@ export function AppointmentCancelledTemplate({
             <Text style={text}>Hello {customerName},</Text>
             <Text style={text}>
               {cancelledByAdmin
-                ? "We regret to inform you that your appointment at RC Beauty Salon has been cancelled. We apologize for any inconvenience this may cause."
-                : "Your appointment at RC Beauty Salon has been cancelled as requested."}
+                ? "We regret to inform you that your appointment at Business Platform has been cancelled. We apologize for any inconvenience this may cause."
+                : "Your appointment at Business Platform has been cancelled as requested."}
             </Text>
 
             {/* Appointment Details Box */}
@@ -151,13 +151,13 @@ export function AppointmentCancelledTemplate({
 
           {/* Footer */}
           <Section style={footer}>
-            <Text style={footerBrand}>RC Beauty Salon</Text>
+            <Text style={footerBrand}>Business Platform</Text>
             <Text style={footerTagline}>Your Beauty, Our Passion</Text>
             <Text style={footerAddress}>
               123 Beauty Street, City, State 12345
             </Text>
             <Text style={footerCopyright}>
-              © {new Date().getFullYear()} RC Beauty Salon. All rights reserved.
+              © {new Date().getFullYear()} Business Platform. All rights reserved.
             </Text>
           </Section>
         </Container>

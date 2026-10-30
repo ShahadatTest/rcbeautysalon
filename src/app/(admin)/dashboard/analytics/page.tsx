@@ -12,7 +12,7 @@ import { PeriodType } from "@/lib/interfaces"
 import { AnalyticsSkeleton } from "@/components/analytics/analytics-skeleton"
 
 export const metadata = {
-  title: "Analytics | RC Beauty Salon",
+  title: "Analytics | Poslovna platforma",
   description: "Business performance analytics and reports",
 }
 

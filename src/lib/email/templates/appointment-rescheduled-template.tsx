@@ -55,7 +55,7 @@ export function AppointmentRescheduledTemplate({
               src={logoUrl}
               width="200"
               height="200"
-              alt="RC Beauty Salon"
+              alt="Business Platform"
               style={logo}
             />
           </Section>
@@ -148,13 +148,13 @@ export function AppointmentRescheduledTemplate({
 
           {/* Footer */}
           <Section style={footer}>
-            <Text style={footerBrand}>RC Beauty Salon</Text>
+            <Text style={footerBrand}>Business Platform</Text>
             <Text style={footerTagline}>Your Beauty, Our Passion</Text>
             <Text style={footerAddress}>
               123 Beauty Street, City, State 12345
             </Text>
             <Text style={footerCopyright}>
-              © {new Date().getFullYear()} RC Beauty Salon. All rights reserved.
+              © {new Date().getFullYear()} Business Platform. All rights reserved.
             </Text>
           </Section>
         </Container>

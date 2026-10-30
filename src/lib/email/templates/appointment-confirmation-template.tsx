@@ -48,7 +48,7 @@ export function AppointmentConfirmationTemplate({
   return (
     <Html>
       <Head />
-      <Preview>Your appointment at RC Beauty Salon is confirmed!</Preview>
+      <Preview>Your appointment at Business Platform is confirmed!</Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Header */}
@@ -57,7 +57,7 @@ export function AppointmentConfirmationTemplate({
               src={logoUrl}
               width="200"
               height="200"
-              alt="RC Beauty Salon"
+              alt="Business Platform"
               style={logo}
             />
           </Section>
@@ -67,7 +67,7 @@ export function AppointmentConfirmationTemplate({
             <Heading style={title}>Appointment Confirmed!</Heading>
             <Text style={text}>Hello {customerName},</Text>
             <Text style={text}>
-              Thank you for booking with RC Beauty Salon! Your appointment has
+              Thank you for booking with Business Platform! Your appointment has
               been successfully scheduled. Here are the details:
             </Text>
 
@@ -191,11 +191,11 @@ export function AppointmentConfirmationTemplate({
 
           {/* Footer */}
           <Section style={footer}>
-            <Text style={footerBrand}>RC Beauty Salon</Text>
+            <Text style={footerBrand}>Business Platform</Text>
             <Text style={footerTagline}>Your Beauty, Our Passion</Text>
             <Text style={footerAddress}>123 Beauty Street, City, State 12345</Text>
             <Text style={footerCopyright}>
-              © {new Date().getFullYear()} RC Beauty Salon. All rights reserved.
+              © {new Date().getFullYear()} Business Platform. All rights reserved.
             </Text>
           </Section>
         </Container>
