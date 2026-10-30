@@ -10,12 +10,14 @@ import {
 import { BarList } from "@tremor/react"
 import { TopService } from "@/lib/interfaces"
 import { ScissorsIcon } from "@/components/icons"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface TopServicesChartProps {
   data: TopService[]
 }
 
 export function TopServicesChart({ data }: TopServicesChartProps) {
+  const { t } = useI18n()
   const chartData = data.map((service) => ({
     name: service.name,
     value: service.bookings,
@@ -30,12 +32,12 @@ export function TopServicesChart({ data }: TopServicesChartProps) {
           </div>
           <div>
             <CardTitle className="text-base">
-              Top{" "}
+              {t.analytics.topServices.title}{" "}
               <span className="from-primary to-accent bg-linear-to-r bg-clip-text text-transparent">
-                Services
+                {t.analytics.topServices.titleAccent}
               </span>
             </CardTitle>
-            <CardDescription>By number of bookings</CardDescription>
+            <CardDescription>{t.analytics.topServices.description}</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -50,7 +52,7 @@ export function TopServicesChart({ data }: TopServicesChartProps) {
               />
             </div>
             <div className="space-y-2 border-t pt-4">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Revenue</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.analytics.topServices.revenueLabel}</p>
               {data.map((service) => (
                 <div key={service.name} className="flex items-center justify-between text-sm">
                   <span className="truncate text-muted-foreground pr-2">
@@ -65,7 +67,7 @@ export function TopServicesChart({ data }: TopServicesChartProps) {
           </div>
         ) : (
           <div className="flex h-48 items-center justify-center rounded-lg border border-dashed">
-            <p className="text-muted-foreground text-sm">No services data available</p>
+            <p className="text-muted-foreground text-sm">{t.analytics.topServices.noData}</p>
           </div>
         )}
       </CardContent>

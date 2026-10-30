@@ -5,6 +5,7 @@ import { ArrowLeftIcon } from "@/components/icons"
 import { ProductForm } from "@/components/dashboard/product-form"
 import { getProductById } from "@/app/actions/products"
 import { getAllCategories } from "@/app/actions/services"
+import { getServerI18n } from "@/lib/i18n/server"
 
 interface EditProductPageProps {
   params: Promise<{ id: string }>
@@ -14,9 +15,10 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
   const { id } = await params
 
   // Fetch product and categories in parallel
-  const [product, categories] = await Promise.all([
+  const [product, categories, { t }] = await Promise.all([
     getProductById(id),
     getAllCategories(),
+    getServerI18n(),
   ])
 
   if (!product) {
@@ -33,7 +35,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">Edit Product</h1>
+          <h1 className="text-3xl font-bold">{t.products.editTitle}</h1>
           <p className="text-muted-foreground">{product.name}</p>
         </div>
       </div>

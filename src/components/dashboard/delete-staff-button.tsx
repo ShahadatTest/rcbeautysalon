@@ -7,6 +7,7 @@ import { TrashIcon } from "@/components/icons"
 import { SpinnerIcon } from "@/components/icons/spinner-icon"
 import { deleteStaffMember } from "@/app/actions/staff"
 import { toast } from "sonner"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface DeleteStaffButtonProps {
   staffId: string
@@ -14,13 +15,12 @@ interface DeleteStaffButtonProps {
 }
 
 export function DeleteStaffButton({ staffId, staffName }: DeleteStaffButtonProps) {
+  const { t } = useI18n()
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
 
   const handleDelete = async () => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${staffName}"? This action cannot be undone.`
-    )
+    const confirmed = window.confirm(t.staff.confirmDelete(staffName))
 
     if (!confirmed) return
 
@@ -29,14 +29,14 @@ export function DeleteStaffButton({ staffId, staffName }: DeleteStaffButtonProps
       const result = await deleteStaffMember(staffId)
 
       if (result.success) {
-        toast.success("Staff member deleted successfully")
+        toast.success(t.staff.toasts.deleted)
         router.refresh()
       } else {
-        toast.error(result.error || "Failed to delete staff member")
+        toast.error(result.error || t.staff.toasts.deleteFailed)
       }
     } catch (error) {
       console.error("Delete error:", error)
-      toast.error("An unexpected error occurred")
+      toast.error(t.staff.toasts.unexpectedError)
     } finally {
       setIsDeleting(false)
     }

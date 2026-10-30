@@ -6,6 +6,7 @@
 
 import type { ReactNode } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface SettingsTabsProps {
   basic: ReactNode
@@ -13,11 +14,13 @@ interface SettingsTabsProps {
 }
 
 export function SettingsTabs({ basic, branding }: SettingsTabsProps) {
+  const { t } = useI18n()
+
   return (
     <Tabs defaultValue="basic">
       <TabsList>
-        <TabsTrigger value="basic">Osnovne nastavitve</TabsTrigger>
-        <TabsTrigger value="branding">Izgled in vsebina</TabsTrigger>
+        <TabsTrigger value="basic">{t.settings.tabs.basic}</TabsTrigger>
+        <TabsTrigger value="branding">{t.settings.tabs.branding}</TabsTrigger>
       </TabsList>
       <TabsContent value="basic" forceMount className="mt-6 data-[state=inactive]:hidden">
         {basic}

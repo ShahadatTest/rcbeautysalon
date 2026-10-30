@@ -10,6 +10,7 @@ import {
   deleteStaffMember,
 } from "@/app/actions/staff"
 import type { StaffFormData } from "@/lib/validations/staff"
+import { getServerI18n } from "@/lib/i18n/server"
 
 interface EditStaffPageProps {
   params: Promise<{ id: string }>
@@ -18,10 +19,11 @@ interface EditStaffPageProps {
 export default async function EditStaffPage({ params }: EditStaffPageProps) {
   const { id } = await params
 
-  // Fetch staff member and services in parallel
-  const [staff, services] = await Promise.all([
+  // Fetch staff member, services and i18n in parallel
+  const [staff, services, { t }] = await Promise.all([
     getStaffMemberById(id),
     getActiveServicesForStaff(),
+    getServerI18n(),
   ])
 
   if (!staff) {
@@ -48,7 +50,7 @@ export default async function EditStaffPage({ params }: EditStaffPageProps) {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">Edit Staff Member</h1>
+          <h1 className="text-3xl font-bold">{t.staff.editStaffTitle}</h1>
           <p className="text-muted-foreground">{staff.name}</p>
         </div>
       </div>

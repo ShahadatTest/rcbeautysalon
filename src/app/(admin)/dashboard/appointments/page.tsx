@@ -18,6 +18,7 @@ import { formatSalonTime } from "@/lib/booking-time"
 import { getSessionSalonTimezone } from "@/lib/tenant"
 import { formatCurrency } from "@/lib/utils/format"
 import { startOfDay, endOfDay } from "date-fns"
+import { getServerI18n } from "@/lib/i18n/server"
 
 const statusColors: Record<string, string> = {
   PENDING: "bg-amber-500 text-white",
@@ -28,8 +29,11 @@ const statusColors: Record<string, string> = {
 }
 
 export default async function AppointmentsPage() {
-  const salonTz = await getSessionSalonTimezone()
-  const appointments = await getAdminAppointments()
+  const [{ t, dateFnsLocale }, salonTz, appointments] = await Promise.all([
+    getServerI18n(),
+    getSessionSalonTimezone(),
+    getAdminAppointments(),
+  ])
 
   // Calculate stats
   const now = new Date()
@@ -59,19 +63,19 @@ export default async function AppointmentsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Manage{" "}
+            {t.appointments.list.title}{" "}
             <span className="from-primary to-accent bg-linear-to-r bg-clip-text text-transparent">
-              Appointments
+              {t.appointments.list.titleAccent}
             </span>
           </h1>
           <p className="text-muted-foreground">
-            Manage and track all salon appointments
+            {t.appointments.list.subtitle}
           </p>
         </div>
         <Link href="/dashboard/appointments/new">
           <Button>
             <PlusIcon size={16} className="mr-2" />
-            New Appointment
+            {t.appointments.list.newAppointment}
           </Button>
         </Link>
       </div>
@@ -80,13 +84,17 @@ export default async function AppointmentsPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Today&apos;s Appointments</CardDescription>
+            <CardDescription>
+              {t.appointments.list.stats.todaysAppointments}
+            </CardDescription>
             <CardTitle className="text-3xl">{todaysAppointments.length}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Pending Confirmation</CardDescription>
+            <CardDescription>
+              {t.appointments.list.stats.pendingConfirmation}
+            </CardDescription>
             <CardTitle className="text-3xl text-yellow-600">
               {pendingCount}
             </CardTitle>
@@ -94,7 +102,9 @@ export default async function AppointmentsPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Completed Today</CardDescription>
+            <CardDescription>
+              {t.appointments.list.stats.completedToday}
+            </CardDescription>
             <CardTitle className="text-3xl text-green-600">
               {completedToday}
             </CardTitle>
@@ -102,7 +112,9 @@ export default async function AppointmentsPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Revenue Today</CardDescription>
+            <CardDescription>
+              {t.appointments.list.stats.revenueToday}
+            </CardDescription>
             <CardTitle className="text-3xl">
               {formatCurrency(revenueToday)}
             </CardTitle>
@@ -113,23 +125,25 @@ export default async function AppointmentsPage() {
       {/* Appointments Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Appointments</CardTitle>
+          <CardTitle>{t.appointments.list.allAppointments}</CardTitle>
           <CardDescription>
-            {appointments.length} total appointments
+            {t.appointments.list.totalAppointments(appointments.length)}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {appointments.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <CalendarIcon size={48} className="mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-medium">No appointments yet</h3>
+              <h3 className="text-lg font-medium">
+                {t.appointments.list.emptyTitle}
+              </h3>
               <p className="mb-4 text-sm text-muted-foreground">
-                Create your first appointment to get started
+                {t.appointments.list.emptyDescription}
               </p>
               <Link href="/dashboard/appointments/new">
                 <Button>
                   <PlusIcon size={16} className="mr-2" />
-                  New Appointment
+                  {t.appointments.list.newAppointment}
                 </Button>
               </Link>
             </div>
@@ -138,13 +152,27 @@ export default async function AppointmentsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b text-left text-sm text-muted-foreground">
-                    <th className="pb-3 font-medium">Customer</th>
-                    <th className="pb-3 font-medium">Service</th>
-                    <th className="pb-3 font-medium">Staff</th>
-                    <th className="pb-3 font-medium">Date & Time</th>
-                    <th className="pb-3 font-medium">Status</th>
-                    <th className="pb-3 font-medium">Price</th>
-                    <th className="pb-3 font-medium">Actions</th>
+                    <th className="pb-3 font-medium">
+                      {t.appointments.list.table.customer}
+                    </th>
+                    <th className="pb-3 font-medium">
+                      {t.appointments.list.table.service}
+                    </th>
+                    <th className="pb-3 font-medium">
+                      {t.appointments.list.table.staff}
+                    </th>
+                    <th className="pb-3 font-medium">
+                      {t.appointments.list.table.dateAndTime}
+                    </th>
+                    <th className="pb-3 font-medium">
+                      {t.appointments.list.table.status}
+                    </th>
+                    <th className="pb-3 font-medium">
+                      {t.appointments.list.table.price}
+                    </th>
+                    <th className="pb-3 font-medium">
+                      {t.appointments.list.table.actions}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -152,7 +180,7 @@ export default async function AppointmentsPage() {
                     <tr key={apt.id} className="border-b last:border-0">
                       <td className="py-4">
                         <p className="font-medium">
-                          {apt.customer?.name || apt.guestName || "Guest"}
+                          {apt.customer?.name || apt.guestName || t.appointments.list.guest}
                         </p>
                         {(apt.customer?.phone || apt.guestPhone) && (
                           <p className="text-xs text-muted-foreground">
@@ -165,7 +193,11 @@ export default async function AppointmentsPage() {
                       </td>
                       <td className="py-4 text-sm">{apt.staff.name}</td>
                       <td className="py-4 text-sm">
-                        <p>{format(new Date(apt.startTime), "MMM d, yyyy")}</p>
+                        <p>
+                          {format(new Date(apt.startTime), "MMM d, yyyy", {
+                            locale: dateFnsLocale,
+                          })}
+                        </p>
                         <p className="text-muted-foreground">
                           {formatSalonTime(new Date(apt.startTime), salonTz)}
                         </p>
@@ -174,7 +206,7 @@ export default async function AppointmentsPage() {
                         <span
                           className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${statusColors[apt.status]}`}
                         >
-                          {apt.status.replace("_", " ")}
+                          {t.common.status[apt.status]}
                         </span>
                       </td>
                       <td className="py-4 font-medium">
@@ -184,7 +216,7 @@ export default async function AppointmentsPage() {
                         <Link href={`/dashboard/appointments/${apt.id}`}>
                           <Button variant="ghost" size="sm">
                             <EyeIcon size={16} className="mr-1" />
-                            View
+                            {t.common.actions.view}
                           </Button>
                         </Link>
                       </td>

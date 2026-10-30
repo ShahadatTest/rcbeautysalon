@@ -7,6 +7,7 @@ import { TrashIcon } from "@/components/icons"
 import { SpinnerIcon } from "@/components/icons/spinner-icon"
 import { deleteProduct } from "@/app/actions/products"
 import { toast } from "sonner"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface DeleteProductButtonProps {
   productId: string
@@ -15,11 +16,12 @@ interface DeleteProductButtonProps {
 
 export function DeleteProductButton({ productId, productName }: DeleteProductButtonProps) {
   const router = useRouter()
+  const { t } = useI18n()
   const [isDeleting, setIsDeleting] = useState(false)
 
   const handleDelete = async () => {
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${productName}"? This action cannot be undone.`
+      t.products.deleteConfirmWithName(productName)
     )
 
     if (!confirmed) return
@@ -29,14 +31,14 @@ export function DeleteProductButton({ productId, productName }: DeleteProductBut
       const result = await deleteProduct(productId)
 
       if (result.success) {
-        toast.success("Product deleted successfully")
+        toast.success(t.products.deleteSuccess)
         router.refresh()
       } else {
-        toast.error(result.error || "Failed to delete product")
+        toast.error(result.error || t.products.deleteFailed)
       }
     } catch (error) {
       console.error("Delete error:", error)
-      toast.error("An unexpected error occurred")
+      toast.error(t.products.unexpectedError)
     } finally {
       setIsDeleting(false)
     }

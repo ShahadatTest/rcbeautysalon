@@ -8,27 +8,24 @@ import { updateAppointmentStatus } from "@/app/actions/appointments"
 import { AppointmentStatus } from "@/lib/types"
 import { StatusActionsProps } from "@/lib/interfaces"
 import { toast } from "sonner"
+import { useI18n } from "@/lib/i18n/provider"
 
 const statusTransitions: Record<
   AppointmentStatus,
-  { label: string; status: AppointmentStatus; variant?: "default" | "destructive" | "outline" }[]
+  { status: AppointmentStatus; variant?: "default" | "destructive" | "outline" }[]
 > = {
   PENDING: [
-    { label: "Confirm", status: "CONFIRMED" },
-    { label: "Cancel", status: "CANCELLED", variant: "destructive" },
+    { status: "CONFIRMED" },
+    { status: "CANCELLED", variant: "destructive" },
   ],
   CONFIRMED: [
-    { label: "Mark Complete", status: "COMPLETED" },
-    { label: "No Show", status: "NO_SHOW", variant: "outline" },
-    { label: "Cancel", status: "CANCELLED", variant: "destructive" },
+    { status: "COMPLETED" },
+    { status: "NO_SHOW", variant: "outline" },
+    { status: "CANCELLED", variant: "destructive" },
   ],
   COMPLETED: [],
-  CANCELLED: [
-    { label: "Reopen as Pending", status: "PENDING", variant: "outline" },
-  ],
-  NO_SHOW: [
-    { label: "Reopen as Pending", status: "PENDING", variant: "outline" },
-  ],
+  CANCELLED: [{ status: "PENDING", variant: "outline" }],
+  NO_SHOW: [{ status: "PENDING", variant: "outline" }],
 }
 
 export function AppointmentStatusActions({
@@ -36,21 +33,43 @@ export function AppointmentStatusActions({
   currentStatus,
 }: StatusActionsProps) {
   const router = useRouter()
+  const { t } = useI18n()
   const [isPending, startTransition] = useTransition()
   const [pendingStatus, setPendingStatus] = useState<string | null>(null)
 
-  const actions = statusTransitions[currentStatus] || []
+  const actionLabels: Record<AppointmentStatus, string> = {
+    PENDING: t.appointments.statusActions.reopenPending,
+    CONFIRMED: t.appointments.statusActions.confirm,
+    COMPLETED: t.appointments.statusActions.markComplete,
+    CANCELLED: t.common.actions.cancel,
+    NO_SHOW: t.appointments.statusActions.noShow,
+  }
+
+  const statusLabels: Record<AppointmentStatus, string> = {
+    PENDING: t.common.status.PENDING,
+    CONFIRMED: t.common.status.CONFIRMED,
+    COMPLETED: t.common.status.COMPLETED,
+    CANCELLED: t.common.status.CANCELLED,
+    NO_SHOW: t.common.status.NO_SHOW,
+  }
+
+  const actions = (statusTransitions[currentStatus] || []).map((action) => ({
+    ...action,
+    label: actionLabels[action.status],
+  }))
 
   const handleStatusChange = (newStatus: AppointmentStatus) => {
     setPendingStatus(newStatus)
     startTransition(async () => {
       try {
         await updateAppointmentStatus(appointmentId, newStatus)
-        toast.success(`Status updated to ${newStatus.replace("_", " ")}`)
+        toast.success(
+          t.appointments.statusActions.statusUpdated(statusLabels[newStatus])
+        )
         router.refresh()
       } catch (error) {
         console.error("Failed to update status:", error)
-        toast.error("Failed to update status")
+        toast.error(t.appointments.statusActions.updateFailed)
       } finally {
         setPendingStatus(null)
       }
@@ -60,7 +79,7 @@ export function AppointmentStatusActions({
   if (actions.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No actions available for this status
+        {t.appointments.statusActions.noActions}
       </p>
     )
   }

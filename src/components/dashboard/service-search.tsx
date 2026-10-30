@@ -5,12 +5,14 @@ import { useEffect, useRef, useState, useTransition } from "react"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { SearchIcon } from "@/components/icons"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface ServiceSearchProps {
   initialSearch?: string
 }
 
 export function ServiceSearch({ initialSearch = "" }: ServiceSearchProps) {
+  const { t } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
@@ -55,7 +57,7 @@ export function ServiceSearch({ initialSearch = "" }: ServiceSearchProps) {
             className={`text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2 ${isPending ? "animate-pulse" : ""}`}
           />
           <Input
-            placeholder="Search services by name or category..."
+            placeholder={t.services.searchPlaceholder}
             className="pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}

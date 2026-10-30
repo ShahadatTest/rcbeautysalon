@@ -27,6 +27,7 @@ import {
 import { ImageIcon, TrashIcon, PlusIcon } from "@/components/icons"
 import { SpinnerIcon } from "@/components/icons/spinner-icon"
 import { toast } from "sonner"
+import { useI18n } from "@/lib/i18n/provider"
 import { createProduct, updateProduct, deleteProduct } from "@/app/actions/products"
 import {
   createProductSchema,
@@ -61,6 +62,7 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ categories, product, mode = "create" }: ProductFormProps) {
+  const { t } = useI18n()
   const router = useRouter()
   const isEditMode = mode === "edit"
   const [images, setImages] = useState<string[]>(product?.images || [])
@@ -100,12 +102,12 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
     if (!file) return
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file")
+      toast.error(t.products.imageTypeError)
       return
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be less than 5MB")
+      toast.error(t.products.imageSizeError)
       return
     }
 
@@ -124,15 +126,15 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Upload failed")
+        throw new Error(data.error || t.products.uploadFailed)
       }
 
       setImages((prev) => [...prev, data.url])
-      toast.success("Image uploaded successfully")
+      toast.success(t.products.imageUploadSuccess)
     } catch (error) {
       console.error("Upload error:", error)
       toast.error(
-        error instanceof Error ? error.message : "Failed to upload image"
+        error instanceof Error ? error.message : t.products.imageUploadFailed
       )
     } finally {
       setIsUploading(false)
@@ -152,7 +154,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
     if (!product?.id) return
 
     const confirmed = window.confirm(
-      "Are you sure you want to delete this product? This action cannot be undone."
+      t.products.deleteConfirm
     )
 
     if (!confirmed) return
@@ -162,14 +164,14 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
       const result = await deleteProduct(product.id)
 
       if (result.success) {
-        toast.success("Product deleted successfully")
+        toast.success(t.products.deleteSuccess)
         router.push("/dashboard/products")
       } else {
-        toast.error(result.error || "Failed to delete product")
+        toast.error(result.error || t.products.deleteFailed)
       }
     } catch (error) {
       console.error("Delete error:", error)
-      toast.error("An unexpected error occurred")
+      toast.error(t.products.unexpectedError)
     } finally {
       setIsDeleting(false)
     }
@@ -197,14 +199,14 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
         : await createProduct(productData)
 
       if (result.success) {
-        toast.success(isEditMode ? "Product updated successfully" : "Product created successfully")
+        toast.success(isEditMode ? t.products.updateSuccess : t.products.createSuccess)
         router.push("/dashboard/products")
       } else {
-        toast.error(result.error || `Failed to ${isEditMode ? "update" : "create"} product`)
+        toast.error(result.error || (isEditMode ? t.products.updateFailed : t.products.createFailed))
       }
     } catch (error) {
       console.error("Submit error:", error)
-      toast.error("An unexpected error occurred")
+      toast.error(t.products.unexpectedError)
     }
   }
 
@@ -216,15 +218,15 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
           {/* Product Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Product Information</CardTitle>
-              <CardDescription>Basic details about the product</CardDescription>
+              <CardTitle>{t.products.productInfoTitle}</CardTitle>
+              <CardDescription>{t.products.productInfoDesc}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Product Name *</Label>
+                <Label htmlFor="name">{t.products.nameLabel}</Label>
                 <Input
                   id="name"
-                  placeholder="e.g., Professional Shampoo"
+                  placeholder={t.products.namePlaceholder}
                   {...register("name")}
                   disabled={isSubmitting}
                 />
@@ -236,10 +238,10 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">{t.products.descriptionLabel}</Label>
                 <Textarea
                   id="description"
-                  placeholder="Describe the product..."
+                  placeholder={t.products.descriptionPlaceholder}
                   rows={4}
                   {...register("description")}
                   disabled={isSubmitting}
@@ -247,14 +249,14 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
+                <Label htmlFor="category">{t.products.categoryLabel}</Label>
                 <Select
                   defaultValue={product?.categoryId || undefined}
                   onValueChange={(value) => setValue("categoryId", value)}
                   disabled={isSubmitting}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
+                    <SelectValue placeholder={t.products.categoryPlaceholder} />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((category) => (
@@ -271,13 +273,13 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
           {/* Pricing */}
           <Card>
             <CardHeader>
-              <CardTitle>Pricing</CardTitle>
-              <CardDescription>Set the product price</CardDescription>
+              <CardTitle>{t.products.pricingTitle}</CardTitle>
+              <CardDescription>{t.products.pricingDesc}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="price">Cena (€) *</Label>
+                  <Label htmlFor="price">{t.products.priceLabel}</Label>
                   <Input
                     id="price"
                     type="number"
@@ -293,7 +295,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="compareAtPrice">Compare at Cena (€)</Label>
+                  <Label htmlFor="compareAtPrice">{t.products.compareAtPriceLabel}</Label>
                   <Input
                     id="compareAtPrice"
                     type="number"
@@ -303,7 +305,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                     disabled={isSubmitting}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Original price for showing discount
+                    {t.products.compareAtPriceHelp}
                   </p>
                 </div>
               </div>
@@ -313,13 +315,13 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
           {/* Inventory */}
           <Card>
             <CardHeader>
-              <CardTitle>Inventory</CardTitle>
-              <CardDescription>Manage stock levels</CardDescription>
+              <CardTitle>{t.products.inventoryTitle}</CardTitle>
+              <CardDescription>{t.products.inventoryDesc}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="sku">SKU</Label>
+                  <Label htmlFor="sku">{t.products.skuLabel}</Label>
                   <Input
                     id="sku"
                     placeholder="SHMP-001"
@@ -328,7 +330,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="stockQuantity">Stock Quantity</Label>
+                  <Label htmlFor="stockQuantity">{t.products.stockQuantityLabel}</Label>
                   <Input
                     id="stockQuantity"
                     type="number"
@@ -340,9 +342,9 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Track Inventory</Label>
+                  <Label>{t.products.trackInventoryLabel}</Label>
                   <p className="text-xs text-muted-foreground">
-                    Enable stock tracking for this product
+                    {t.products.trackInventoryDesc}
                   </p>
                 </div>
                 <Switch
@@ -357,8 +359,8 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
           {/* Images */}
           <Card>
             <CardHeader>
-              <CardTitle>Product Images</CardTitle>
-              <CardDescription>Upload product photos</CardDescription>
+              <CardTitle>{t.products.imagesTitle}</CardTitle>
+              <CardDescription>{t.products.imagesDesc}</CardDescription>
             </CardHeader>
             <CardContent>
               {images.length > 0 ? (
@@ -368,7 +370,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                       <div key={index} className="relative aspect-square overflow-hidden rounded-lg">
                         <Image
                           src={image}
-                          alt={`Product image ${index + 1}`}
+                          alt={t.products.imageAlt(index + 1)}
                           fill
                           className="object-cover"
                         />
@@ -395,7 +397,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                     ) : (
                       <div className="flex items-center gap-2">
                         <PlusIcon size={16} />
-                        <span className="text-sm">Add more images</span>
+                        <span className="text-sm">{t.products.addMoreImages}</span>
                       </div>
                     )}
                   </div>
@@ -414,7 +416,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                   )}
                   {!isUploading && (
                     <p className="text-muted-foreground mt-4 text-sm">
-                      Click to upload images
+                      {t.products.clickToUpload}
                     </p>
                   )}
                 </div>
@@ -435,14 +437,14 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
           {/* Status */}
           <Card>
             <CardHeader>
-              <CardTitle>Status</CardTitle>
+              <CardTitle>{t.products.statusTitle}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Active</Label>
+                  <Label>{t.products.activeLabel}</Label>
                   <p className="text-muted-foreground text-xs">
-                    Product is available for purchase
+                    {t.products.activeDesc}
                   </p>
                 </div>
                 <Switch
@@ -453,9 +455,9 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Featured</Label>
+                  <Label>{t.products.featuredLabel}</Label>
                   <p className="text-muted-foreground text-xs">
-                    Show in featured section
+                    {t.products.featuredDesc}
                   </p>
                 </div>
                 <Switch
@@ -473,7 +475,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
               {isSubmitting && (
                 <SpinnerIcon size={16} className="mr-2 animate-spin" />
               )}
-              {isEditMode ? "Update Product" : "Create Product"}
+              {isEditMode ? t.products.updateButton : t.products.createButton}
             </Button>
             <Button
               type="button"
@@ -482,7 +484,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
               onClick={() => router.push("/dashboard/products")}
               disabled={isSubmitting || isDeleting}
             >
-              Cancel
+              {t.common.actions.cancel}
             </Button>
             {isEditMode && (
               <Button
@@ -497,7 +499,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                 ) : (
                   <>
                     <TrashIcon size={16} className="mr-2" />
-                    Delete Product
+                    {t.products.deleteButton}
                   </>
                 )}
               </Button>

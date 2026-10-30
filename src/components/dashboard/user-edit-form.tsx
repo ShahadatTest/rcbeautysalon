@@ -23,6 +23,7 @@ import { TrashIcon } from "@/components/icons"
 import { SpinnerIcon } from "@/components/icons/spinner-icon"
 import { updateUserRole, updateCustomerNotes, deleteUser } from "@/app/actions/users"
 import { toast } from "sonner"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface UserEditFormProps {
   userId: string
@@ -33,9 +34,9 @@ interface UserEditFormProps {
 }
 
 const roles = [
-  { value: "CLIENTE", label: "Cliente", description: "Can book appointments and buy products" },
-  { value: "STAFF", label: "Staff", description: "Can manage their appointments and schedule" },
-  { value: "ADMIN", label: "Admin", description: "Full access to all features" },
+  { value: "CLIENTE" as const },
+  { value: "STAFF" as const },
+  { value: "ADMIN" as const },
 ]
 
 export function UserEditForm({
@@ -46,6 +47,7 @@ export function UserEditForm({
   userName,
 }: UserEditFormProps) {
   const router = useRouter()
+  const { t } = useI18n()
   const [role, setRole] = useState(currentRole)
   const [notes, setNotes] = useState(currentNotes)
   const [isSavingRole, setIsSavingRole] = useState(false)
@@ -60,14 +62,14 @@ export function UserEditForm({
       const result = await updateUserRole(userId, newRole as "ADMIN" | "STAFF" | "CLIENTE")
 
       if (result.success) {
-        toast.success("Role updated successfully")
+        toast.success(t.users.toast.roleUpdated)
       } else {
-        toast.error(result.error || "Failed to update role")
+        toast.error(result.error || t.users.toast.roleUpdateFailed)
         setRole(currentRole) // Revert on error
       }
     } catch (error) {
       console.error("Error updating role:", error)
-      toast.error("An unexpected error occurred")
+      toast.error(t.users.toast.unexpectedError)
       setRole(currentRole) // Revert on error
     } finally {
       setIsSavingRole(false)
@@ -81,22 +83,20 @@ export function UserEditForm({
       const result = await updateCustomerNotes(userId, notes)
 
       if (result.success) {
-        toast.success("Notes saved successfully")
+        toast.success(t.users.toast.notesSaved)
       } else {
-        toast.error(result.error || "Failed to save notes")
+        toast.error(result.error || t.users.toast.notesSaveFailed)
       }
     } catch (error) {
       console.error("Error saving notes:", error)
-      toast.error("An unexpected error occurred")
+      toast.error(t.users.toast.unexpectedError)
     } finally {
       setIsSavingNotes(false)
     }
   }
 
   const handleDelete = async () => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${userName}"? This action cannot be undone.`
-    )
+    const confirmed = window.confirm(t.users.confirmDelete(userName))
 
     if (!confirmed) return
 
@@ -106,14 +106,14 @@ export function UserEditForm({
       const result = await deleteUser(userId)
 
       if (result.success) {
-        toast.success("User deleted successfully")
+        toast.success(t.users.toast.userDeleted)
         router.push("/dashboard/users")
       } else {
-        toast.error(result.error || "Failed to delete user")
+        toast.error(result.error || t.users.toast.deleteFailed)
       }
     } catch (error) {
       console.error("Error deleting user:", error)
-      toast.error("An unexpected error occurred")
+      toast.error(t.users.toast.unexpectedError)
     } finally {
       setIsDeleting(false)
     }
@@ -126,26 +126,26 @@ export function UserEditForm({
         {/* Role */}
         <Card>
           <CardHeader>
-            <CardTitle>User Role</CardTitle>
+            <CardTitle>{t.users.roleTitle}</CardTitle>
             <CardDescription>
-              Change the user&apos;s access level in the system
+              {t.users.roleDescription}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="role">{t.users.roleFieldLabel}</Label>
               <Select
                 value={role}
                 onValueChange={handleRoleChange}
                 disabled={isSavingRole}
               >
                 <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="Select role" />
+                  <SelectValue placeholder={t.users.selectRole} />
                 </SelectTrigger>
                 <SelectContent>
                   {roles.map((r) => (
                     <SelectItem key={r.value} value={r.value}>
-                      {r.label}
+                      {t.users.roles[r.value].label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -155,9 +155,9 @@ export function UserEditForm({
               )}
             </div>
             <div className="bg-muted/50 rounded-lg p-4">
-              <p className="text-sm font-medium">{roles.find((r) => r.value === role)?.label}</p>
+              <p className="text-sm font-medium">{t.users.roles[role].label}</p>
               <p className="text-muted-foreground text-sm">
-                {roles.find((r) => r.value === role)?.description}
+                {t.users.roles[role].description}
               </p>
             </div>
           </CardContent>
@@ -167,19 +167,19 @@ export function UserEditForm({
         {hasCustomer && (
           <Card>
             <CardHeader>
-              <CardTitle>Customer Notes</CardTitle>
+              <CardTitle>{t.users.notesTitle}</CardTitle>
               <CardDescription>
-                Internal notes about this customer (preferences, allergies, etc.)
+                {t.users.notesDescription}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
+                <Label htmlFor="notes">{t.users.notesLabel}</Label>
                 <Textarea
                   id="notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add notes about this customer..."
+                  placeholder={t.users.notesPlaceholder}
                   rows={5}
                   disabled={isSavingNotes}
                 />
@@ -191,7 +191,7 @@ export function UserEditForm({
                 {isSavingNotes && (
                   <SpinnerIcon size={16} className="mr-2 animate-spin" />
                 )}
-                Save Notes
+                {t.users.saveNotes}
               </Button>
             </CardContent>
           </Card>
@@ -203,7 +203,7 @@ export function UserEditForm({
         {/* Actions */}
         <Card>
           <CardHeader>
-            <CardTitle>Actions</CardTitle>
+            <CardTitle>{t.users.actionsTitle}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <Button
@@ -211,7 +211,7 @@ export function UserEditForm({
               className="w-full"
               onClick={() => router.push(`/dashboard/users/${userId}`)}
             >
-              Back to User Details
+              {t.users.backToUser}
             </Button>
           </CardContent>
         </Card>
@@ -219,16 +219,16 @@ export function UserEditForm({
         {/* Danger Zone */}
         <Card className="border-destructive/50">
           <CardHeader>
-            <CardTitle className="text-destructive">Danger Zone</CardTitle>
-            <CardDescription>Irreversible actions</CardDescription>
+            <CardTitle className="text-destructive">{t.users.dangerZone}</CardTitle>
+            <CardDescription>{t.users.dangerDesc}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between rounded-lg border border-destructive/50 p-4">
                 <div>
-                  <p className="font-medium">Delete User</p>
+                  <p className="font-medium">{t.users.deleteUser}</p>
                   <p className="text-muted-foreground text-sm">
-                    Permanently remove this user
+                    {t.users.deleteUserDesc}
                   </p>
                 </div>
                 <Button
@@ -242,13 +242,13 @@ export function UserEditForm({
                   ) : (
                     <>
                       <TrashIcon size={14} className="mr-2" />
-                      Delete
+                      {t.common.actions.delete}
                     </>
                   )}
                 </Button>
               </div>
               <p className="text-muted-foreground text-xs">
-                Note: Users with existing appointments or orders cannot be deleted.
+                {t.users.deleteNote}
               </p>
             </div>
           </CardContent>

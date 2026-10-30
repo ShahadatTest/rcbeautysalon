@@ -10,12 +10,14 @@ import {
 import { BarList } from "@tremor/react"
 import { TopProduct } from "@/lib/interfaces"
 import { PackageIcon } from "@/components/icons"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface TopProductsChartProps {
   data: TopProduct[]
 }
 
 export function TopProductsChart({ data }: TopProductsChartProps) {
+  const { t } = useI18n()
   const chartData = data.map((product) => ({
     name: product.name,
     value: product.sales,
@@ -30,12 +32,12 @@ export function TopProductsChart({ data }: TopProductsChartProps) {
           </div>
           <div>
             <CardTitle className="text-base">
-              Top{" "}
+              {t.analytics.topProducts.title}{" "}
               <span className="from-primary to-accent bg-linear-to-r bg-clip-text text-transparent">
-                Products
+                {t.analytics.topProducts.titleAccent}
               </span>
             </CardTitle>
-            <CardDescription>By units sold</CardDescription>
+            <CardDescription>{t.analytics.topProducts.description}</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -65,7 +67,7 @@ export function TopProductsChart({ data }: TopProductsChartProps) {
           </div>
         ) : (
           <div className="flex h-48 items-center justify-center rounded-lg border border-dashed">
-            <p className="text-muted-foreground text-sm">No products data available</p>
+            <p className="text-muted-foreground text-sm">{t.analytics.topProducts.noData}</p>
           </div>
         )}
       </CardContent>

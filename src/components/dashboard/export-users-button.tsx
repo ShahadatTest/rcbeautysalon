@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { UsersIcon } from "@/components/icons"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface User {
   id: string
@@ -22,16 +23,25 @@ interface ExportUsersButtonProps {
 }
 
 export function ExportUsersButton({ users }: ExportUsersButtonProps) {
+  const { t, locale } = useI18n()
+
   const handleExport = () => {
-    const headers = ["Name", "Email", "Role", "Appointments", "Orders", "Joined"]
+    const headers = [
+      t.users.csvHeaders.name,
+      t.users.csvHeaders.email,
+      t.users.csvHeaders.role,
+      t.users.csvHeaders.appointments,
+      t.users.csvHeaders.orders,
+      t.users.csvHeaders.joined,
+    ]
 
     const rows = users.map((user) => [
-      user.name || "No name",
+      user.name || t.users.noName,
       user.email || "-",
-      user.role,
+      t.users.roleLabel(user.role),
       (user.customer?._count.appointments || 0).toString(),
       (user.customer?._count.orders || 0).toString(),
-      new Date(user.createdAt).toLocaleDateString(),
+      new Date(user.createdAt).toLocaleDateString(locale === "sl" ? "sl-SI" : "en-US"),
     ])
 
     const csvContent = [
@@ -55,7 +65,7 @@ export function ExportUsersButton({ users }: ExportUsersButtonProps) {
   return (
     <Button variant="outline" onClick={handleExport}>
       <UsersIcon size={16} className="mr-2" />
-      Export List
+      {t.users.exportList}
     </Button>
   )
 }

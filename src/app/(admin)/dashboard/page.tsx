@@ -20,13 +20,17 @@ import {
   getTodaysAppointments,
   getRecentActivities,
 } from "@/app/actions/dashboard"
-import { format, formatDistanceToNow } from "date-fns"
+import { formatDistanceToNow } from "date-fns"
 import { formatSalonTime } from "@/lib/booking-time"
 import { getSessionSalonTimezone } from "@/lib/tenant"
 import { formatCurrency, formatChange } from "@/lib/utils/format"
+import { getServerI18n } from "@/lib/i18n/server"
 
 export default async function AdminDashboard() {
-  const salonTz = await getSessionSalonTimezone()
+  const [{ t, dateFnsLocale }, salonTz] = await Promise.all([
+    getServerI18n(),
+    getSessionSalonTimezone(),
+  ])
   const [stats, todaysAppointments, recentActivities] = await Promise.all([
     getDashboardStats(),
     getTodaysAppointments(),
@@ -38,14 +42,12 @@ export default async function AdminDashboard() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Admin{" "}
+          {t.dashboard.title}{" "}
           <span className="from-primary to-accent bg-linear-to-r bg-clip-text text-transparent">
-            Dashboard
+            {t.dashboard.titleAccent}
           </span>
         </h1>
-        <p className="text-muted-foreground">
-          Welcome back! Here&apos;s your business overview.
-        </p>
+        <p className="text-muted-foreground">{t.dashboard.welcome}</p>
       </div>
 
       {/* Stats Cards */}
@@ -53,7 +55,7 @@ export default async function AdminDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Revenue (This Month)
+              {t.dashboard.revenueThisMonth}
             </CardTitle>
             <CurrencyDollarIcon size={16} className="text-muted-foreground" />
           </CardHeader>
@@ -68,25 +70,10 @@ export default async function AdminDashboard() {
                     size={12}
                     className={`mr-1 inline ${stats.revenue.change >= 0 ? "text-green-600" : "text-red-600"}`}
                   />
-                  {formatChange(stats.revenue.change)} from last month
+                  {formatChange(stats.revenue.change)} {t.dashboard.fromLastMonth}
                 </>
               )}
-              {stats.revenue.change === 0 && "No previous data"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Appointments</CardTitle>
-            <CalendarIcon size={16} className="text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.appointments.total.toLocaleString()}
-            </div>
-            <p className="text-muted-foreground text-xs">
-              +{stats.appointments.monthly} this month
+              {stats.revenue.change === 0 && t.dashboard.noPreviousData}
             </p>
           </CardContent>
         </Card>
@@ -94,34 +81,55 @@ export default async function AdminDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Customers
+              {t.dashboard.appointments}
             </CardTitle>
-            <UsersIcon size={16} className="text-muted-foreground" />
+            <CalendarIcon size={16} className="text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats.customers.total.toLocaleString()}
+              {stats.appointments.total.toLocaleString("sl-SI")}
             </div>
             <p className="text-muted-foreground text-xs">
-              +{stats.customers.weekly} new this week
+              +{stats.appointments.monthly} {t.dashboard.thisMonth}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Shop Sales</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t.dashboard.totalCustomers}
+            </CardTitle>
+            <UsersIcon size={16} className="text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {stats.customers.total.toLocaleString("sl-SI")}
+            </div>
+            <p className="text-muted-foreground text-xs">
+              +{stats.customers.weekly} {t.dashboard.newThisWeek}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {t.dashboard.shopSales}
+            </CardTitle>
             <ShoppingBagIcon size={16} className="text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats.orders.total.toLocaleString()}
+              {stats.orders.total.toLocaleString("sl-SI")}
             </div>
             <p className="text-muted-foreground text-xs">
               {stats.orders.change !== 0 && (
-                <>{formatChange(stats.orders.change)} from last month</>
+                <>
+                  {formatChange(stats.orders.change)} {t.dashboard.fromLastMonth}
+                </>
               )}
-              {stats.orders.change === 0 && "No previous data"}
+              {stats.orders.change === 0 && t.dashboard.noPreviousData}
             </p>
           </CardContent>
         </Card>
@@ -131,17 +139,16 @@ export default async function AdminDashboard() {
         {/* Today's Appointments */}
         <Card className="col-span-4">
           <CardHeader>
-            <CardTitle>Today&apos;s Appointments</CardTitle>
+            <CardTitle>{t.dashboard.todaysAppointments}</CardTitle>
             <CardDescription>
-              You have {todaysAppointments.length} appointment
-              {todaysAppointments.length !== 1 ? "s" : ""} today
+              {t.dashboard.youHaveAppointmentsToday(todaysAppointments.length)}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {todaysAppointments.length === 0 ? (
                 <p className="text-muted-foreground py-8 text-center">
-                  No appointments scheduled for today
+                  {t.dashboard.noAppointmentsToday}
                 </p>
               ) : (
                 todaysAppointments.slice(0, 5).map((apt) => (
@@ -155,11 +162,11 @@ export default async function AdminDashboard() {
                       </div>
                       <div>
                         <p className="font-medium">
-                          {apt.customer?.name || apt.guestName || "Guest"}
+                          {apt.customer?.name || apt.guestName || t.dashboard.guest}
                         </p>
                         <p className="text-muted-foreground text-sm">
-                          {apt.services.map((s) => s.service.name).join(", ")} •
-                          Staff: {apt.staff.name}
+                          {apt.services.map((s) => s.service.name).join(", ")} •{" "}
+                          {t.dashboard.staffLabel} {apt.staff.name}
                         </p>
                       </div>
                     </div>
@@ -169,7 +176,7 @@ export default async function AdminDashboard() {
                       </p>
                       <Link href={`/dashboard/appointments/${apt.id}`}>
                         <Button variant="link" size="sm" className="h-auto p-0">
-                          View Details
+                          {t.common.actions.viewDetails}
                         </Button>
                       </Link>
                     </div>
@@ -180,7 +187,7 @@ export default async function AdminDashboard() {
             <div className="mt-4">
               <Link href="/dashboard/appointments">
                 <Button variant="outline" className="w-full">
-                  View All Appointments
+                  {t.dashboard.viewAllAppointments}
                 </Button>
               </Link>
             </div>
@@ -190,38 +197,38 @@ export default async function AdminDashboard() {
         {/* Quick Actions */}
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common tasks and shortcuts</CardDescription>
+            <CardTitle>{t.dashboard.quickActions}</CardTitle>
+            <CardDescription>{t.dashboard.commonTasks}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             <Link href="/dashboard/appointments/new">
               <Button className="w-full justify-start" variant="outline">
                 <CalendarIcon size={16} className="mr-2" />
-                New Appointment
+                {t.dashboard.newAppointment}
               </Button>
             </Link>
             <Link href="/dashboard/products/new">
               <Button className="w-full justify-start" variant="outline">
                 <ShoppingBagIcon size={16} className="mr-2" />
-                Add Product
+                {t.dashboard.addProduct}
               </Button>
             </Link>
             <Link href="/dashboard/users">
               <Button className="w-full justify-start" variant="outline">
                 <UsersIcon size={16} className="mr-2" />
-                Manage Customers
+                {t.dashboard.manageCustomers}
               </Button>
             </Link>
           </CardContent>
 
           <CardHeader>
-            <CardTitle className="text-base">Recent Activity</CardTitle>
+            <CardTitle className="text-base">{t.dashboard.recentActivity}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3 text-sm">
               {recentActivities.length === 0 ? (
                 <p className="text-muted-foreground py-4 text-center">
-                  No recent activity
+                  {t.dashboard.noRecentActivity}
                 </p>
               ) : (
                 recentActivities.map((activity) => (
@@ -236,10 +243,17 @@ export default async function AdminDashboard() {
                       }`}
                     />
                     <div>
-                      <p className="font-medium">{activity.message}</p>
+                      <p className="font-medium">
+                        {activity.type === "appointment"
+                          ? t.dashboard.activity.appointment(activity.name)
+                          : activity.type === "order"
+                            ? t.dashboard.activity.order(activity.name)
+                            : t.dashboard.activity.customer(activity.name)}
+                      </p>
                       <p className="text-muted-foreground text-xs">
                         {formatDistanceToNow(new Date(activity.createdAt), {
                           addSuffix: true,
+                          locale: dateFnsLocale,
                         })}
                       </p>
                     </div>

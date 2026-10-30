@@ -10,22 +10,26 @@ import {
 import { DonutChart } from "@tremor/react"
 import { AppointmentsByStatus } from "@/lib/interfaces"
 import { CalendarCheckIcon } from "@/components/icons"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface AppointmentsStatusChartProps {
   data: AppointmentsByStatus[]
 }
 
-const statusConfig: Record<string, { label: string; color: string; dotColor: string }> = {
-  CONFIRMED: { label: "Confirmed", color: "blue", dotColor: "bg-blue-500" },
-  COMPLETED: { label: "Completed", color: "emerald", dotColor: "bg-emerald-500" },
-  CANCELLED: { label: "Cancelled", color: "red", dotColor: "bg-red-500" },
-  NO_SHOW: { label: "No Show", color: "amber", dotColor: "bg-amber-500" },
-  PENDING: { label: "Pending", color: "gray", dotColor: "bg-gray-500" },
+const statusConfig: Record<string, { color: string; dotColor: string }> = {
+  CONFIRMED: { color: "blue", dotColor: "bg-blue-500" },
+  COMPLETED: { color: "emerald", dotColor: "bg-emerald-500" },
+  CANCELLED: { color: "red", dotColor: "bg-red-500" },
+  NO_SHOW: { color: "amber", dotColor: "bg-amber-500" },
+  PENDING: { color: "gray", dotColor: "bg-gray-500" },
 }
 
 export function AppointmentsStatusChart({ data }: AppointmentsStatusChartProps) {
+  const { t } = useI18n()
+  const statusLabel = (status: string) =>
+    t.analytics.status[status as keyof typeof t.analytics.status] || status
   const chartData = data.map((item) => ({
-    name: statusConfig[item.status]?.label || item.status,
+    name: statusLabel(item.status),
     value: item.count,
     status: item.status,
   }))
@@ -45,12 +49,12 @@ export function AppointmentsStatusChart({ data }: AppointmentsStatusChartProps) 
           </div>
           <div>
             <CardTitle className="text-base">
-              Appointments{" "}
+              {t.analytics.status.title}{" "}
               <span className="from-primary to-accent bg-linear-to-r bg-clip-text text-transparent">
-                Status
+                {t.analytics.status.titleAccent}
               </span>
             </CardTitle>
-            <CardDescription>Distribution overview</CardDescription>
+            <CardDescription>{t.analytics.status.description}</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -79,7 +83,7 @@ export function AppointmentsStatusChart({ data }: AppointmentsStatusChartProps) 
           </div>
         ) : (
           <div className="flex h-48 items-center justify-center rounded-lg border border-dashed">
-            <p className="text-muted-foreground text-sm">No appointments data available</p>
+            <p className="text-muted-foreground text-sm">{t.analytics.status.noData}</p>
           </div>
         )}
       </CardContent>

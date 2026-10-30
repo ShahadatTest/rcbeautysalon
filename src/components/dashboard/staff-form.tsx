@@ -26,6 +26,7 @@ import {
   type StaffFormData,
   type WorkingHourFormData,
 } from "@/lib/validations/staff"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface Service {
   id: string
@@ -78,6 +79,7 @@ const defaultWorkingHours: WorkingHourFormData[] = daysOfWeek.map((day) => ({
 }))
 
 export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete }: StaffFormProps) {
+  const { t } = useI18n()
   const router = useRouter()
   const isEditMode = mode === "edit"
   const [image, setImage] = useState<string | null>(staff?.image || null)
@@ -121,12 +123,12 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
     if (!file) return
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file")
+      toast.error(t.staff.toasts.selectImageFile)
       return
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be less than 5MB")
+      toast.error(t.staff.toasts.imageTooLarge)
       return
     }
 
@@ -145,15 +147,15 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Upload failed")
+        throw new Error(data.error || t.staff.toasts.uploadError)
       }
 
       setImage(data.url)
-      toast.success("Image uploaded successfully")
+      toast.success(t.staff.toasts.imageUploaded)
     } catch (error) {
       console.error("Upload error:", error)
       toast.error(
-        error instanceof Error ? error.message : "Failed to upload image"
+        error instanceof Error ? error.message : t.staff.toasts.uploadFailed
       )
     } finally {
       setIsUploading(false)
@@ -193,9 +195,7 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
   const handleDelete = async () => {
     if (!onDelete) return
 
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this staff member? This action cannot be undone."
-    )
+    const confirmed = window.confirm(t.staff.confirmDeleteThis)
 
     if (!confirmed) return
 
@@ -204,14 +204,14 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
       const result = await onDelete()
 
       if (result.success) {
-        toast.success("Staff member deleted successfully")
+        toast.success(t.staff.toasts.deleted)
         router.push("/dashboard/staff")
       } else {
-        toast.error(result.error || "Failed to delete staff member")
+        toast.error(result.error || t.staff.toasts.deleteFailed)
       }
     } catch (error) {
       console.error("Delete error:", error)
-      toast.error("An unexpected error occurred")
+      toast.error(t.staff.toasts.unexpectedError)
     } finally {
       setIsDeleting(false)
     }
@@ -230,14 +230,14 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
       const result = await onSubmit(staffData)
 
       if (result.success) {
-        toast.success(isEditMode ? "Staff member updated successfully" : "Staff member created successfully")
+        toast.success(isEditMode ? t.staff.toasts.updated : t.staff.toasts.created)
         router.push("/dashboard/staff")
       } else {
-        toast.error(result.error || `Failed to ${isEditMode ? "update" : "create"} staff member`)
+        toast.error(result.error || (isEditMode ? t.staff.toasts.updateFailed : t.staff.toasts.createFailed))
       }
     } catch (error) {
       console.error("Submit error:", error)
-      toast.error("An unexpected error occurred")
+      toast.error(t.staff.toasts.unexpectedError)
     }
   }
 
@@ -249,15 +249,15 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
           {/* Personal Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
-              <CardDescription>Basic details about the staff member</CardDescription>
+              <CardTitle>{t.staff.form.personalInfo}</CardTitle>
+              <CardDescription>{t.staff.form.personalInfoDescription}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name *</Label>
+                <Label htmlFor="name">{t.staff.form.fullName}</Label>
                 <Input
                   id="name"
-                  placeholder="e.g., Emma Wilson"
+                  placeholder={t.staff.form.fullNamePlaceholder}
                   {...register("name")}
                   disabled={isSubmitting}
                 />
@@ -270,11 +270,11 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
+                  <Label htmlFor="email">{t.staff.form.email}</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="emma@salon.com"
+                    placeholder={t.staff.form.emailPlaceholder}
                     {...register("email")}
                     disabled={isSubmitting}
                   />
@@ -285,10 +285,10 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">{t.staff.form.phone}</Label>
                   <Input
                     id="phone"
-                    placeholder="(555) 123-4567"
+                    placeholder={t.staff.form.phonePlaceholder}
                     {...register("phone")}
                     disabled={isSubmitting}
                   />
@@ -296,10 +296,10 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
+                <Label htmlFor="bio">{t.staff.form.bio}</Label>
                 <Textarea
                   id="bio"
-                  placeholder="Brief description about the staff member..."
+                  placeholder={t.staff.form.bioPlaceholder}
                   rows={4}
                   {...register("bio")}
                   disabled={isSubmitting}
@@ -311,15 +311,15 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
           {/* Profile Photo */}
           <Card>
             <CardHeader>
-              <CardTitle>Profile Photo</CardTitle>
-              <CardDescription>Upload a professional photo</CardDescription>
+              <CardTitle>{t.staff.form.profilePhoto}</CardTitle>
+              <CardDescription>{t.staff.form.profilePhotoDescription}</CardDescription>
             </CardHeader>
             <CardContent>
               {image ? (
                 <div className="relative aspect-video w-full overflow-hidden rounded-lg">
                   <Image
                     src={image}
-                    alt="Staff photo"
+                    alt={t.staff.form.staffPhotoAlt}
                     fill
                     className="object-cover"
                   />
@@ -347,7 +347,7 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
                   )}
                   {!isUploading && (
                     <p className="text-muted-foreground mt-4 text-sm">
-                      Click to upload an image
+                      {t.staff.form.clickToUpload}
                     </p>
                   )}
                 </div>
@@ -365,8 +365,8 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
           {/* Working Hours */}
           <Card>
             <CardHeader>
-              <CardTitle>Working Hours</CardTitle>
-              <CardDescription>Set the weekly schedule</CardDescription>
+              <CardTitle>{t.staff.form.workingHours}</CardTitle>
+              <CardDescription>{t.staff.form.workingHoursDescription}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -375,7 +375,7 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
                   return (
                     <div key={day.id} className="flex items-center gap-4">
                       <div className="w-28">
-                        <Label>{day.name}</Label>
+                        <Label>{t.staff.days[day.id]}</Label>
                       </div>
                       <Switch
                         checked={hours?.isActive || false}
@@ -394,7 +394,7 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
                           className="w-32"
                           disabled={isSubmitting || !hours?.isActive}
                         />
-                        <span className="text-muted-foreground">to</span>
+                        <span className="text-muted-foreground">{t.staff.form.to}</span>
                         <Input
                           type="time"
                           value={hours?.endTime || "17:00"}
@@ -418,14 +418,14 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
           {/* Status */}
           <Card>
             <CardHeader>
-              <CardTitle>Status</CardTitle>
+              <CardTitle>{t.staff.form.status}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Active</Label>
+                  <Label>{t.staff.form.active}</Label>
                   <p className="text-muted-foreground text-xs">
-                    Staff member can receive bookings
+                    {t.staff.form.activeDescription}
                   </p>
                 </div>
                 <Switch
@@ -440,13 +440,13 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
           {/* Services */}
           <Card>
             <CardHeader>
-              <CardTitle>Services</CardTitle>
-              <CardDescription>Assign services this staff can perform</CardDescription>
+              <CardTitle>{t.staff.form.services}</CardTitle>
+              <CardDescription>{t.staff.form.servicesDescription}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 {services.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">No services available</p>
+                  <p className="text-muted-foreground text-sm">{t.staff.form.noServices}</p>
                 ) : (
                   services.map((service) => (
                     <label
@@ -474,7 +474,7 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
               {isSubmitting && (
                 <SpinnerIcon size={16} className="mr-2 animate-spin" />
               )}
-              {isEditMode ? "Update Staff Member" : "Create Staff Member"}
+              {isEditMode ? t.staff.form.updateStaff : t.staff.form.createStaff}
             </Button>
             <Button
               type="button"
@@ -483,7 +483,7 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
               onClick={() => router.push("/dashboard/staff")}
               disabled={isSubmitting || isDeleting}
             >
-              Cancel
+              {t.common.actions.cancel}
             </Button>
             {isEditMode && onDelete && (
               <Button
@@ -498,7 +498,7 @@ export function StaffForm({ services, staff, mode = "create", onSubmit, onDelete
                 ) : (
                   <>
                     <TrashIcon size={16} className="mr-2" />
-                    Delete Staff Member
+                    {t.staff.form.deleteStaff}
                   </>
                 )}
               </Button>

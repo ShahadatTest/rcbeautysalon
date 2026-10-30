@@ -14,11 +14,15 @@ import {
   getAllActiveStaff,
 } from "@/app/actions/services"
 import { getCustomers } from "@/app/actions/customers"
+import { getServerI18n } from "@/lib/i18n/server"
 
 export default async function NewAppointmentPage() {
-  const services = await getActiveServicesForBooking()
-  const staff = await getAllActiveStaff()
-  const customers = await getCustomers()
+  const [{ t }, services, staff, customers] = await Promise.all([
+    getServerI18n(),
+    getActiveServicesForBooking(),
+    getAllActiveStaff(),
+    getCustomers(),
+  ])
 
   return (
     <div className="space-y-6">
@@ -30,9 +34,11 @@ export default async function NewAppointmentPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">New Appointment</h1>
+          <h1 className="text-3xl font-bold">
+            {t.appointments.new.newAppointment}
+          </h1>
           <p className="text-muted-foreground">
-            Create a new appointment for a customer
+            {t.appointments.new.newDescription}
           </p>
         </div>
       </div>
@@ -40,9 +46,9 @@ export default async function NewAppointmentPage() {
       {/* Form Card */}
       <Card className="max-w-2xl">
         <CardHeader>
-          <CardTitle>Appointment Details</CardTitle>
+          <CardTitle>{t.appointments.new.formTitle}</CardTitle>
           <CardDescription>
-            Fill in the details below to create a new appointment
+            {t.appointments.new.formDescription}
           </CardDescription>
         </CardHeader>
         <CardContent>

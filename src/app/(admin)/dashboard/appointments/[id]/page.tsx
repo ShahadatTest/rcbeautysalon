@@ -19,6 +19,7 @@ import { formatSalonTime } from "@/lib/booking-time"
 import { getSessionSalonTimezone } from "@/lib/tenant"
 import { formatCurrency } from "@/lib/utils/format"
 import { AppointmentStatusActions } from "@/components/appointments/status-actions"
+import { getServerI18n } from "@/lib/i18n/server"
 
 export const dynamic = "force-dynamic"
 
@@ -36,25 +37,36 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps) {
   const { id } = await params
-  const appointment = await getAppointmentById(id)
+  const [appointment, { t, dateFnsLocale }] = await Promise.all([
+    getAppointmentById(id),
+    getServerI18n(),
+  ])
 
   if (!appointment) {
     return {
-      title: "Appointment Not Found",
+      title: t.appointments.details.notFoundTitle,
     }
   }
 
   const customerName =
-    appointment.customer?.name || appointment.guestName || "Guest"
+    appointment.customer?.name || appointment.guestName || t.appointments.details.guest
 
   return {
-    title: `Appointment - ${customerName}`,
-    description: `Appointment details for ${customerName} on ${format(new Date(appointment.startTime), "MMMM d, yyyy")}`,
+    title: t.appointments.details.metaTitle(customerName),
+    description: t.appointments.details.metaDescription(
+      customerName,
+      format(new Date(appointment.startTime), "MMMM d, yyyy", {
+        locale: dateFnsLocale,
+      })
+    ),
   }
 }
 
 export default async function AppointmentDetailPage({ params }: PageProps) {
-  const salonTz = await getSessionSalonTimezone()
+  const [{ t, dateFnsLocale }, salonTz] = await Promise.all([
+    getServerI18n(),
+    getSessionSalonTimezone(),
+  ])
   const { id } = await params
   const appointment = await getAppointmentById(id)
 
@@ -78,9 +90,12 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">Appointment Details</h1>
+            <h1 className="text-3xl font-bold">
+              {t.appointments.details.detailsTitle}
+            </h1>
             <p className="text-muted-foreground">
-              Booking #{appointment.id.slice(-8)}
+              {t.appointments.details.booking}
+              {appointment.id.slice(-8)}
             </p>
           </div>
         </div>
@@ -93,11 +108,11 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Status</CardTitle>
+                <CardTitle>{t.appointments.details.statusTitle}</CardTitle>
                 <span
                   className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${statusColors[appointment.status]}`}
                 >
-                  {appointment.status.replace("_", " ")}
+                  {t.common.status[appointment.status]}
                 </span>
               </div>
             </CardHeader>
@@ -114,7 +129,7 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ScissorsIcon size={20} />
-                Service Details
+                {t.appointments.details.serviceDetails}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -137,9 +152,13 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
                     <CalendarIcon size={20} className="text-primary" />
                   </div>
                   <div>
-                    <p className="text-muted-foreground text-sm">Date</p>
+                    <p className="text-muted-foreground text-sm">
+                      {t.appointments.details.date}
+                    </p>
                     <p className="font-medium">
-                      {format(new Date(appointment.startTime), "MMMM d, yyyy")}
+                      {format(new Date(appointment.startTime), "MMMM d, yyyy", {
+                        locale: dateFnsLocale,
+                      })}
                     </p>
                   </div>
                 </div>
@@ -148,7 +167,9 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
                     <ClockIcon size={20} className="text-primary" />
                   </div>
                   <div>
-                    <p className="text-muted-foreground text-sm">Time</p>
+                    <p className="text-muted-foreground text-sm">
+                      {t.appointments.details.time}
+                    </p>
                     <p className="font-medium">
                       {formatSalonTime(new Date(appointment.startTime), salonTz)} -{" "}
                       {formatSalonTime(new Date(appointment.endTime), salonTz)}
@@ -157,7 +178,7 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
                 </div>
               </div>
               <div className="text-muted-foreground text-sm">
-                Total duration: {totalDuration} minutes
+                {t.appointments.details.totalDurationMinutes(totalDuration)}
               </div>
             </CardContent>
           </Card>
@@ -165,11 +186,11 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
           {/* Notes */}
           <Card>
             <CardHeader>
-              <CardTitle>Notes</CardTitle>
+              <CardTitle>{t.appointments.details.notesTitle}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                {appointment.notes || "No notes for this appointment"}
+                {appointment.notes || t.appointments.details.noNotes}
               </p>
             </CardContent>
           </Card>
@@ -182,7 +203,7 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserIcon size={20} />
-                Customer
+                {t.appointments.details.customerTitle}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -190,7 +211,7 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
                 <p className="font-medium">
                   {appointment.customer?.name ||
                     appointment.guestName ||
-                    "Guest"}
+                    t.appointments.details.guest}
                 </p>
               </div>
               <div className="space-y-2">
@@ -214,7 +235,7 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
               {appointment.customer?.userId && (
                 <Link href={`/dashboard/users/${appointment.customer.userId}`}>
                   <Button variant="outline" className="w-full" size="sm">
-                    View Customer Profile
+                    {t.appointments.details.viewCustomerProfile}
                   </Button>
                 </Link>
               )}
@@ -224,7 +245,7 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
           {/* Staff Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Assigned Staff</CardTitle>
+              <CardTitle>{t.appointments.details.assignedStaff}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-3">
@@ -236,7 +257,9 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
                 </div>
                 <div>
                   <p className="font-medium">{appointment.staff.name}</p>
-                  <p className="text-muted-foreground text-sm">Staff Member</p>
+                  <p className="text-muted-foreground text-sm">
+                    {t.appointments.details.staffMember}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -247,16 +270,16 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CurrencyDollarIcon size={20} />
-                Payment
+                {t.appointments.details.paymentTitle}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between text-sm">
-                <span>Service Total</span>
+                <span>{t.appointments.details.serviceTotal}</span>
                 <span>{formatCurrency(appointment.totalPrice)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Deposit</span>
+                <span>{t.appointments.details.deposit}</span>
                 <span
                   className={
                     appointment.depositPaid
@@ -265,13 +288,13 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
                   }
                 >
                   {appointment.depositPaid
-                    ? `${formatCurrency(appointment.depositAmount)} (Paid)`
-                    : "Not paid"}
+                    ? `${formatCurrency(appointment.depositAmount)} (${t.appointments.details.paid})`
+                    : t.appointments.details.notPaid}
                 </span>
               </div>
               <Separator />
               <div className="flex justify-between font-medium">
-                <span>Balance Due</span>
+                <span>{t.appointments.details.balanceDue}</span>
                 <span>
                   {formatCurrency(
                     appointment.totalPrice -
@@ -285,14 +308,19 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
           {/* Booking Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Booking Info</CardTitle>
+              <CardTitle>{t.appointments.details.bookingInfo}</CardTitle>
             </CardHeader>
             <CardContent className="text-muted-foreground text-sm">
               <p>
-                Created on{" "}
-                {format(new Date(appointment.createdAt), "MMMM d, yyyy")}
+                {t.appointments.details.createdOn(
+                  format(new Date(appointment.createdAt), "MMMM d, yyyy", {
+                    locale: dateFnsLocale,
+                  })
+                )}
               </p>
-              <p>Booking ID: #{appointment.id.slice(-8)}</p>
+              <p>
+                {t.appointments.details.bookingId} #{appointment.id.slice(-8)}
+              </p>
             </CardContent>
           </Card>
         </div>

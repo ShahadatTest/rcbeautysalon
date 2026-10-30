@@ -1,0 +1,203 @@
+// Popolnoma prevedi ta imenski prostor (slovenščina + angleščina).
+// Ključi naj pokrivajo vse uporabniku vidne nize na pripadajoči strani.
+export const productsSl = {
+  // Glava strani
+  title: "Izdelki",
+  titleAccent: "v trgovini",
+  subtitle: "Upravljajte zalogo svoje trgovine",
+  addProduct: "Dodaj izdelek",
+
+  // Statistika
+  totalProducts: "Skupno število izdelkov",
+  inStock: "Na zalogi",
+  lowStock: "Nizka zaloga",
+  outOfStock: "Ni na zalogi",
+
+  // Tabela izdelkov
+  allProducts: "Vsi izdelki",
+  allProductsDesc: "Upravljajte zalogo izdelkov",
+  noProductsFound: "Ni najdenih izdelkov.",
+  addFirstProduct: "Dodajte prvi izdelek",
+  colProduct: "Izdelek",
+  colCategory: "Kategorija",
+  colSku: "SKU",
+  colPrice: "Cena",
+  colStock: "Zaloga",
+  colStatus: "Status",
+  colActions: "Dejanja",
+  uncategorized: "Brez kategorije",
+  activeBadge: "Aktiven",
+  inactiveBadge: "Neaktiven",
+
+  // Iskanje
+  searchPlaceholder: "Iskanje izdelkov …",
+
+  // Glavi strani za novo / urejanje
+  newTitle: "Nov izdelek",
+  newSubtitle: "Dodajte nov izdelek v svojo trgovino",
+  editTitle: "Uredi izdelek",
+
+  // Obrazec: kartica podatkov o izdelku
+  productInfoTitle: "Podatki o izdelku",
+  productInfoDesc: "Osnovni podatki o izdelku",
+  nameLabel: "Ime izdelka *",
+  namePlaceholder: "npr. Profesionalni šampon",
+  descriptionLabel: "Opis",
+  descriptionPlaceholder: "Opišite izdelek …",
+  categoryLabel: "Kategorija",
+  categoryPlaceholder: "Izberite kategorijo",
+
+  // Obrazec: kartica cen
+  pricingTitle: "Cene",
+  pricingDesc: "Nastavite ceno izdelka",
+  priceLabel: "Cena (€) *",
+  compareAtPriceLabel: "Primerjalna cena (€)",
+  compareAtPriceHelp: "Izvirna cena za prikaz popusta",
+
+  // Obrazec: kartica zaloge
+  inventoryTitle: "Zaloga",
+  inventoryDesc: "Upravljajte stanje zaloge",
+  skuLabel: "SKU",
+  stockQuantityLabel: "Količina na zalogi",
+  trackInventoryLabel: "Sledenje zalogi",
+  trackInventoryDesc: "Omogočite sledenje zalogi za ta izdelek",
+
+  // Obrazec: kartica slik
+  imagesTitle: "Slike izdelka",
+  imagesDesc: "Naložite fotografije izdelka",
+  imageAlt: (n: number) => `Slika izdelka ${n}`,
+  addMoreImages: "Dodaj več slik",
+  clickToUpload: "Kliknite za nalaganje slik",
+
+  // Obrazec: kartica stanja
+  statusTitle: "Status",
+  activeLabel: "Aktiven",
+  activeDesc: "Izdelek je na voljo za nakup",
+  featuredLabel: "Izpostavljeno",
+  featuredDesc: "Prikaži v izpostavljenem razdelku",
+
+  // Dejanja obrazca
+  updateButton: "Posodobi izdelek",
+  createButton: "Ustvari izdelek",
+  deleteButton: "Izbriši izdelek",
+
+  // Sporočila (obvestila / potrditvena okna)
+  imageTypeError: "Izberite slikovno datoteko",
+  imageSizeError: "Slika mora biti manjša od 5 MB",
+  imageUploadSuccess: "Slika je uspešno naložena",
+  imageUploadFailed: "Napaka pri nalaganju slike",
+  uploadFailed: "Nalaganje ni uspelo",
+  deleteConfirm:
+    "Ste prepričani, da želite izbrisati ta izdelek? Dejanja ni mogoče razveljaviti.",
+  deleteConfirmWithName: (name: string) =>
+    `Ste prepričani, da želite izbrisati "${name}"? Dejanja ni mogoče razveljaviti.`,
+  deleteSuccess: "Izdelek je uspešno izbrisan",
+  deleteFailed: "Napaka pri brisanju izdelka",
+  createSuccess: "Izdelek je uspešno ustvarjen",
+  createFailed: "Napaka pri ustvarjanju izdelka",
+  updateSuccess: "Izdelek je uspešno posodobljen",
+  updateFailed: "Napaka pri posodabljanju izdelka",
+  unexpectedError: "Prišlo je do nepričakovane napake",
+}
+
+export type ProductsDict = typeof productsSl
+
+export const productsEn: ProductsDict = {
+  // Page header
+  title: "Shop",
+  titleAccent: "Products",
+  subtitle: "Manage your shop inventory",
+  addProduct: "Add Product",
+
+  // Stats
+  totalProducts: "Total Products",
+  inStock: "In Stock",
+  lowStock: "Low Stock",
+  outOfStock: "Out of Stock",
+
+  // Products table
+  allProducts: "All Products",
+  allProductsDesc: "Manage your product inventory",
+  noProductsFound: "No products found.",
+  addFirstProduct: "Add First Product",
+  colProduct: "Product",
+  colCategory: "Category",
+  colSku: "SKU",
+  colPrice: "Price",
+  colStock: "Stock",
+  colStatus: "Status",
+  colActions: "Actions",
+  uncategorized: "Uncategorized",
+  activeBadge: "Active",
+  inactiveBadge: "Inactive",
+
+  // Search
+  searchPlaceholder: "Search products by name, SKU...",
+
+  // New / edit page headers
+  newTitle: "New Product",
+  newSubtitle: "Add a new product to your shop",
+  editTitle: "Edit Product",
+
+  // Form: product information card
+  productInfoTitle: "Product Information",
+  productInfoDesc: "Basic details about the product",
+  nameLabel: "Product Name *",
+  namePlaceholder: "e.g., Professional Shampoo",
+  descriptionLabel: "Description",
+  descriptionPlaceholder: "Describe the product...",
+  categoryLabel: "Category",
+  categoryPlaceholder: "Select a category",
+
+  // Form: pricing card
+  pricingTitle: "Pricing",
+  pricingDesc: "Set the product price",
+  priceLabel: "Price (€) *",
+  compareAtPriceLabel: "Compare at Price (€)",
+  compareAtPriceHelp: "Original price for showing discount",
+
+  // Form: inventory card
+  inventoryTitle: "Inventory",
+  inventoryDesc: "Manage stock levels",
+  skuLabel: "SKU",
+  stockQuantityLabel: "Stock Quantity",
+  trackInventoryLabel: "Track Inventory",
+  trackInventoryDesc: "Enable stock tracking for this product",
+
+  // Form: images card
+  imagesTitle: "Product Images",
+  imagesDesc: "Upload product photos",
+  imageAlt: (n: number) => `Product image ${n}`,
+  addMoreImages: "Add more images",
+  clickToUpload: "Click to upload images",
+
+  // Form: status card
+  statusTitle: "Status",
+  activeLabel: "Active",
+  activeDesc: "Product is available for purchase",
+  featuredLabel: "Featured",
+  featuredDesc: "Show in featured section",
+
+  // Form actions
+  updateButton: "Update Product",
+  createButton: "Create Product",
+  deleteButton: "Delete Product",
+
+  // Messages (toasts / dialogs)
+  imageTypeError: "Please select an image file",
+  imageSizeError: "Image must be less than 5MB",
+  imageUploadSuccess: "Image uploaded successfully",
+  imageUploadFailed: "Failed to upload image",
+  uploadFailed: "Upload failed",
+  deleteConfirm:
+    "Are you sure you want to delete this product? This action cannot be undone.",
+  deleteConfirmWithName: (name: string) =>
+    `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+  deleteSuccess: "Product deleted successfully",
+  deleteFailed: "Failed to delete product",
+  createSuccess: "Product created successfully",
+  createFailed: "Failed to create product",
+  updateSuccess: "Product updated successfully",
+  updateFailed: "Failed to update product",
+  unexpectedError: "An unexpected error occurred",
+}

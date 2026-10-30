@@ -3,10 +3,14 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeftIcon } from "@/components/icons"
 import { StaffForm } from "@/components/dashboard/staff-form"
 import { getActiveServicesForStaff, createStaffMember } from "@/app/actions/staff"
+import { getServerI18n } from "@/lib/i18n/server"
 import type { StaffFormData } from "@/lib/validations/staff"
 
 export default async function NewStaffPage() {
-  const services = await getActiveServicesForStaff()
+  const [services, { t }] = await Promise.all([
+    getActiveServicesForStaff(),
+    getServerI18n(),
+  ])
 
   async function handleCreate(data: StaffFormData) {
     "use server"
@@ -23,9 +27,9 @@ export default async function NewStaffPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">New Staff Member</h1>
+          <h1 className="text-3xl font-bold">{t.staff.newStaffTitle}</h1>
           <p className="text-muted-foreground">
-            Add a new team member
+            {t.staff.newStaffSubtitle}
           </p>
         </div>
       </div>

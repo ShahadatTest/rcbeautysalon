@@ -9,12 +9,14 @@ import {
 } from "@/components/ui/card"
 import { AreaChart } from "@tremor/react"
 import { RevenueDataPoint } from "@/lib/interfaces"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface RevenueChartProps {
   data: RevenueDataPoint[]
 }
 
 export function RevenueChart({ data }: RevenueChartProps) {
+  const { t } = useI18n()
   const totalAppointments = data.reduce((sum, d) => sum + d.appointments, 0)
   const totalProducts = data.reduce((sum, d) => sum + d.products, 0)
 
@@ -24,26 +26,26 @@ export function RevenueChart({ data }: RevenueChartProps) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <CardTitle>
-              Revenue{" "}
+              {t.analytics.revenue.title}{" "}
               <span className="from-primary to-accent bg-linear-to-r bg-clip-text text-transparent">
-                Overview
+                {t.analytics.revenue.titleAccent}
               </span>
             </CardTitle>
             <CardDescription>
-              Track your income from appointments and product sales
+              {t.analytics.revenue.description}
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-4 text-sm">
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-rose-500" />
               <span className="text-muted-foreground">
-                Termini: <span className="font-semibold text-foreground">€{totalAppointments.toLocaleString()}</span>
+                {t.analytics.revenue.legendAppointments}: <span className="font-semibold text-foreground">€{totalAppointments.toLocaleString()}</span>
               </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-amber-500" />
               <span className="text-muted-foreground">
-                Izdelki: <span className="font-semibold text-foreground">€{totalProducts.toLocaleString()}</span>
+                {t.analytics.revenue.legendProducts}: <span className="font-semibold text-foreground">€{totalProducts.toLocaleString()}</span>
               </span>
             </div>
           </div>
@@ -69,7 +71,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
           </div>
         ) : (
           <div className="flex h-72 items-center justify-center rounded-lg border border-dashed">
-            <p className="text-muted-foreground">No revenue data available for this period</p>
+            <p className="text-muted-foreground">{t.analytics.revenue.noData}</p>
           </div>
         )}
       </CardContent>

@@ -23,8 +23,9 @@ import {
 } from "@/components/ui/popover"
 import { CalendarIcon, SpinnerGapIcon } from "@/components/icons"
 import { format, setHours, setMinutes } from "date-fns"
-import { sl } from "date-fns/locale"
+import { sl, enUS } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n/provider"
 import {
   adminAppointmentSchema,
   AdminAppointmentInput,
@@ -42,6 +43,8 @@ export default function AdminAppointmentForm({
   customers,
 }: AdminAppointmentFormProps) {
   const router = useRouter()
+  const { t, locale } = useI18n()
+  const dateFnsLocale = locale === "sl" ? sl : enUS
   const [isLoading, setIsLoading] = useState(false)
   const [availableStaff, setAvailableStaff] = useState<AvailableStaffMember[]>(
     []
@@ -173,11 +176,11 @@ export default function AdminAppointmentForm({
       if (result.success) {
         router.push("/dashboard/appointments")
       } else {
-        alert(result.error || "Ustvarjanje termina ni uspelo")
+        alert(result.error || t.appointments.form.createFailed)
       }
     } catch (error) {
       console.error("Error creating appointment:", error)
-      alert("Ustvarjanje termina ni uspelo. Poskusite znova.")
+      alert(t.appointments.form.createFailedRetry)
     } finally {
       setIsLoading(false)
     }
@@ -188,10 +191,12 @@ export default function AdminAppointmentForm({
       {/* Existing Customer Selection (optional) */}
       {customers && customers.length > 0 && (
         <div className="space-y-2">
-          <Label>Izberi obstoječo stranko (neobvezno)</Label>
+          <Label>{t.appointments.form.selectExistingCustomer}</Label>
           <Select onValueChange={handleCustomerSelect}>
             <SelectTrigger>
-              <SelectValue placeholder="Išči med obstoječimi strankami …" />
+              <SelectValue
+                placeholder={t.appointments.form.searchExistingCustomers}
+              />
             </SelectTrigger>
             <SelectContent>
               {customers.map((customer) => (
@@ -202,21 +207,20 @@ export default function AdminAppointmentForm({
             </SelectContent>
           </Select>
           <p className="text-muted-foreground text-xs">
-            Izberite stranko za samodejno izpolnitev podatkov, ali jih vnesite
-            ročno spodaj
+            {t.appointments.form.selectCustomerHint}
           </p>
         </div>
       )}
 
       {/* Customer Info Section */}
       <div className="space-y-4">
-        <h3 className="font-medium">Podatki stranke</h3>
+        <h3 className="font-medium">{t.appointments.form.customerInfo}</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="customerName">Ime *</Label>
+            <Label htmlFor="customerName">{t.appointments.form.nameLabel}</Label>
             <Input
               id="customerName"
-              placeholder="Ime stranke"
+              placeholder={t.appointments.form.namePlaceholder}
               {...register("customerName")}
             />
             {errors.customerName && (
@@ -226,11 +230,13 @@ export default function AdminAppointmentForm({
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="customerPhone">Telefon *</Label>
+            <Label htmlFor="customerPhone">
+              {t.appointments.form.phoneLabel}
+            </Label>
             <Input
               id="customerPhone"
               type="tel"
-              placeholder="040 123 456"
+              placeholder={t.appointments.form.phonePlaceholder}
               {...register("customerPhone")}
             />
             {errors.customerPhone && (
@@ -241,11 +247,11 @@ export default function AdminAppointmentForm({
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="customerEmail">E-pošta</Label>
+          <Label htmlFor="customerEmail">{t.appointments.form.emailLabel}</Label>
           <Input
             id="customerEmail"
             type="email"
-            placeholder="stranka@email.si"
+            placeholder={t.appointments.form.emailPlaceholder}
             {...register("customerEmail")}
           />
           {errors.customerEmail && (
@@ -258,13 +264,13 @@ export default function AdminAppointmentForm({
 
       {/* Service Selection */}
       <div className="space-y-2">
-        <Label>Storitev *</Label>
+        <Label>{t.appointments.form.serviceLabel}</Label>
         <Select
           value={selectedServiceId}
           onValueChange={(value) => setValue("serviceId", value)}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Izberite storitev" />
+            <SelectValue placeholder={t.appointments.form.servicePlaceholder} />
           </SelectTrigger>
           <SelectContent>
             {services.map((service) => (
@@ -281,7 +287,7 @@ export default function AdminAppointmentForm({
 
       {/* Staff Selection */}
       <div className="space-y-2">
-        <Label>Staff Member *</Label>
+        <Label>{t.appointments.form.staffLabel}</Label>
         <Select
           value={selectedStaffId}
           onValueChange={(value) => setValue("staffId", value)}
@@ -291,17 +297,17 @@ export default function AdminAppointmentForm({
             <SelectValue
               placeholder={
                 loadingStaff
-                  ? "Loading staff..."
+                  ? t.appointments.form.staffLoading
                   : !selectedServiceId
-                    ? "Select a service first"
-                    : "Select staff member"
+                    ? t.appointments.form.staffSelectServiceFirst
+                    : t.appointments.form.staffPlaceholder
               }
             />
           </SelectTrigger>
           <SelectContent>
             {availableStaff.length === 0 && !loadingStaff ? (
               <SelectItem value="no-staff" disabled>
-                No staff available for this service
+                {t.appointments.form.staffNone}
               </SelectItem>
             ) : (
               availableStaff.map((member) => (
@@ -319,7 +325,7 @@ export default function AdminAppointmentForm({
 
       {/* Date Selection */}
       <div className="space-y-2">
-        <Label>Date *</Label>
+        <Label>{t.appointments.form.dateLabel}</Label>
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -333,8 +339,8 @@ export default function AdminAppointmentForm({
             >
               <CalendarIcon size={16} className="mr-2" />
               {selectedDate
-                ? format(selectedDate, "d. MMMM yyyy", { locale: sl })
-                : "Izberite datum"}
+                ? format(selectedDate, "d. MMMM yyyy", { locale: dateFnsLocale })
+                : t.appointments.form.datePlaceholder}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -357,7 +363,7 @@ export default function AdminAppointmentForm({
 
       {/* Time Selection */}
       <div className="space-y-2">
-        <Label>Time *</Label>
+        <Label>{t.appointments.form.timeLabel}</Label>
         <Select
           value={watch("time")}
           onValueChange={(value) => setValue("time", value)}
@@ -367,17 +373,17 @@ export default function AdminAppointmentForm({
             <SelectValue
               placeholder={
                 loadingSlots
-                  ? "Loading available times..."
+                  ? t.appointments.form.timeLoading
                   : !selectedStaffId || !selectedDate
-                    ? "Select staff and date first"
-                    : "Select a time slot"
+                    ? t.appointments.form.timeSelectFirst
+                    : t.appointments.form.timePlaceholder
               }
             />
           </SelectTrigger>
           <SelectContent>
             {availableSlots.length === 0 && !loadingSlots ? (
               <SelectItem value="no-slots" disabled>
-                No available time slots
+                {t.appointments.form.timeNone}
               </SelectItem>
             ) : (
               availableSlots
@@ -395,17 +401,19 @@ export default function AdminAppointmentForm({
         )}
         <p className="text-muted-foreground text-xs">
           {availableSlots.filter((s) => s.available).length > 0
-            ? `${availableSlots.filter((s) => s.available).length} time slots available`
-            : "Available times will appear after selecting staff and date"}
+            ? t.appointments.form.slotsAvailable(
+                availableSlots.filter((s) => s.available).length
+              )
+            : t.appointments.form.slotsHint}
         </p>
       </div>
 
       {/* Notes */}
       <div className="space-y-2">
-        <Label htmlFor="notes">Notes</Label>
+        <Label htmlFor="notes">{t.appointments.form.notesLabel}</Label>
         <Textarea
           id="notes"
-          placeholder="Any special requests or notes..."
+          placeholder={t.appointments.form.notesPlaceholder}
           rows={3}
           {...register("notes")}
         />
@@ -422,13 +430,13 @@ export default function AdminAppointmentForm({
           className="flex-1"
           onClick={() => router.back()}
         >
-          Cancel
+          {t.common.actions.cancel}
         </Button>
         <Button type="submit" className="flex-1" disabled={isLoading}>
           {isLoading && (
             <SpinnerGapIcon size={18} className="mr-2 animate-spin" />
           )}
-          Create Appointment
+          {t.appointments.form.create}
         </Button>
       </div>
     </form>

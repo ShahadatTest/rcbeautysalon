@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { EyeIcon } from "@/components/icons"
 import { getAdminOrders, getOrderStats } from "@/app/actions/orders"
+import { getServerI18n } from "@/lib/i18n/server"
 import { OrderSearch } from "@/components/dashboard/order-search"
 import { ExportOrdersButton } from "@/components/dashboard/export-orders-button"
 
@@ -20,7 +21,8 @@ interface OrdersPageProps {
 
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const { search } = await searchParams
-  const [orders, stats] = await Promise.all([
+  const [{ t }, orders, stats] = await Promise.all([
+    getServerI18n(),
     getAdminOrders(search),
     getOrderStats(),
   ])
@@ -30,13 +32,13 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Shop{" "}
+            {t.orders.title}{" "}
             <span className="from-primary to-accent bg-linear-to-r bg-clip-text text-transparent">
-              Orders
+              {t.orders.titleAccent}
             </span>
           </h1>
           <p className="text-muted-foreground">
-            Manage product orders and fulfillment
+            {t.orders.subtitle}
           </p>
         </div>
         <ExportOrdersButton orders={orders} />
@@ -46,25 +48,25 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total Orders</CardDescription>
+            <CardDescription>{t.orders.stats.totalOrders}</CardDescription>
             <CardTitle className="text-3xl">{stats.totalOrders}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Pending Pickup</CardDescription>
+            <CardDescription>{t.orders.stats.pendingPickup}</CardDescription>
             <CardTitle className="text-3xl text-yellow-600">{stats.pending}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Completed Today</CardDescription>
+            <CardDescription>{t.orders.stats.completedToday}</CardDescription>
             <CardTitle className="text-3xl text-green-600">{stats.completedToday}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Revenue This Month</CardDescription>
+            <CardDescription>{t.orders.stats.revenueThisMonth}</CardDescription>
             <CardTitle className="text-3xl">€{stats.revenueThisMonth.toLocaleString()}</CardTitle>
           </CardHeader>
         </Card>
@@ -76,26 +78,26 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       {/* Orders Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Orders</CardTitle>
-          <CardDescription>In-store pickup orders</CardDescription>
+          <CardTitle>{t.orders.allOrders}</CardTitle>
+          <CardDescription>{t.orders.inStorePickupDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           {orders.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">No orders found.</p>
+              <p className="text-muted-foreground">{t.orders.noOrders}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b text-left text-sm text-muted-foreground">
-                    <th className="pb-3 font-medium">Order ID</th>
-                    <th className="pb-3 font-medium">Customer</th>
-                    <th className="pb-3 font-medium">Items</th>
-                    <th className="pb-3 font-medium">Total</th>
-                    <th className="pb-3 font-medium">Status</th>
-                    <th className="pb-3 font-medium">Date</th>
-                    <th className="pb-3 font-medium">Actions</th>
+                    <th className="pb-3 font-medium">{t.orders.table.orderId}</th>
+                    <th className="pb-3 font-medium">{t.orders.table.customer}</th>
+                    <th className="pb-3 font-medium">{t.orders.table.items}</th>
+                    <th className="pb-3 font-medium">{t.orders.table.total}</th>
+                    <th className="pb-3 font-medium">{t.orders.table.status}</th>
+                    <th className="pb-3 font-medium">{t.orders.table.date}</th>
+                    <th className="pb-3 font-medium">{t.orders.table.actions}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -107,18 +109,18 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                       <td className="py-4">
                         <div>
                           <p className="font-medium">
-                            {order.customer?.name || order.guestName || "Guest"}
+                            {order.customer?.name || order.guestName || t.orders.guest}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {order.customer?.email || order.guestEmail || "-"}
                           </p>
                         </div>
                       </td>
-                      <td className="py-4 text-sm">{order._count.items} items</td>
+                      <td className="py-4 text-sm">{t.orders.itemsCount(order._count.items)}</td>
                       <td className="py-4 font-medium">€{order.total.toFixed(2)}</td>
                       <td className="py-4">
                         <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${statusColors[order.status]}`}>
-                          {order.status}
+                          {t.orders.statusLabels[order.status] ?? order.status}
                         </span>
                       </td>
                       <td className="py-4 text-sm">
@@ -128,7 +130,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                         <Link href={`/dashboard/orders/${order.id}`}>
                           <Button variant="ghost" size="sm">
                             <EyeIcon size={16} className="mr-1" />
-                            View
+                            {t.common.actions.view}
                           </Button>
                         </Link>
                       </td>

@@ -3,18 +3,17 @@ import { SettingsForm } from "@/components/dashboard/settings-form"
 import { BrandingEditor } from "@/components/dashboard/branding-editor"
 import { SettingsTabs } from "@/components/dashboard/settings-tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { getServerI18n } from "@/lib/i18n/server"
 
 export default async function SettingsPage() {
-  const settings = await getSalonSettings()
+  const [{ t }, settings] = await Promise.all([getServerI18n(), getSalonSettings()])
 
   if (!settings) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Nastavitve</CardTitle>
-          <CardDescription>
-            Nastavitev ni bilo mogoče naložiti. Poskusite osvežiti stran.
-          </CardDescription>
+          <CardTitle>{t.settings.title}</CardTitle>
+          <CardDescription>{t.settings.loadError}</CardDescription>
         </CardHeader>
         <CardContent />
       </Card>

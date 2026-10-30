@@ -3,11 +3,13 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeftIcon } from "@/components/icons"
 import { ServiceForm } from "@/components/dashboard/service-form"
 import { getAllCategories, getAllActiveStaff } from "@/app/actions/services"
+import { getServerI18n } from "@/lib/i18n/server"
 
 export default async function NewServicePage() {
-  const [categories, staff] = await Promise.all([
+  const [categories, staff, { t }] = await Promise.all([
     getAllCategories(),
     getAllActiveStaff(),
+    getServerI18n(),
   ])
 
   return (
@@ -20,8 +22,8 @@ export default async function NewServicePage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">New Service</h1>
-          <p className="text-muted-foreground">Create a new salon service</p>
+          <h1 className="text-3xl font-bold">{t.services.newTitle}</h1>
+          <p className="text-muted-foreground">{t.services.newSubtitle}</p>
         </div>
       </div>
 

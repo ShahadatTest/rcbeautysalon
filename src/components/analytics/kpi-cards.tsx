@@ -15,15 +15,17 @@ import {
 } from "@/components/icons"
 import { KPIData } from "@/lib/interfaces"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface KPICardsProps {
   data: KPIData
 }
 
 export function KPICards({ data }: KPICardsProps) {
+  const { t } = useI18n()
   const cards = [
     {
-      title: "Total Revenue",
+      title: t.analytics.kpi.totalRevenue,
       metric: `€${data.totalRevenue.toLocaleString("sl-SI", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       change: data.revenueChange,
       icon: CurrencyDollarIcon,
@@ -31,7 +33,7 @@ export function KPICards({ data }: KPICardsProps) {
       bgColor: "bg-emerald-100 dark:bg-emerald-900/30",
     },
     {
-      title: "Appointments",
+      title: t.analytics.kpi.appointments,
       metric: data.totalAppointments.toLocaleString(),
       change: data.appointmentsChange,
       icon: CalendarCheckIcon,
@@ -39,7 +41,7 @@ export function KPICards({ data }: KPICardsProps) {
       bgColor: "bg-blue-100 dark:bg-blue-900/30",
     },
     {
-      title: "Product Orders",
+      title: t.analytics.kpi.productOrders,
       metric: data.totalOrders.toLocaleString(),
       change: data.ordersChange,
       icon: ShoppingBagIcon,
@@ -47,7 +49,7 @@ export function KPICards({ data }: KPICardsProps) {
       bgColor: "bg-amber-100 dark:bg-amber-900/30",
     },
     {
-      title: "Customers",
+      title: t.analytics.kpi.customers,
       metric: data.totalCustomers.toLocaleString(),
       change: data.customersChange,
       icon: UsersIcon,
@@ -94,7 +96,7 @@ export function KPICards({ data }: KPICardsProps) {
                 {card.change > 0 ? "+" : ""}
                 {card.change.toFixed(1)}%
               </span>
-              <span className="text-muted-foreground">vs last period</span>
+              <span className="text-muted-foreground">{t.analytics.kpi.vsLastPeriod}</span>
             </div>
           </CardContent>
         </Card>

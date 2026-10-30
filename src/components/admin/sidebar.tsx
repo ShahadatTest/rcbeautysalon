@@ -6,12 +6,14 @@ import { cn } from "@/lib/utils"
 import { Logo } from "@/components/ui/logo"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { LanguageSwitcher } from "@/components/admin/language-switcher"
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import { useI18n } from "@/lib/i18n/provider"
 import {
   LayoutDashboardIcon,
   ChartBarIcon,
@@ -26,16 +28,16 @@ import {
 } from "@/components/icons"
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboardIcon },
-  { name: "Analytics", href: "/dashboard/analytics", icon: ChartBarIcon },
-  { name: "Appointments", href: "/dashboard/appointments", icon: CalendarIcon },
-  { name: "Customers", href: "/dashboard/users", icon: UsersIcon },
-  { name: "Services", href: "/dashboard/services", icon: ScissorsIcon },
-  { name: "Products", href: "/dashboard/products", icon: PackageIcon },
-  { name: "Shop Orders", href: "/dashboard/orders", icon: ShoppingBagIcon },
-  { name: "Staff", href: "/dashboard/staff", icon: UserCogIcon },
-  { name: "Settings", href: "/dashboard/settings", icon: SettingsIcon },
-]
+  { nameKey: "dashboard", href: "/dashboard", icon: LayoutDashboardIcon },
+  { nameKey: "analytics", href: "/dashboard/analytics", icon: ChartBarIcon },
+  { nameKey: "appointments", href: "/dashboard/appointments", icon: CalendarIcon },
+  { nameKey: "customers", href: "/dashboard/users", icon: UsersIcon },
+  { nameKey: "services", href: "/dashboard/services", icon: ScissorsIcon },
+  { nameKey: "products", href: "/dashboard/products", icon: PackageIcon },
+  { nameKey: "shopOrders", href: "/dashboard/orders", icon: ShoppingBagIcon },
+  { nameKey: "staff", href: "/dashboard/staff", icon: UserCogIcon },
+  { nameKey: "settings", href: "/dashboard/settings", icon: SettingsIcon },
+] as const
 
 interface SidebarNavProps {
   onNavigate?: () => void
@@ -43,6 +45,7 @@ interface SidebarNavProps {
 
 function SidebarNav({ onNavigate }: SidebarNavProps) {
   const pathname = usePathname()
+  const { t } = useI18n()
 
   return (
     <nav className="space-y-1 px-3">
@@ -52,7 +55,7 @@ function SidebarNav({ onNavigate }: SidebarNavProps) {
         const IconComponent = item.icon
         return (
           <Link
-            key={item.name}
+            key={item.nameKey}
             href={item.href}
             onClick={onNavigate}
             className={cn(
@@ -63,7 +66,7 @@ function SidebarNav({ onNavigate }: SidebarNavProps) {
             )}
           >
             <IconComponent size={18} className={cn(isActive && "text-primary-foreground")} />
-            {item.name}
+            {t.common.nav[item.nameKey]}
           </Link>
         )
       })}
@@ -88,7 +91,10 @@ export function AdminSidebar() {
         </ScrollArea>
 
         {/* Footer */}
-        <div className="p-4">
+        <div className="space-y-2 p-4">
+          <div className="flex justify-center">
+            <LanguageSwitcher />
+          </div>
           <p className="text-center text-xs text-muted-foreground">
             RC Beauty Salon Admin
           </p>
@@ -104,6 +110,8 @@ interface MobileSidebarProps {
 }
 
 export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
+  const { t } = useI18n()
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="w-72 p-0">
@@ -118,7 +126,7 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
             onClick={() => onOpenChange(false)}
           >
             <CloseIcon size={18} />
-            <span className="sr-only">Close menu</span>
+            <span className="sr-only">{t.common.header.closeMenu}</span>
           </Button>
         </SheetHeader>
         <ScrollArea className="h-[calc(100vh-4rem)] py-4">

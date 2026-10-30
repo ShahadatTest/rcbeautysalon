@@ -8,6 +8,7 @@ import {
   CalendarIcon,
 } from "@/components/icons"
 import { getAdminStaffMembers, getAdminStaffStats } from "@/app/actions/staff"
+import { getServerI18n } from "@/lib/i18n/server"
 import { StaffSearch } from "@/components/dashboard/staff-search"
 import { DeleteStaffButton } from "@/components/dashboard/delete-staff-button"
 
@@ -17,7 +18,8 @@ interface StaffPageProps {
 
 export default async function StaffPage({ searchParams }: StaffPageProps) {
   const { search } = await searchParams
-  const [staffMembers, stats] = await Promise.all([
+  const [{ t }, staffMembers, stats] = await Promise.all([
+    getServerI18n(),
     getAdminStaffMembers(search),
     getAdminStaffStats(),
   ])
@@ -27,19 +29,19 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Team{" "}
+            {t.staff.title}{" "}
             <span className="from-primary to-accent bg-linear-to-r bg-clip-text text-transparent">
-              Staff
+              {t.staff.titleAccent}
             </span>
           </h1>
           <p className="text-muted-foreground">
-            Manage your team members
+            {t.staff.subtitle}
           </p>
         </div>
         <Link href="/dashboard/staff/new">
           <Button>
             <PlusIcon size={16} className="mr-2" />
-            Add Staff Member
+            {t.staff.addStaffMember}
           </Button>
         </Link>
       </div>
@@ -48,19 +50,19 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total Staff</CardDescription>
+            <CardDescription>{t.staff.stats.totalStaff}</CardDescription>
             <CardTitle className="text-3xl">{stats.totalStaff}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Active</CardDescription>
+            <CardDescription>{t.staff.stats.active}</CardDescription>
             <CardTitle className="text-3xl text-green-600">{stats.activeStaff}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Inactive</CardDescription>
+            <CardDescription>{t.staff.stats.inactive}</CardDescription>
             <CardTitle className="text-3xl text-muted-foreground">{stats.inactiveStaff}</CardTitle>
           </CardHeader>
         </Card>
@@ -73,11 +75,11 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {staffMembers.length === 0 ? (
           <div className="col-span-full text-center py-12">
-            <p className="text-muted-foreground">No staff members found.</p>
+            <p className="text-muted-foreground">{t.staff.noStaff}</p>
             <Link href="/dashboard/staff/new" className="mt-4 inline-block">
               <Button>
                 <PlusIcon size={16} className="mr-2" />
-                Add First Staff Member
+                {t.staff.addFirstStaffMember}
               </Button>
             </Link>
           </div>
@@ -105,30 +107,30 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
                       <CardTitle className="text-lg">{member.name}</CardTitle>
                       {!member.isActive && (
                         <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
-                          Inactive
+                          {t.staff.inactiveBadge}
                         </span>
                       )}
                     </div>
                     <CardDescription>
-                      {member.bio ? member.bio.substring(0, 50) + (member.bio.length > 50 ? "..." : "") : "No bio"}
+                      {member.bio ? member.bio.substring(0, 50) + (member.bio.length > 50 ? "..." : "") : t.staff.noBio}
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-1 text-sm">
-                  <p className="text-muted-foreground">{member.email || "No email"}</p>
-                  <p className="text-muted-foreground">{member.phone || "No phone"}</p>
+                  <p className="text-muted-foreground">{member.email || t.staff.noEmail}</p>
+                  <p className="text-muted-foreground">{member.phone || t.staff.noPhone}</p>
                 </div>
 
                 <div className="flex justify-between text-sm">
                   <div>
                     <p className="text-2xl font-bold">{member._count.services}</p>
-                    <p className="text-muted-foreground">Services</p>
+                    <p className="text-muted-foreground">{t.staff.servicesCount}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold">{member._count.appointments}</p>
-                    <p className="text-muted-foreground">Appointments</p>
+                    <p className="text-muted-foreground">{t.staff.appointmentsCount}</p>
                   </div>
                 </div>
 
@@ -136,13 +138,13 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
                   <Link href={`/dashboard/staff/${member.id}/edit`} className="flex-1">
                     <Button variant="outline" className="w-full" size="sm">
                       <PencilIcon size={14} className="mr-1" />
-                      Edit
+                      {t.common.actions.edit}
                     </Button>
                   </Link>
                   <Link href={`/dashboard/staff/${member.id}/schedule`}>
                     <Button variant="outline" size="sm">
                       <CalendarIcon size={14} className="mr-1" />
-                      Schedule
+                      {t.staff.schedule}
                     </Button>
                   </Link>
                   <DeleteStaffButton

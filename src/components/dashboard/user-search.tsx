@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { SearchIcon, FilterIcon } from "@/components/icons"
+import { useI18n } from "@/lib/i18n/provider"
 
 export function UserSearch() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { t } = useI18n()
   const [search, setSearch] = useState(searchParams.get("search") || "")
 
   const handleSearch = (value: string) => {
@@ -30,7 +32,7 @@ export function UserSearch() {
           <div className="relative flex-1">
             <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search by name, email..."
+              placeholder={t.users.searchPlaceholder}
               className="pl-9"
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
@@ -39,7 +41,7 @@ export function UserSearch() {
           <div className="flex gap-2">
             <Button variant="outline">
               <FilterIcon size={16} className="mr-2" />
-              Filter
+              {t.users.filter}
             </Button>
           </div>
         </div>

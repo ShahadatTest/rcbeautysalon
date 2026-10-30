@@ -10,21 +10,23 @@ import {
 } from "@/components/ui/select"
 import { PeriodType } from "@/lib/interfaces"
 import { CalendarIcon } from "@/components/icons"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface PeriodSelectorProps {
   value: PeriodType
 }
 
-const periods: { value: PeriodType; label: string }[] = [
-  { value: "7d", label: "Last 7 days" },
-  { value: "30d", label: "Last 30 days" },
-  { value: "90d", label: "Last 90 days" },
-  { value: "12m", label: "Last 12 months" },
+const periods: { value: PeriodType }[] = [
+  { value: "7d" },
+  { value: "30d" },
+  { value: "90d" },
+  { value: "12m" },
 ]
 
 export function PeriodSelector({ value }: PeriodSelectorProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { t } = useI18n()
 
   const handleChange = (newPeriod: string) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -32,7 +34,8 @@ export function PeriodSelector({ value }: PeriodSelectorProps) {
     router.push(`?${params.toString()}`)
   }
 
-  const currentLabel = periods.find(p => p.value === value)?.label || "Last 30 days"
+  const currentLabel =
+    t.analytics.period[value] || t.analytics.period["30d"]
 
   return (
     <Select value={value} onValueChange={handleChange}>
@@ -43,7 +46,7 @@ export function PeriodSelector({ value }: PeriodSelectorProps) {
       <SelectContent>
         {periods.map((period) => (
           <SelectItem key={period.value} value={period.value}>
-            {period.label}
+            {t.analytics.period[period.value]}
           </SelectItem>
         ))}
       </SelectContent>

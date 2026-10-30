@@ -23,6 +23,7 @@ import { SpinnerIcon } from "@/components/icons/spinner-icon"
 import { updateSalonSettings, resetSalonSettings } from "@/app/actions/settings"
 import { settingsSchema, type SettingsFormData } from "@/lib/validations/settings"
 import { toast } from "sonner"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface SettingsFormProps {
   initialSettings: {
@@ -45,22 +46,17 @@ interface SettingsFormProps {
   }
 }
 
-const countries = [
-  { value: "US", label: "United States" },
-  { value: "CA", label: "Canada" },
-  { value: "MX", label: "Mexico" },
-  { value: "GB", label: "United Kingdom" },
-  { value: "ES", label: "Spain" },
-]
+// Locale-independent option values (sent to the API); labels come from the i18n dict.
+const COUNTRIES = ["US", "CA", "MX", "GB", "ES"] as const
 
-const timezones = [
-  { value: "America/New_York", label: "Eastern Time (ET)" },
-  { value: "America/Chicago", label: "Central Time (CT)" },
-  { value: "America/Denver", label: "Mountain Time (MT)" },
-  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
-  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
-  { value: "Pacific/Honolulu", label: "Hawaii Time (HT)" },
-]
+const TIMEZONES = [
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "America/Anchorage",
+  "Pacific/Honolulu",
+] as const
 
 const currencies = [
   { value: "USD", label: "USD ($)" },
@@ -71,6 +67,7 @@ const currencies = [
 ]
 
 export function SettingsForm({ initialSettings }: SettingsFormProps) {
+  const { t } = useI18n()
   const [logo, setLogo] = useState<string | null>(initialSettings.logo)
   const [isUploading, setIsUploading] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
@@ -113,12 +110,12 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
     if (!file) return
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file")
+      toast.error(t.settings.form.invalidImageType)
       return
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be less than 5MB")
+      toast.error(t.settings.form.imageTooLarge)
       return
     }
 
@@ -137,15 +134,15 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Upload failed")
+        throw new Error(data.error || t.settings.form.uploadFailed)
       }
 
       setLogo(data.url)
-      toast.success("Logo uploaded successfully")
+      toast.success(t.settings.form.logoUploaded)
     } catch (error) {
       console.error("Upload error:", error)
       toast.error(
-        error instanceof Error ? error.message : "Failed to upload logo"
+        error instanceof Error ? error.message : t.settings.form.logoUploadFailed
       )
     } finally {
       setIsUploading(false)
@@ -165,9 +162,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
 
   // Handle reset
   const handleReset = async () => {
-    const confirmed = window.confirm(
-      "Are you sure you want to reset all settings to defaults? This action cannot be undone."
-    )
+    const confirmed = window.confirm(t.settings.form.resetConfirm)
 
     if (!confirmed) return
 
@@ -195,13 +190,13 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
           cancellationPolicy: result.settings.cancellationPolicy || "",
         })
         setLogo(result.settings.logo)
-        toast.success("Settings reset to defaults")
+        toast.success(t.settings.form.resetSuccess)
       } else {
-        toast.error(result.error || "Failed to reset settings")
+        toast.error(result.error || t.settings.form.resetFailed)
       }
     } catch (error) {
       console.error("Reset error:", error)
-      toast.error("An unexpected error occurred")
+      toast.error(t.settings.form.unexpectedError)
     } finally {
       setIsResetting(false)
     }
@@ -225,13 +220,13 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
       const result = await updateSalonSettings(settingsData)
 
       if (result.success) {
-        toast.success("Settings saved successfully")
+        toast.success(t.settings.form.saveSuccess)
       } else {
-        toast.error(result.error || "Failed to save settings")
+        toast.error(result.error || t.settings.form.saveFailed)
       }
     } catch (error) {
       console.error("Submit error:", error)
-      toast.error("An unexpected error occurred")
+      toast.error(t.settings.form.unexpectedError)
     }
   }
 
@@ -241,14 +236,14 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Settings</h1>
-            <p className="text-muted-foreground">Configure your salon settings</p>
+            <h1 className="text-3xl font-bold">{t.settings.title}</h1>
+            <p className="text-muted-foreground">{t.settings.subtitle}</p>
           </div>
           <Button type="submit" disabled={isSubmitting || isResetting}>
             {isSubmitting && (
               <SpinnerIcon size={16} className="mr-2 animate-spin" />
             )}
-            Save All Changes
+            {t.settings.form.saveAll}
           </Button>
         </div>
 
@@ -256,13 +251,13 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
           {/* Business Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Business Information</CardTitle>
-              <CardDescription>Basic details about your salon</CardDescription>
+              <CardTitle>{t.settings.form.businessInfo}</CardTitle>
+              <CardDescription>{t.settings.form.businessInfoDesc}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Salon Name *</Label>
+                  <Label htmlFor="name">{t.settings.form.salonName}</Label>
                   <Input
                     id="name"
                     {...register("name")}
@@ -273,7 +268,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t.settings.form.email}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -286,7 +281,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="phone">{t.settings.form.phone}</Label>
                 <Input
                   id="phone"
                   {...register("phone")}
@@ -299,15 +294,15 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
           {/* Logo */}
           <Card>
             <CardHeader>
-              <CardTitle>Logo</CardTitle>
-              <CardDescription>Upload your salon logo</CardDescription>
+              <CardTitle>{t.settings.form.logo}</CardTitle>
+              <CardDescription>{t.settings.form.logoDesc}</CardDescription>
             </CardHeader>
             <CardContent>
               {logo ? (
                 <div className="relative aspect-video w-full overflow-hidden rounded-lg">
                   <Image
                     src={logo}
-                    alt="Salon logo"
+                    alt={t.settings.form.logoAlt}
                     fill
                     className="object-cover"
                   />
@@ -335,7 +330,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                   )}
                   {!isUploading && (
                     <p className="text-muted-foreground mt-4 text-sm">
-                      Click to upload an image
+                      {t.settings.form.clickToUpload}
                     </p>
                   )}
                 </div>
@@ -353,12 +348,12 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
           {/* Address */}
           <Card>
             <CardHeader>
-              <CardTitle>Address</CardTitle>
-              <CardDescription>Your salon location</CardDescription>
+              <CardTitle>{t.settings.form.address}</CardTitle>
+              <CardDescription>{t.settings.form.addressDesc}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="address">Street Address</Label>
+                <Label htmlFor="address">{t.settings.form.streetAddress}</Label>
                 <Input
                   id="address"
                   {...register("address")}
@@ -367,7 +362,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
               </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
+                  <Label htmlFor="city">{t.settings.form.city}</Label>
                   <Input
                     id="city"
                     {...register("city")}
@@ -375,7 +370,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="state">State</Label>
+                  <Label htmlFor="state">{t.settings.form.state}</Label>
                   <Input
                     id="state"
                     {...register("state")}
@@ -383,7 +378,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="zipCode">ZIP Code</Label>
+                  <Label htmlFor="zipCode">{t.settings.form.zipCode}</Label>
                   <Input
                     id="zipCode"
                     {...register("zipCode")}
@@ -391,19 +386,19 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="country">Country</Label>
+                  <Label htmlFor="country">{t.settings.form.country}</Label>
                   <Select
                     defaultValue={initialSettings.country}
                     onValueChange={(value) => setValue("country", value)}
                     disabled={isSubmitting}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select country" />
+                      <SelectValue placeholder={t.settings.form.selectCountry} />
                     </SelectTrigger>
                     <SelectContent>
-                      {countries.map((country) => (
-                        <SelectItem key={country.value} value={country.value}>
-                          {country.label}
+                      {COUNTRIES.map((code) => (
+                        <SelectItem key={code} value={code}>
+                          {t.settings.form.countries[code]}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -416,39 +411,39 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
           {/* Localization */}
           <Card>
             <CardHeader>
-              <CardTitle>Localization</CardTitle>
-              <CardDescription>Regional settings</CardDescription>
+              <CardTitle>{t.settings.form.localization}</CardTitle>
+              <CardDescription>{t.settings.form.localizationDesc}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="timezone">Timezone</Label>
+                  <Label htmlFor="timezone">{t.settings.form.timezone}</Label>
                   <Select
                     defaultValue={initialSettings.timezone}
                     onValueChange={(value) => setValue("timezone", value)}
                     disabled={isSubmitting}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select timezone" />
+                      <SelectValue placeholder={t.settings.form.selectTimezone} />
                     </SelectTrigger>
                     <SelectContent>
-                      {timezones.map((tz) => (
-                        <SelectItem key={tz.value} value={tz.value}>
-                          {tz.label}
+                      {TIMEZONES.map((tz) => (
+                        <SelectItem key={tz} value={tz}>
+                          {t.settings.form.timezones[tz]}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="currency">Currency</Label>
+                  <Label htmlFor="currency">{t.settings.form.currency}</Label>
                   <Select
                     defaultValue={initialSettings.currency}
                     onValueChange={(value) => setValue("currency", value)}
                     disabled={isSubmitting}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select currency" />
+                      <SelectValue placeholder={t.settings.form.selectCurrency} />
                     </SelectTrigger>
                     <SelectContent>
                       {currencies.map((curr) => (
@@ -466,13 +461,13 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
           {/* Booking Settings */}
           <Card>
             <CardHeader>
-              <CardTitle>Booking Settings</CardTitle>
-              <CardDescription>Configure appointment booking rules</CardDescription>
+              <CardTitle>{t.settings.form.bookingSettings}</CardTitle>
+              <CardDescription>{t.settings.form.bookingSettingsDesc}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="bookingDeposit">Polog za rezervacijo (€)</Label>
+                  <Label htmlFor="bookingDeposit">{t.settings.form.bookingDeposit}</Label>
                   <Input
                     id="bookingDeposit"
                     type="number"
@@ -486,8 +481,8 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                 </div>
                 <div className="flex items-center justify-between rounded-lg border p-4">
                   <div>
-                    <Label>Deposit Refundable</Label>
-                    <p className="text-xs text-muted-foreground">Allow deposit refunds</p>
+                    <Label>{t.settings.form.depositRefundable}</Label>
+                    <p className="text-xs text-muted-foreground">{t.settings.form.depositRefundableHint}</p>
                   </div>
                   <Switch
                     checked={watchDepositRefundable}
@@ -499,7 +494,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
               <Separator />
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="minBookingAdvance">Min Booking Advance (hours)</Label>
+                  <Label htmlFor="minBookingAdvance">{t.settings.form.minBookingAdvance}</Label>
                   <Input
                     id="minBookingAdvance"
                     type="number"
@@ -511,7 +506,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="maxBookingAdvance">Max Booking Advance (days)</Label>
+                  <Label htmlFor="maxBookingAdvance">{t.settings.form.maxBookingAdvance}</Label>
                   <Input
                     id="maxBookingAdvance"
                     type="number"
@@ -525,7 +520,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
               </div>
               <Separator />
               <div className="space-y-2">
-                <Label htmlFor="cancellationPolicy">Cancellation Policy</Label>
+                <Label htmlFor="cancellationPolicy">{t.settings.form.cancellationPolicy}</Label>
                 <Textarea
                   id="cancellationPolicy"
                   {...register("cancellationPolicy")}
@@ -539,14 +534,14 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
           {/* Danger Zone */}
           <Card className="border-destructive/50">
             <CardHeader>
-              <CardTitle className="text-destructive">Danger Zone</CardTitle>
-              <CardDescription>Irreversible actions</CardDescription>
+              <CardTitle className="text-destructive">{t.settings.form.dangerZone}</CardTitle>
+              <CardDescription>{t.settings.form.dangerZoneDesc}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between rounded-lg border border-destructive/50 p-4">
                 <div>
-                  <p className="font-medium">Reset All Settings</p>
-                  <p className="text-sm text-muted-foreground">Reset to defaults</p>
+                  <p className="font-medium">{t.settings.form.resetAll}</p>
+                  <p className="text-sm text-muted-foreground">{t.settings.form.resetToDefaults}</p>
                 </div>
                 <Button
                   type="button"
@@ -558,7 +553,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                   {isResetting ? (
                     <SpinnerIcon size={14} className="animate-spin" />
                   ) : (
-                    "Reset"
+                    t.settings.form.reset
                   )}
                 </Button>
               </div>

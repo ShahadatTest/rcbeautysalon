@@ -24,11 +24,14 @@ import {
   HouseIcon,
 } from "@/components/icons"
 import { MobileSidebar } from "./sidebar"
+import { LanguageSwitcher } from "./language-switcher"
+import { useI18n } from "@/lib/i18n/provider"
 
 export function AdminHeader() {
   const router = useRouter()
   const { data: session } = useSession()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { t } = useI18n()
 
   const handleSignOut = async () => {
     await signOut({ redirect: false })
@@ -43,7 +46,7 @@ export function AdminHeader() {
       .join("")
       .toUpperCase() || "U"
 
-  const userRole = session?.user?.role || "CLIENTE"
+  const userRole = session?.user?.role || "CLIENT"
   const isAdmin = userRole === "ADMIN"
 
   const getRoleBadgeVariant = () => {
@@ -56,6 +59,9 @@ export function AdminHeader() {
         return "outline"
     }
   }
+
+  const roleLabel =
+    t.common.roles[userRole as keyof typeof t.common.roles] || userRole
 
   return (
     <>
@@ -70,12 +76,15 @@ export function AdminHeader() {
               onClick={() => setMobileMenuOpen(true)}
             >
               <MenuIcon size={20} />
-              <span className="sr-only">Open menu</span>
+              <span className="sr-only">{t.common.header.openMenu}</span>
             </Button>
           </div>
 
           {/* Right side - Actions */}
           <div className="flex items-center gap-2 sm:gap-4">
+            {/* Language switcher */}
+            <LanguageSwitcher />
+
             {/* Visit site link */}
             <Button
               variant="ghost"
@@ -85,14 +94,14 @@ export function AdminHeader() {
             >
               <Link href="/" target="_blank">
                 <HouseIcon size={16} />
-                <span className="hidden md:inline">Visit Site</span>
+                <span className="hidden md:inline">{t.common.header.visitSite}</span>
               </Link>
             </Button>
 
             {/* Notifications */}
             <Button variant="ghost" size="icon" className="relative">
               <BellIcon size={20} />
-              <span className="sr-only">Notifications</span>
+              <span className="sr-only">{t.common.header.notifications}</span>
             </Button>
 
             {/* User menu */}
@@ -114,10 +123,10 @@ export function AdminHeader() {
                   <div className="flex flex-col space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium leading-none">
-                        {session?.user?.name || "User"}
+                        {session?.user?.name || t.common.header.user}
                       </p>
                       <Badge variant={getRoleBadgeVariant()} className="ml-2 text-xs">
-                        {userRole}
+                        {roleLabel}
                       </Badge>
                     </div>
                     <p className="text-xs leading-none text-muted-foreground">
@@ -132,13 +141,13 @@ export function AdminHeader() {
                     <DropdownMenuItem asChild>
                       <Link href="/staff-portal">
                         <UsersIcon size={16} className="mr-2" />
-                        Staff Portal
+                        {t.common.header.staffPortal}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/">
                         <HouseIcon size={16} className="mr-2" />
-                        View as Client
+                        {t.common.header.viewAsClient}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -148,13 +157,13 @@ export function AdminHeader() {
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/settings">
                     <SettingsIcon size={16} className="mr-2" />
-                    Settings
+                    {t.common.header.settings}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-red-600 dark:text-red-400">
                   <LogoutIcon size={16} className="mr-2" />
-                  Sign out
+                  {t.common.header.signOut}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -61,6 +61,7 @@ import {
 import { uploadImage } from "@/lib/upload-client"
 import { PALETTE_OPTIONS, VERTICAL_OPTIONS } from "@/lib/palettes-client"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n/provider"
 
 // ------------------------------------------------------------
 // Constants
@@ -81,26 +82,7 @@ const ICON_OPTIONS = [
   "Clock",
 ] as const
 
-const SECTION_LABELS: Record<SectionKey, string> = {
-  hero: "Hero",
-  features: "Prednosti",
-  services: "Storitve",
-  about: "O salonu",
-  team: "Ekipa",
-  shop: "Trgovina",
-  cta: "Poziv k akciji (CTA)",
-}
-
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]
-const DAY_NAMES: Record<number, string> = {
-  0: "Nedelja",
-  1: "Ponedeljek",
-  2: "Torek",
-  3: "Sreda",
-  4: "Četrtek",
-  5: "Petek",
-  6: "Sobota",
-}
 
 interface OrgInfo {
   id: string
@@ -172,8 +154,8 @@ function ImageField({
   value,
   variant = "wide",
   uploading = false,
-  emptyText = "Ni slike",
-  uploadLabel = "Naloži sliko",
+  emptyText,
+  uploadLabel,
   hint,
   onFile,
   onRemove,
@@ -188,6 +170,9 @@ function ImageField({
   onFile: (file: File) => void
   onRemove?: () => void
 }) {
+  const { t } = useI18n()
+  const empty = emptyText ?? t.settings.branding.noImage
+  const upload = uploadLabel ?? t.settings.branding.uploadImage
   const inputRef = useRef<HTMLInputElement>(null)
 
   return (
@@ -210,7 +195,7 @@ function ImageField({
             />
           ) : (
             <div className="grid h-full place-items-center px-2 text-center text-xs text-muted-foreground">
-              {emptyText}
+              {empty}
             </div>
           )}
           {uploading && (
@@ -228,7 +213,7 @@ function ImageField({
             disabled={uploading}
           >
             <ImageIcon size={16} className="mr-2" />
-            {uploadLabel}
+            {upload}
           </Button>
           {value && onRemove && (
             <Button
@@ -240,7 +225,7 @@ function ImageField({
               disabled={uploading}
             >
               <TrashIcon size={16} className="mr-2" />
-              Odstrani
+              {t.settings.branding.remove}
             </Button>
           )}
           {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
@@ -274,12 +259,17 @@ function FeatureRow({
   onChange: (patch: Partial<FeatureContent>) => void
   onRemove: () => void
 }) {
+  const { t } = useI18n()
+
   return (
     <div className="space-y-3 rounded-lg border p-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Select value={item.icon} onValueChange={(v) => onChange({ icon: v })}>
-          <SelectTrigger className="sm:w-48" aria-label={`Ikona prednosti ${index + 1}`}>
-            <SelectValue placeholder="Ikona" />
+          <SelectTrigger
+            className="sm:w-48"
+            aria-label={t.settings.branding.featureIconAria(index + 1)}
+          >
+            <SelectValue placeholder={t.settings.branding.iconPlaceholder} />
           </SelectTrigger>
           <SelectContent>
             {ICON_OPTIONS.map((icon) => (
@@ -293,8 +283,8 @@ function FeatureRow({
           className="flex-1"
           value={item.title}
           onChange={(e) => onChange({ title: e.target.value })}
-          placeholder="Naslov prednosti"
-          aria-label={`Naslov prednosti ${index + 1}`}
+          placeholder={t.settings.branding.featureTitlePlaceholder}
+          aria-label={t.settings.branding.featureTitleAria(index + 1)}
         />
         {canRemove && (
           <Button
@@ -303,7 +293,7 @@ function FeatureRow({
             size="icon"
             className="text-destructive hover:text-destructive"
             onClick={onRemove}
-            aria-label={`Odstrani prednost ${index + 1}`}
+            aria-label={t.settings.branding.featureRemoveAria(index + 1)}
           >
             <TrashIcon size={16} />
           </Button>
@@ -312,8 +302,8 @@ function FeatureRow({
       <Input
         value={item.description}
         onChange={(e) => onChange({ description: e.target.value })}
-        placeholder="Kratek opis"
-        aria-label={`Opis prednosti ${index + 1}`}
+        placeholder={t.settings.branding.featureDescPlaceholder}
+        aria-label={t.settings.branding.featureDescAria(index + 1)}
       />
     </div>
   )
@@ -336,14 +326,16 @@ function SectionTitlePair({
   onTitle: (value: string) => void
   onSubtitle: (value: string) => void
 }) {
+  const { t } = useI18n()
+
   return (
     <div className="space-y-3">
       <p className="text-sm font-medium">{label}</p>
       <div className="grid gap-3 md:grid-cols-2">
-        <Field label="Naslov" htmlFor={titleId}>
+        <Field label={t.settings.branding.labels.title} htmlFor={titleId}>
           <Input id={titleId} value={title} onChange={(e) => onTitle(e.target.value)} />
         </Field>
-        <Field label="Podnaslov" htmlFor={subtitleId}>
+        <Field label={t.settings.branding.labels.subtitle} htmlFor={subtitleId}>
           <Input id={subtitleId} value={subtitle} onChange={(e) => onSubtitle(e.target.value)} />
         </Field>
       </div>
@@ -352,6 +344,8 @@ function SectionTitlePair({
 }
 
 function EditorSkeleton() {
+  const { t } = useI18n()
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6" aria-busy="true">
       <div className="space-y-2">
@@ -368,7 +362,7 @@ function EditorSkeleton() {
           </div>
         </div>
       ))}
-      <span className="sr-only">Nalaganje urejevalnika izgleda in vsebine …</span>
+      <span className="sr-only">{t.settings.branding.loadingSr}</span>
     </div>
   )
 }
@@ -379,6 +373,8 @@ function EditorSkeleton() {
 
 export function BrandingEditor() {
   const router = useRouter()
+  const { t } = useI18n()
+  const b = t.settings.branding
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -409,15 +405,15 @@ export function BrandingEditor() {
         setError(
           "error" in res && typeof res.error === "string"
             ? res.error
-            : "Prilagoditev ni bilo mogoče naložiti."
+            : b.loadError
         )
       }
     } catch {
-      setError("Prilagoditev ni bilo mogoče naložiti. Poskusite znova.")
+      setError(b.loadErrorRetry)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [b])
 
   useEffect(() => {
     void load()
@@ -446,10 +442,10 @@ export function BrandingEditor() {
         return
       }
       setOrg({ ...org, palette: id })
-      toast.success("Tema je shranjena")
+      toast.success(b.themeSaved)
       router.refresh()
     } catch {
-      toast.error("Shranjevanje teme ni uspelo. Poskusite znova.")
+      toast.error(b.themeSaveFailed)
     } finally {
       setSavingPalette(null)
     }
@@ -465,10 +461,10 @@ export function BrandingEditor() {
         return
       }
       setOrg((prev) => (prev ? { ...prev, logo: url } : prev))
-      toast.success("Logo je shranjen")
+      toast.success(b.logoSaved)
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Nalaganje logotipa ni uspelo.")
+      toast.error(err instanceof Error ? err.message : b.logoUploadFailed)
     } finally {
       setUploading(null)
     }
@@ -483,10 +479,10 @@ export function BrandingEditor() {
         return
       }
       setOrg((prev) => (prev ? { ...prev, logo: null } : prev))
-      toast.success("Logo je odstranjen")
+      toast.success(b.logoRemoved)
       router.refresh()
     } catch {
-      toast.error("Odstranjevanje logotipa ni uspelo.")
+      toast.error(b.logoRemoveFailed)
     } finally {
       setSavingLogo(false)
     }
@@ -502,9 +498,9 @@ export function BrandingEditor() {
       } else {
         set("about", { ...content.about, imageUrl: url })
       }
-      toast.success("Slika je naložena — ne pozabite shraniti sprememb")
+      toast.success(b.imageUploaded)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Nalaganje slike ni uspelo.")
+      toast.error(err instanceof Error ? err.message : b.imageUploadFailed)
     } finally {
       setUploading(null)
     }
@@ -514,8 +510,7 @@ export function BrandingEditor() {
     if (!org || savingVertical) return
     const label = VERTICAL_OPTIONS.find((v) => v.id === vertical)?.label ?? vertical
     const confirmed = window.confirm(
-      `Zamenjam panogo na "${label}"?` +
-        (reseed ? "\nKatalog bo dopolnjen z vzorčnimi storitvami nove panoge." : "")
+      b.vertical.changeConfirm(label) + (reseed ? b.vertical.reseedConfirmNote : "")
     )
     if (!confirmed) return
     setSavingVertical(true)
@@ -526,10 +521,10 @@ export function BrandingEditor() {
         return
       }
       setOrg({ ...org, vertical })
-      toast.success("Panoga je zamenjana")
+      toast.success(b.vertical.changed)
       router.refresh()
     } catch {
-      toast.error("Zamenjava panoge ni uspela.")
+      toast.error(b.vertical.changeFailed)
     } finally {
       setSavingVertical(false)
     }
@@ -619,7 +614,7 @@ export function BrandingEditor() {
   const handleSave = async () => {
     if (!content) return
     if (!content.hero.title.trim()) {
-      toast.error("Hero naslov je obvezen.")
+      toast.error(b.heroTitleRequired)
       return
     }
     setSaving(true)
@@ -660,10 +655,10 @@ export function BrandingEditor() {
         return
       }
       setDirty(false)
-      toast.success("Vsebina je shranjena — stran se je osvežila")
+      toast.success(b.contentSaved)
       router.refresh()
     } catch {
-      toast.error("Shranjevanje ni uspelo. Poskusite znova.")
+      toast.error(b.saveFailed)
     } finally {
       setSaving(false)
     }
@@ -682,9 +677,9 @@ export function BrandingEditor() {
       <Card className="mx-auto w-full max-w-3xl border-destructive/40">
         <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
           <WarningCircleIcon size={32} className="text-destructive" />
-          <p className="font-medium">{error || "Vsebine ni bilo mogoče naložiti."}</p>
+          <p className="font-medium">{error || b.contentLoadError}</p>
           <Button type="button" variant="outline" onClick={() => void load()}>
-            Poskusi znova
+            {b.retry}
           </Button>
         </CardContent>
       </Card>
@@ -701,15 +696,13 @@ export function BrandingEditor() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Izgled in vsebina</h2>
-          <p className="text-muted-foreground">
-            Uredite vsebine, ki jih obiskovalci vidijo na vaši javni strani.
-          </p>
+          <h2 className="text-2xl font-bold">{b.title}</h2>
+          <p className="text-muted-foreground">{b.subtitle}</p>
         </div>
         <Button variant="outline" size="sm" asChild>
           <a href={org.siteUrl} target="_blank" rel="noopener noreferrer">
             <EyeIcon size={16} className="mr-2" />
-            Oglej si stran
+            {b.viewSite}
           </a>
         </Button>
       </div>
@@ -717,8 +710,8 @@ export function BrandingEditor() {
       <div className="mt-6 space-y-6">
         {/* a) Tema */}
         <EditorCard
-          title="Tema"
-          description="Izberite barvno paleto svoje spletne strani. Sprememba se shrani takoj."
+          title={b.theme.title}
+          description={b.theme.desc}
         >
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {PALETTE_OPTIONS.map((p) => {
@@ -730,7 +723,7 @@ export function BrandingEditor() {
                   onClick={() => void handlePalette(p.id)}
                   disabled={savingPalette !== null}
                   aria-pressed={active}
-                  aria-label={`Tema ${p.label}`}
+                  aria-label={b.themeAria(p.label)}
                   className={cn(
                     "flex flex-col items-center gap-2 rounded-xl border bg-card p-3 text-center transition-all hover:border-primary/50 disabled:opacity-60",
                     active && "border-primary ring-2 ring-primary"
@@ -756,15 +749,15 @@ export function BrandingEditor() {
         </EditorCard>
 
         {/* b) Logo */}
-        <EditorCard title="Logo" description="Prikaže se v glavi in nogi vaše spletne strani.">
+        <EditorCard title={b.logoSection.title} description={b.logoSection.desc}>
           <ImageField
-            label="Logotip salona"
+            label={b.salonLogo}
             variant="square"
             value={org.logo ?? undefined}
             uploading={uploading === "logo" || savingLogo}
-            emptyText="Ni logotipa"
-            uploadLabel="Naloži logo"
-            hint="PNG ali JPG, najbolje kvadratne oblike."
+            emptyText={b.noLogo}
+            uploadLabel={b.uploadLogo}
+            hint={b.logoHint}
             onFile={(file) => void handleLogoUpload(file)}
             onRemove={() => void handleLogoRemove()}
           />
@@ -772,28 +765,28 @@ export function BrandingEditor() {
 
         {/* c) Hero sekcija */}
         <EditorCard
-          title="Hero sekcija"
-          description="Prvi vtis vaše strani — značka, naslov, podnaslov in gumba."
+          title={b.hero.title}
+          description={b.hero.desc}
         >
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Značka nad naslovom" htmlFor="hero-eyebrow">
+            <Field label={b.eyebrowLabel} htmlFor="hero-eyebrow">
               <Input
                 id="hero-eyebrow"
                 value={content.hero.eyebrow ?? ""}
                 onChange={(e) => set("hero", { ...content.hero, eyebrow: e.target.value })}
-                placeholder="Dobrodošli"
+                placeholder={b.eyebrowPlaceholder}
               />
             </Field>
-            <Field label="Naslov" htmlFor="hero-title" hint="Obvezen podatek.">
+            <Field label={b.labels.title} htmlFor="hero-title" hint={b.requiredHint}>
               <Input
                 id="hero-title"
                 value={content.hero.title}
                 onChange={(e) => set("hero", { ...content.hero, title: e.target.value })}
-                placeholder="Vaša lepota, naša strast"
+                placeholder={b.heroTitlePlaceholder}
               />
             </Field>
           </div>
-          <Field label="Podnaslov" htmlFor="hero-subtitle">
+          <Field label={b.labels.subtitle} htmlFor="hero-subtitle">
             <Textarea
               id="hero-subtitle"
               rows={3}
@@ -802,17 +795,17 @@ export function BrandingEditor() {
             />
           </Field>
           <ImageField
-            label="Slika"
+            label={b.labels.image}
             value={content.hero.imageUrl}
             uploading={uploading === "hero"}
             onFile={(file) => void handleImageUpload("hero", file)}
             onRemove={() => set("hero", { ...content.hero, imageUrl: undefined })}
-            hint="Priporočena širina vsaj 1400 px."
+            hint={b.imageWidthHint}
           />
           <Field
-            label="Video URL (neobvezno)"
+            label={b.videoUrlLabel}
             htmlFor="hero-video"
-            hint="Povezava do .mp4 ali .webm videa — če je izpolnjena, se predvaja namesto slike."
+            hint={b.videoUrlHint}
           >
             <Input
               id="hero-video"
@@ -824,7 +817,7 @@ export function BrandingEditor() {
           </Field>
           <Separator />
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Gumb 1 — besedilo" htmlFor="hero-cta1" hint="Gumb vodi na rezervacijo (/booking).">
+            <Field label={b.cta1Label} htmlFor="hero-cta1" hint={b.ctaBookingHint}>
               <Input
                 id="hero-cta1"
                 value={content.hero.primaryCta.label}
@@ -837,9 +830,9 @@ export function BrandingEditor() {
               />
             </Field>
             <Field
-              label="Gumb 2 — besedilo"
+              label={b.cta2Label}
               htmlFor="hero-cta2"
-              hint="Gumb vodi na trgovino (/shop). Prazno = skrit."
+              hint={b.ctaShopHint}
             >
               <Input
                 id="hero-cta2"
@@ -857,10 +850,10 @@ export function BrandingEditor() {
 
         {/* d) O salonu */}
         <EditorCard
-          title="O salonu"
-          description="Zgodba o vašem salonu, slika in ključne številke."
+          title={b.about.title}
+          description={b.about.desc}
         >
-          <Field label="Naslov" htmlFor="about-title">
+          <Field label={b.labels.title} htmlFor="about-title">
             <Input
               id="about-title"
               value={content.about.title}
@@ -868,7 +861,7 @@ export function BrandingEditor() {
             />
           </Field>
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Odstavek 1" htmlFor="about-p1">
+            <Field label={b.paragraph1} htmlFor="about-p1">
               <Textarea
                 id="about-p1"
                 rows={4}
@@ -876,7 +869,7 @@ export function BrandingEditor() {
                 onChange={(e) => updateParagraph(0, e.target.value)}
               />
             </Field>
-            <Field label="Odstavek 2" htmlFor="about-p2">
+            <Field label={b.paragraph2} htmlFor="about-p2">
               <Textarea
                 id="about-p2"
                 rows={4}
@@ -886,7 +879,7 @@ export function BrandingEditor() {
             </Field>
           </div>
           <ImageField
-            label="Slika"
+            label={b.labels.image}
             value={content.about.imageUrl}
             uploading={uploading === "about"}
             onFile={(file) => void handleImageUpload("about", file)}
@@ -895,7 +888,7 @@ export function BrandingEditor() {
           <Separator />
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Statistika</Label>
+              <Label>{b.statsLabel}</Label>
               <Badge variant="secondary">{content.about.stats.length}/4</Badge>
             </div>
             {content.about.stats.map((stat, i) => (
@@ -908,14 +901,14 @@ export function BrandingEditor() {
                   value={stat.value}
                   onChange={(e) => updateStat(i, { value: e.target.value })}
                   placeholder="10+"
-                  aria-label={`Statistika ${i + 1} — vrednost`}
+                  aria-label={b.statValueAria(i + 1)}
                 />
                 <Input
                   className="flex-1"
                   value={stat.label}
                   onChange={(e) => updateStat(i, { label: e.target.value })}
-                  placeholder="Let izkušenj"
-                  aria-label={`Statistika ${i + 1} — oznaka`}
+                  placeholder={b.statLabelPlaceholder}
+                  aria-label={b.statLabelAria(i + 1)}
                 />
                 <Button
                   type="button"
@@ -923,7 +916,7 @@ export function BrandingEditor() {
                   size="icon"
                   className="text-destructive hover:text-destructive"
                   onClick={() => removeStat(i)}
-                  aria-label={`Odstrani statistiko ${i + 1}`}
+                  aria-label={b.statRemoveAria(i + 1)}
                 >
                   <TrashIcon size={16} />
                 </Button>
@@ -932,7 +925,7 @@ export function BrandingEditor() {
             {content.about.stats.length < 4 && (
               <Button type="button" variant="outline" size="sm" onClick={addStat}>
                 <PlusIcon size={16} className="mr-2" />
-                Dodaj statistiko
+                {b.addStat}
               </Button>
             )}
           </div>
@@ -940,18 +933,18 @@ export function BrandingEditor() {
 
         {/* e) Prednosti */}
         <EditorCard
-          title="Prednosti"
-          description="Zakaj naj stranke izberejo prav vas (do 6 prednosti)."
+          title={b.features.title}
+          description={b.features.desc}
         >
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Naslov" htmlFor="features-title">
+            <Field label={b.labels.title} htmlFor="features-title">
               <Input
                 id="features-title"
                 value={content.features.title}
                 onChange={(e) => set("features", { ...content.features, title: e.target.value })}
               />
             </Field>
-            <Field label="Podnaslov" htmlFor="features-subtitle">
+            <Field label={b.labels.subtitle} htmlFor="features-subtitle">
               <Input
                 id="features-subtitle"
                 value={content.features.subtitle}
@@ -964,7 +957,7 @@ export function BrandingEditor() {
           <Separator />
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Prednosti</Label>
+              <Label>{b.features.title}</Label>
               <Badge variant="secondary">{content.features.items.length}/6</Badge>
             </div>
             {content.features.items.map((item, i) => (
@@ -980,7 +973,7 @@ export function BrandingEditor() {
             {content.features.items.length < 6 && (
               <Button type="button" variant="outline" size="sm" onClick={addFeature}>
                 <PlusIcon size={16} className="mr-2" />
-                Dodaj prednost
+                {b.addFeature}
               </Button>
             )}
           </div>
@@ -988,11 +981,11 @@ export function BrandingEditor() {
 
         {/* f) Naslovi sekcij */}
         <EditorCard
-          title="Naslovi sekcij"
-          description="Naslovi in podnaslovi za storitve, ekipo in trgovino."
+          title={b.sectionTitles.title}
+          description={b.sectionTitles.desc}
         >
           <SectionTitlePair
-            label="Storitve"
+            label={b.sectionLabels.services}
             titleId="services-title"
             subtitleId="services-subtitle"
             title={content.services.title}
@@ -1002,7 +995,7 @@ export function BrandingEditor() {
           />
           <Separator />
           <SectionTitlePair
-            label="Ekipa"
+            label={b.sectionLabels.team}
             titleId="team-title"
             subtitleId="team-subtitle"
             title={content.team.title}
@@ -1012,7 +1005,7 @@ export function BrandingEditor() {
           />
           <Separator />
           <SectionTitlePair
-            label="Trgovina"
+            label={b.sectionLabels.shop}
             titleId="shop-title"
             subtitleId="shop-subtitle"
             title={content.shop.title}
@@ -1024,17 +1017,17 @@ export function BrandingEditor() {
 
         {/* g) CTA */}
         <EditorCard
-          title="Poziv k akciji (CTA)"
-          description="Zadnja spodbuda za rezervacijo na dnu strani."
+          title={b.sectionLabels.cta}
+          description={b.cta.desc}
         >
-          <Field label="Naslov" htmlFor="cta-title">
+          <Field label={b.labels.title} htmlFor="cta-title">
             <Input
               id="cta-title"
               value={content.cta.title}
               onChange={(e) => set("cta", { ...content.cta, title: e.target.value })}
             />
           </Field>
-          <Field label="Besedilo" htmlFor="cta-text">
+          <Field label={b.labels.text} htmlFor="cta-text">
             <Textarea
               id="cta-text"
               rows={2}
@@ -1043,9 +1036,9 @@ export function BrandingEditor() {
             />
           </Field>
           <Field
-            label="Besedilo gumba"
+            label={b.labels.buttonText}
             htmlFor="cta-button"
-            hint="Gumb vodi na rezervacijo (/booking)."
+            hint={b.ctaBookingHint}
           >
             <Input
               id="cta-button"
@@ -1057,8 +1050,8 @@ export function BrandingEditor() {
 
         {/* h) Delovni čas */}
         <EditorCard
-          title="Delovni čas"
-          description="Urnik se prikazuje na vaši spletni strani. Izključite dneve, ko ste zaprti."
+          title={b.openingHours.title}
+          description={b.openingHours.desc}
         >
           <div className="space-y-2">
             {hours.map((h) => {
@@ -1077,12 +1070,12 @@ export function BrandingEditor() {
                       onCheckedChange={(v) => toggleDayOpen(h.day, v)}
                       aria-label={
                         open
-                          ? `Označi ${DAY_NAMES[h.day]} kot zaprt`
-                          : `Označi ${DAY_NAMES[h.day]} kot odprt`
+                          ? b.markClosed(b.days[h.day])
+                          : b.markOpen(b.days[h.day])
                       }
                     />
-                    <span className="text-sm font-medium">{DAY_NAMES[h.day]}</span>
-                    {!open && <Badge variant="secondary">Zaprto</Badge>}
+                    <span className="text-sm font-medium">{b.days[h.day]}</span>
+                    {!open && <Badge variant="secondary">{b.closed}</Badge>}
                   </div>
                   <div className="flex flex-1 items-center gap-2 sm:justify-end">
                     <Input
@@ -1091,7 +1084,7 @@ export function BrandingEditor() {
                       value={h.open ?? ""}
                       disabled={!open}
                       onChange={(e) => updateHour(h.day, { open: e.target.value || null })}
-                      aria-label={`${DAY_NAMES[h.day]} — odpreme`}
+                      aria-label={b.opensAt(b.days[h.day])}
                     />
                     <span className="text-sm text-muted-foreground" aria-hidden>
                       –
@@ -1102,7 +1095,7 @@ export function BrandingEditor() {
                       value={h.close ?? ""}
                       disabled={!open}
                       onChange={(e) => updateHour(h.day, { close: e.target.value || null })}
-                      aria-label={`${DAY_NAMES[h.day]} — zapre`}
+                      aria-label={b.closesAt(b.days[h.day])}
                     />
                   </div>
                 </div>
@@ -1113,11 +1106,11 @@ export function BrandingEditor() {
 
         {/* i) Družabna omrežja */}
         <EditorCard
-          title="Družabna omrežja"
-          description="Povezave se prikažejo v nogi spletne strani. Prazna polja so skrita."
+          title={b.social.title}
+          description={b.social.desc}
         >
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Instagram" htmlFor="social-instagram">
+            <Field label={b.social.instagram} htmlFor="social-instagram">
               <Input
                 id="social-instagram"
                 type="url"
@@ -1128,7 +1121,7 @@ export function BrandingEditor() {
                 placeholder="https://instagram.com/…"
               />
             </Field>
-            <Field label="Facebook" htmlFor="social-facebook">
+            <Field label={b.social.facebook} htmlFor="social-facebook">
               <Input
                 id="social-facebook"
                 type="url"
@@ -1139,7 +1132,7 @@ export function BrandingEditor() {
                 placeholder="https://facebook.com/…"
               />
             </Field>
-            <Field label="TikTok" htmlFor="social-tiktok">
+            <Field label={b.social.tiktok} htmlFor="social-tiktok">
               <Input
                 id="social-tiktok"
                 type="url"
@@ -1150,7 +1143,7 @@ export function BrandingEditor() {
                 placeholder="https://tiktok.com/@…"
               />
             </Field>
-            <Field label="Spletna stran" htmlFor="social-website">
+            <Field label={b.social.website} htmlFor="social-website">
               <Input
                 id="social-website"
                 type="url"
@@ -1166,10 +1159,14 @@ export function BrandingEditor() {
 
         {/* j) SEO */}
         <EditorCard
-          title="SEO"
-          description="Kako se vaša stran prikaže v iskalnikih in pri delitvi povezav."
+          title={b.seo.title}
+          description={b.seo.desc}
         >
-          <Field label="Meta naslov" htmlFor="seo-title" hint="Če je prazno, se uporabi ime salona.">
+          <Field
+            label={b.seo.metaTitle}
+            htmlFor="seo-title"
+            hint={b.seo.metaTitleHint}
+          >
             <Input
               id="seo-title"
               value={content.seo.title ?? ""}
@@ -1177,9 +1174,9 @@ export function BrandingEditor() {
             />
           </Field>
           <Field
-            label="Meta opis"
+            label={b.seo.metaDescription}
             htmlFor="seo-description"
-            hint="Kratek opis strani (do ~160 znakov)."
+            hint={b.seo.metaDescriptionHint}
           >
             <Textarea
               id="seo-description"
@@ -1194,8 +1191,8 @@ export function BrandingEditor() {
 
         {/* k) Sekcije */}
         <EditorCard
-          title="Sekcije"
-          description="Izklopite sekcije, ki jih ne želite prikazovati na javni strani."
+          title={b.sections.title}
+          description={b.sections.desc}
         >
           <div className="grid gap-2 sm:grid-cols-2">
             {SECTION_KEYS.map((key) => {
@@ -1206,7 +1203,7 @@ export function BrandingEditor() {
                   className="flex items-center justify-between gap-3 rounded-lg border p-3"
                 >
                   <Label htmlFor={`section-${key}`} className="font-normal">
-                    {SECTION_LABELS[key]}
+                    {b.sectionLabels[key]}
                   </Label>
                   <Switch
                     id={`section-${key}`}
@@ -1221,22 +1218,22 @@ export function BrandingEditor() {
 
         {/* l) Panoga (napredno) */}
         <EditorCard
-          title="Panoga"
-          description="Napredno — panoga vpliva na vzorčne vsebine in katalog storitev."
+          title={b.vertical.title}
+          description={b.vertical.desc}
         >
           <details className="rounded-lg border p-4">
             <summary className="cursor-pointer select-none text-sm font-medium">
-              Prikaži napredne nastavitve panoge
+              {b.vertical.showAdvanced}
             </summary>
             <div className="mt-4 space-y-4">
               <Field
-                label="Trenutna panoga"
+                label={b.vertical.current}
                 htmlFor="vertical-select"
                 hint={selectedVertical?.description}
               >
                 <Select value={vertical} onValueChange={setVertical}>
                   <SelectTrigger id="vertical-select">
-                    <SelectValue placeholder="Izberite panogo" />
+                    <SelectValue placeholder={b.vertical.select} />
                   </SelectTrigger>
                   <SelectContent>
                     {VERTICAL_OPTIONS.map((v) => (
@@ -1256,18 +1253,16 @@ export function BrandingEditor() {
                 />
                 <div className="space-y-1">
                   <Label htmlFor="reseed-catalog" className="font-normal">
-                    Dopolni katalog z vzorčnimi storitvami te panoge
+                    {b.vertical.reseedLabel}
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Vzorčne storitve bodo nadomeščene s katalogom izbrane panoge. Ročno dodane
-                    storitve ostanejo.
+                    {b.vertical.reseedHint}
                   </p>
                 </div>
               </div>
               <p className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-400">
                 <WarningCircleIcon size={16} className="mt-0.5 shrink-0" />
-                Opozorilo: zamenjava panoge lahko spremeni privzete besedile in barvno temo
-                vaše strani. Te spremembe ni mogoče preklicati.
+                {b.vertical.warning}
               </p>
               <Button
                 type="button"
@@ -1277,7 +1272,7 @@ export function BrandingEditor() {
                 disabled={savingVertical}
               >
                 {savingVertical && <SpinnerIcon size={16} className="mr-2 animate-spin" />}
-                Zamenjaj panogo
+                {b.vertical.change}
               </Button>
             </div>
           </details>
@@ -1295,11 +1290,11 @@ export function BrandingEditor() {
               )}
               aria-hidden
             />
-            {dirty ? "Neshranjene spremembe" : "Vse spremembe so shranjene"}
+            {dirty ? b.unsavedChanges : b.allSaved}
           </p>
           <Button type="button" onClick={() => void handleSave()} disabled={saving}>
             {saving && <SpinnerIcon size={16} className="mr-2 animate-spin" />}
-            Shrani vsebino
+            {b.saveContent}
           </Button>
         </div>
       </div>

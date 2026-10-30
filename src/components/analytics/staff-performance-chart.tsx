@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card"
 import { BarChart } from "@tremor/react"
 import { StaffPerformance } from "@/lib/interfaces"
+import { useI18n } from "@/lib/i18n/provider"
 import { UserCogIcon } from "@/components/icons"
 
 interface StaffPerformanceChartProps {
@@ -16,6 +17,7 @@ interface StaffPerformanceChartProps {
 }
 
 export function StaffPerformanceChart({ data }: StaffPerformanceChartProps) {
+  const { t } = useI18n()
   const chartData = data.map((staff) => ({
     name: staff.name,
     Appointments: staff.appointments,
@@ -35,25 +37,26 @@ export function StaffPerformanceChart({ data }: StaffPerformanceChartProps) {
             </div>
             <div>
               <CardTitle className="text-base">
-                Staff{" "}
+                {t.analytics.staffPerformance.title}{" "}
                 <span className="from-primary to-accent bg-linear-to-r bg-clip-text text-transparent">
-                  Performance
+                  {t.analytics.staffPerformance.titleAccent}
                 </span>
               </CardTitle>
-              <CardDescription>Completed appointments and revenue by staff member</CardDescription>
+              <CardDescription>{t.analytics.staffPerformance.description}</CardDescription>
             </div>
           </div>
           <div className="flex flex-wrap gap-4 text-sm">
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-rose-500" />
               <span className="text-muted-foreground">
-                Total: <span className="font-semibold text-foreground">{totalAppointments} appointments</span>
+                {t.analytics.staffPerformance.totalAppointments(totalAppointments)}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-amber-500" />
               <span className="text-muted-foreground">
-                Prihodek: <span className="font-semibold text-foreground">€{totalRevenue.toLocaleString()}</span>
+                {t.analytics.staffPerformance.totalRevenue}:{" "}
+                <span className="font-semibold text-foreground">€{totalRevenue.toLocaleString()}</span>
               </span>
             </div>
           </div>
@@ -66,7 +69,7 @@ export function StaffPerformanceChart({ data }: StaffPerformanceChartProps) {
               className="h-72"
               data={chartData}
               index="name"
-              categories={["Appointments", "Revenue"]}
+              categories={[t.analytics.staffPerformance.categories[0], t.analytics.staffPerformance.categories[1]]}
               colors={["rose", "amber"]}
               yAxisWidth={60}
               showAnimation
@@ -76,7 +79,7 @@ export function StaffPerformanceChart({ data }: StaffPerformanceChartProps) {
           </div>
         ) : (
           <div className="flex h-72 items-center justify-center rounded-lg border border-dashed">
-            <p className="text-muted-foreground">No staff performance data available</p>
+            <p className="text-muted-foreground">{t.analytics.staffPerformance.noData}</p>
           </div>
         )}
       </CardContent>

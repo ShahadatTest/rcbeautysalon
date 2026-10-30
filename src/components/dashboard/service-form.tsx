@@ -27,6 +27,7 @@ import {
 import { ImageIcon, TrashIcon } from "@/components/icons"
 import { SpinnerIcon } from "@/components/icons/spinner-icon"
 import { toast } from "sonner"
+import { useI18n } from "@/lib/i18n/provider"
 import {
   createService,
   updateService,
@@ -75,6 +76,7 @@ export function ServiceForm({
   service,
   mode = "create",
 }: ServiceFormProps) {
+  const { t } = useI18n()
   const router = useRouter()
   const isEditMode = mode === "edit"
   const [imageUrl, setImageUrl] = useState<string | null>(
@@ -136,13 +138,13 @@ export function ServiceForm({
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file")
+      toast.error(t.services.imageTypeError)
       return
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be less than 5MB")
+      toast.error(t.services.imageSizeError)
       return
     }
 
@@ -161,15 +163,15 @@ export function ServiceForm({
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Upload failed")
+        throw new Error(data.error || t.services.uploadFailed)
       }
 
       setImageUrl(data.url)
-      toast.success("Image uploaded successfully")
+      toast.success(t.services.imageUploadSuccess)
     } catch (error) {
       console.error("Upload error:", error)
       toast.error(
-        error instanceof Error ? error.message : "Failed to upload image"
+        error instanceof Error ? error.message : t.services.imageUploadFailed
       )
     } finally {
       setIsUploading(false)
@@ -201,7 +203,7 @@ export function ServiceForm({
     if (!service?.id) return
 
     const confirmed = window.confirm(
-      "Are you sure you want to delete this service? This action cannot be undone."
+      t.services.deleteConfirm
     )
 
     if (!confirmed) return
@@ -211,14 +213,14 @@ export function ServiceForm({
       const result = await deleteService(service.id)
 
       if (result.success) {
-        toast.success("Service deleted successfully")
+        toast.success(t.services.deleteSuccess)
         router.push("/dashboard/services")
       } else {
-        toast.error(result.error || "Failed to delete service")
+        toast.error(result.error || t.services.deleteFailed)
       }
     } catch (error) {
       console.error("Delete error:", error)
-      toast.error("An unexpected error occurred")
+      toast.error(t.services.unexpectedError)
     } finally {
       setIsDeleting(false)
     }
@@ -248,19 +250,19 @@ export function ServiceForm({
       if (result.success) {
         toast.success(
           isEditMode
-            ? "Service updated successfully"
-            : "Service created successfully"
+            ? t.services.updateSuccess
+            : t.services.createSuccess
         )
         router.push("/dashboard/services")
       } else {
         toast.error(
           result.error ||
-            `Failed to ${isEditMode ? "update" : "create"} service`
+            (isEditMode ? t.services.updateFailed : t.services.createFailed)
         )
       }
     } catch (error) {
       console.error("Submit error:", error)
-      toast.error("An unexpected error occurred")
+      toast.error(t.services.unexpectedError)
     }
   }
 
@@ -272,15 +274,15 @@ export function ServiceForm({
           {/* Service Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Service Information</CardTitle>
-              <CardDescription>Basic details about the service</CardDescription>
+              <CardTitle>{t.services.serviceInfoTitle}</CardTitle>
+              <CardDescription>{t.services.serviceInfoDesc}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Service Name *</Label>
+                <Label htmlFor="name">{t.services.nameLabel}</Label>
                 <Input
                   id="name"
-                  placeholder="e.g., Haircut & Styling"
+                  placeholder={t.services.namePlaceholder}
                   value={watchName}
                   onChange={handleNameChange}
                   disabled={isSubmitting}
@@ -293,15 +295,15 @@ export function ServiceForm({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="slug">URL Slug *</Label>
+                <Label htmlFor="slug">{t.services.slugLabel}</Label>
                 <Input
                   id="slug"
-                  placeholder="e.g., haircut-styling"
+                  placeholder={t.services.slugPlaceholder}
                   {...register("slug")}
                   disabled={isSubmitting}
                 />
                 <p className="text-muted-foreground text-xs">
-                  This will be used in the service URL
+                  {t.services.slugHelp}
                 </p>
                 {errors.slug && (
                   <p className="text-destructive text-sm">
@@ -311,10 +313,10 @@ export function ServiceForm({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">{t.services.descriptionLabel}</Label>
                 <Textarea
                   id="description"
-                  placeholder="Describe the service..."
+                  placeholder={t.services.descriptionPlaceholder}
                   rows={4}
                   {...register("description")}
                   disabled={isSubmitting}
@@ -323,7 +325,7 @@ export function ServiceForm({
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="duration">Duration (minutes) *</Label>
+                  <Label htmlFor="duration">{t.services.durationLabel}</Label>
                   <Input
                     id="duration"
                     type="number"
@@ -338,7 +340,7 @@ export function ServiceForm({
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="price">Cena (€) *</Label>
+                  <Label htmlFor="price">{t.services.priceLabel}</Label>
                   <Input
                     id="price"
                     type="number"
@@ -356,14 +358,14 @@ export function ServiceForm({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
+                <Label htmlFor="category">{t.services.categoryLabel}</Label>
                 <Select
                   defaultValue={service?.categoryId || undefined}
                   onValueChange={(value) => setValue("categoryId", value)}
                   disabled={isSubmitting}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
+                    <SelectValue placeholder={t.services.categoryPlaceholder} />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((category) => (
@@ -380,15 +382,15 @@ export function ServiceForm({
           {/* Image Upload */}
           <Card>
             <CardHeader>
-              <CardTitle>Service Image</CardTitle>
-              <CardDescription>Upload an image for the service</CardDescription>
+              <CardTitle>{t.services.imageTitle}</CardTitle>
+              <CardDescription>{t.services.imageDesc}</CardDescription>
             </CardHeader>
             <CardContent>
               {imageUrl ? (
                 <div className="relative aspect-video w-full overflow-hidden rounded-lg">
                   <Image
                     src={imageUrl}
-                    alt="Service preview"
+                    alt={t.services.imageAlt}
                     fill
                     className="object-cover"
                   />
@@ -419,7 +421,7 @@ export function ServiceForm({
                   )}
                   {!isUploading && (
                     <p className="text-muted-foreground mt-4 text-sm">
-                      Click to upload an image
+                      {t.services.clickToUpload}
                     </p>
                   )}
                 </div>
@@ -440,14 +442,14 @@ export function ServiceForm({
           {/* Visibility */}
           <Card>
             <CardHeader>
-              <CardTitle>Visibility</CardTitle>
+              <CardTitle>{t.services.visibilityTitle}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Active</Label>
+                  <Label>{t.services.activeLabel}</Label>
                   <p className="text-muted-foreground text-xs">
-                    Service is available for booking
+                    {t.services.activeDesc}
                   </p>
                 </div>
                 <Switch
@@ -458,9 +460,9 @@ export function ServiceForm({
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Featured</Label>
+                  <Label>{t.services.featuredLabel}</Label>
                   <p className="text-muted-foreground text-xs">
-                    Show on landing page
+                    {t.services.featuredDesc}
                   </p>
                 </div>
                 <Switch
@@ -475,16 +477,16 @@ export function ServiceForm({
           {/* Staff Selection */}
           <Card>
             <CardHeader>
-              <CardTitle>Staff</CardTitle>
+              <CardTitle>{t.services.staffTitle}</CardTitle>
               <CardDescription>
-                Assign staff who can perform this service
+                {t.services.staffDesc}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 {staff.length === 0 ? (
                   <p className="text-muted-foreground text-sm">
-                    No staff available
+                    {t.services.noStaff}
                   </p>
                 ) : (
                   staff.map((member) => (
@@ -517,7 +519,7 @@ export function ServiceForm({
               {isSubmitting && (
                 <SpinnerIcon size={16} className="mr-2 animate-spin" />
               )}
-              {isEditMode ? "Update Service" : "Create Service"}
+              {isEditMode ? t.services.updateButton : t.services.createButton}
             </Button>
             <Button
               type="button"
@@ -526,7 +528,7 @@ export function ServiceForm({
               onClick={() => router.push("/dashboard/services")}
               disabled={isSubmitting || isDeleting}
             >
-              Cancel
+              {t.common.actions.cancel}
             </Button>
             {isEditMode && (
               <Button
@@ -541,7 +543,7 @@ export function ServiceForm({
                 ) : (
                   <>
                     <TrashIcon size={16} className="mr-2" />
-                    Delete Service
+                    {t.services.deleteButton}
                   </>
                 )}
               </Button>

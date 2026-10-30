@@ -21,6 +21,7 @@ import { format } from "date-fns"
 import { formatSalonTime } from "@/lib/booking-time"
 import { getSessionSalonTimezone } from "@/lib/tenant"
 import { formatCurrency } from "@/lib/utils/format"
+import { getServerI18n } from "@/lib/i18n/server"
 
 const roleColors: Record<string, string> = {
   ADMIN: "bg-purple-500 text-white",
@@ -50,22 +51,26 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps) {
   const { id } = await params
+  const { t } = await getServerI18n()
   const user = await getUserById(id)
 
   if (!user) {
     return {
-      title: "User Not Found",
+      title: t.users.userNotFound,
     }
   }
 
   return {
-    title: `User - ${user.name}`,
-    description: `User details for ${user.name}`,
+    title: t.users.userMetaTitle(user.name ?? t.users.altUser),
+    description: t.users.userMetaDesc(user.name ?? t.users.altUser),
   }
 }
 
 export default async function UserDetailsPage({ params }: PageProps) {
-  const salonTz = await getSessionSalonTimezone()
+  const [{ t, dateFnsLocale }, salonTz] = await Promise.all([
+    getServerI18n(),
+    getSessionSalonTimezone(),
+  ])
   const { id } = await params
   const user = await getUserById(id)
 
@@ -92,16 +97,16 @@ export default async function UserDetailsPage({ params }: PageProps) {
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">User Details</h1>
+            <h1 className="text-3xl font-bold">{t.users.userDetails}</h1>
             <p className="text-muted-foreground">
-              Member since {format(new Date(user.createdAt), "MMMM yyyy")}
+              {t.users.memberSince(format(new Date(user.createdAt), "MMMM yyyy", { locale: dateFnsLocale }))}
             </p>
           </div>
         </div>
         <Link href={`/dashboard/users/${id}/edit`}>
           <Button>
             <PencilIcon size={16} className="mr-2" />
-            Edit User
+            {t.users.editUser}
           </Button>
         </Link>
       </div>
@@ -114,7 +119,7 @@ export default async function UserDetailsPage({ params }: PageProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CalendarIcon size={20} />
-                Recent Appointments
+                {t.users.recentAppointments}
                 {appointments.length > 0 && (
                   <Badge variant="secondary">{appointments.length}</Badge>
                 )}
@@ -123,7 +128,7 @@ export default async function UserDetailsPage({ params }: PageProps) {
             <CardContent>
               {appointments.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
-                  No appointments found
+                  {t.users.noAppointmentsFound}
                 </p>
               ) : (
                 <div className="space-y-4">
@@ -139,24 +144,24 @@ export default async function UserDetailsPage({ params }: PageProps) {
                         <div className="text-muted-foreground flex items-center gap-4 text-sm">
                           <span className="flex items-center gap-1">
                             <CalendarIcon size={14} />
-                            {format(new Date(apt.startTime), "MMM d, yyyy")}
+                            {format(new Date(apt.startTime), "MMM d, yyyy", { locale: dateFnsLocale })}
                           </span>
                           <span className="flex items-center gap-1">
                             <ClockIcon size={14} />
                             {formatSalonTime(new Date(apt.startTime), salonTz)}
                           </span>
-                          <span>with {apt.staff.name}</span>
+                          <span>{t.users.withStaff(apt.staff.name)}</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <span
                           className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${statusColors[apt.status]}`}
                         >
-                          {apt.status.replace("_", " ")}
+                          {t.common.status[apt.status]}
                         </span>
                         <Link href={`/dashboard/appointments/${apt.id}`}>
                           <Button variant="outline" size="sm">
-                            View
+                            {t.common.actions.view}
                           </Button>
                         </Link>
                       </div>
@@ -167,7 +172,7 @@ export default async function UserDetailsPage({ params }: PageProps) {
                       href={`/dashboard/appointments?customerId=${user.customer?.id}`}
                     >
                       <Button variant="link" className="w-full">
-                        View All Appointments
+                        {t.users.viewAllAppointments}
                       </Button>
                     </Link>
                   )}
@@ -181,7 +186,7 @@ export default async function UserDetailsPage({ params }: PageProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ShoppingBagIcon size={20} />
-                Recent Orders
+                {t.users.recentOrders}
                 {orders.length > 0 && (
                   <Badge variant="secondary">{orders.length}</Badge>
                 )}
@@ -189,7 +194,7 @@ export default async function UserDetailsPage({ params }: PageProps) {
             </CardHeader>
             <CardContent>
               {orders.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No orders found</p>
+                <p className="text-muted-foreground text-sm">{t.users.noOrdersFound}</p>
               ) : (
                 <div className="space-y-4">
                   {orders.map((order) => (
@@ -199,13 +204,12 @@ export default async function UserDetailsPage({ params }: PageProps) {
                     >
                       <div className="space-y-1">
                         <p className="font-medium">
-                          Order #{order.id.slice(-8)}
+                          {t.users.orderNumber(order.id.slice(-8))}
                         </p>
                         <div className="text-muted-foreground text-sm">
                           <span>
-                            {order.items.length} item
-                            {order.items.length !== 1 ? "s" : ""} •{" "}
-                            {format(new Date(order.createdAt), "MMM d, yyyy")}
+                            {t.users.itemCount(order.items.length)} •{" "}
+                            {format(new Date(order.createdAt), "MMM d, yyyy", { locale: dateFnsLocale })}
                           </span>
                         </div>
                         <p className="text-sm">
@@ -222,12 +226,12 @@ export default async function UserDetailsPage({ params }: PageProps) {
                           <span
                             className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${orderStatusColors[order.status]}`}
                           >
-                            {order.status}
+                            {t.users.orderStatus[order.status]}
                           </span>
                         </div>
                         <Link href={`/dashboard/orders/${order.id}`}>
                           <Button variant="outline" size="sm">
-                            View
+                            {t.common.actions.view}
                           </Button>
                         </Link>
                       </div>
@@ -238,7 +242,7 @@ export default async function UserDetailsPage({ params }: PageProps) {
                       href={`/dashboard/orders?customerId=${user.customer?.id}`}
                     >
                       <Button variant="link" className="w-full">
-                        View All Orders
+                        {t.users.viewAllOrders}
                       </Button>
                     </Link>
                   )}
@@ -255,7 +259,7 @@ export default async function UserDetailsPage({ params }: PageProps) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserIcon size={20} />
-                Profile
+                {t.users.profile}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -265,7 +269,7 @@ export default async function UserDetailsPage({ params }: PageProps) {
                   <div className="relative h-16 w-16 overflow-hidden rounded-full">
                     <Image
                       src={user.image}
-                      alt={user.name || "User"}
+                      alt={user.name || t.users.altUser}
                       fill
                       className="object-cover"
                     />
@@ -280,7 +284,9 @@ export default async function UserDetailsPage({ params }: PageProps) {
                 )}
                 <div>
                   <p className="text-lg font-semibold">{user.name}</p>
-                  <Badge className={roleColors[user.role]}>{user.role}</Badge>
+                  <Badge className={roleColors[user.role]}>
+                    {t.users.roleLabel(user.role)}
+                  </Badge>
                 </div>
               </div>
 
@@ -293,7 +299,7 @@ export default async function UserDetailsPage({ params }: PageProps) {
                   <span>{user.email}</span>
                   {user.emailVerified && (
                     <Badge variant="outline" className="text-green-600">
-                      Verified
+                      {t.users.verified}
                     </Badge>
                   )}
                 </div>
@@ -313,7 +319,7 @@ export default async function UserDetailsPage({ params }: PageProps) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <CurrencyDollarIcon size={20} />
-                  Customer Stats
+                  {t.users.customerStats}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -323,19 +329,19 @@ export default async function UserDetailsPage({ params }: PageProps) {
                       {appointments.length}
                     </p>
                     <p className="text-muted-foreground text-xs">
-                      Appointments
+                      {t.users.appointmentsLabel}
                     </p>
                   </div>
                   <div className="bg-muted/50 rounded-lg p-3 text-center">
                     <p className="text-primary text-2xl font-bold">
                       {orders.length}
                     </p>
-                    <p className="text-muted-foreground text-xs">Orders</p>
+                    <p className="text-muted-foreground text-xs">{t.users.ordersLabel}</p>
                   </div>
                 </div>
                 <Separator />
                 <div className="text-center">
-                  <p className="text-muted-foreground text-sm">Total Spent</p>
+                  <p className="text-muted-foreground text-sm">{t.users.totalSpent}</p>
                   <p className="text-2xl font-bold text-green-600">
                     {formatCurrency(totalSpent)}
                   </p>
@@ -348,19 +354,19 @@ export default async function UserDetailsPage({ params }: PageProps) {
           {user.staff && (
             <Card>
               <CardHeader>
-                <CardTitle>Staff Profile</CardTitle>
+                <CardTitle>{t.users.staffProfile}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm">
-                  <span className="text-muted-foreground">Position:</span>{" "}
-                  <span className="font-medium">Staff Member</span>
+                  <span className="text-muted-foreground">{t.users.position}</span>{" "}
+                  <span className="font-medium">{t.users.staffMember}</span>
                 </p>
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">Status:</span>
+                  <span className="text-muted-foreground">{t.users.statusLabel}</span>
                   <Badge
                     variant={user.staff.isActive ? "default" : "secondary"}
                   >
-                    {user.staff.isActive ? "Active" : "Inactive"}
+                    {user.staff.isActive ? t.users.active : t.users.inactive}
                   </Badge>
                 </div>
                 {user.staff.bio && (
@@ -370,7 +376,7 @@ export default async function UserDetailsPage({ params }: PageProps) {
                 )}
                 <Link href={`/dashboard/staff/${user.staff.id}`}>
                   <Button variant="outline" className="w-full" size="sm">
-                    View Staff Profile
+                    {t.users.viewStaffProfile}
                   </Button>
                 </Link>
               </CardContent>
@@ -380,20 +386,20 @@ export default async function UserDetailsPage({ params }: PageProps) {
           {/* Account Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Account Info</CardTitle>
+              <CardTitle>{t.users.accountInfo}</CardTitle>
             </CardHeader>
             <CardContent className="text-muted-foreground space-y-2 text-sm">
               <p>
-                <span className="font-medium">User ID:</span>{" "}
+                <span className="font-medium">{t.users.userId}</span>{" "}
                 {user.id.slice(-8)}
               </p>
               <p>
-                <span className="font-medium">Created:</span>{" "}
-                {format(new Date(user.createdAt), "MMMM d, yyyy")}
+                <span className="font-medium">{t.users.created}</span>{" "}
+                {format(new Date(user.createdAt), "MMMM d, yyyy", { locale: dateFnsLocale })}
               </p>
               <p>
-                <span className="font-medium">Last Updated:</span>{" "}
-                {format(new Date(user.updatedAt), "MMMM d, yyyy")}
+                <span className="font-medium">{t.users.lastUpdated}</span>{" "}
+                {format(new Date(user.updatedAt), "MMMM d, yyyy", { locale: dateFnsLocale })}
               </p>
             </CardContent>
           </Card>

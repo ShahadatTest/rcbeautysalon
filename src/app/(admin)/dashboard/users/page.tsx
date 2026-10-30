@@ -6,6 +6,7 @@ import { EnvelopeIcon } from "@/components/icons"
 import { getAdminUsers, getUserStats } from "@/app/actions/users"
 import { UserSearch } from "@/components/dashboard/user-search"
 import { ExportUsersButton } from "@/components/dashboard/export-users-button"
+import { getServerI18n } from "@/lib/i18n/server"
 
 interface UsersPageProps {
   searchParams: Promise<{ search?: string }>
@@ -13,7 +14,8 @@ interface UsersPageProps {
 
 export default async function UsersPage({ searchParams }: UsersPageProps) {
   const { search } = await searchParams
-  const [users, stats] = await Promise.all([
+  const [{ t, locale }, users, stats] = await Promise.all([
+    getServerI18n(),
     getAdminUsers(search),
     getUserStats(),
   ])
@@ -23,13 +25,13 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Manage{" "}
+            {t.users.title}{" "}
             <span className="from-primary to-accent bg-linear-to-r bg-clip-text text-transparent">
-              Customers
+              {t.users.titleAccent}
             </span>
           </h1>
           <p className="text-muted-foreground">
-            Manage your customer database
+            {t.users.subtitle}
           </p>
         </div>
         <ExportUsersButton users={users} />
@@ -39,25 +41,25 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total Users</CardDescription>
+            <CardDescription>{t.users.stats.totalUsers}</CardDescription>
             <CardTitle className="text-3xl">{stats.totalUsers}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Active Sessions</CardDescription>
+            <CardDescription>{t.users.stats.activeSessions}</CardDescription>
             <CardTitle className="text-3xl text-green-600">{stats.activeThisMonth}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>New This Month</CardDescription>
+            <CardDescription>{t.users.stats.newThisMonth}</CardDescription>
             <CardTitle className="text-3xl text-blue-600">{stats.newThisMonth}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Registered Customers</CardDescription>
+            <CardDescription>{t.users.stats.registeredCustomers}</CardDescription>
             <CardTitle className="text-3xl">{stats.totalCustomers}</CardTitle>
           </CardHeader>
         </Card>
@@ -69,26 +71,26 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
       {/* Users Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Users</CardTitle>
-          <CardDescription>A list of all registered users</CardDescription>
+          <CardTitle>{t.users.allUsersTitle}</CardTitle>
+          <CardDescription>{t.users.allUsersDesc}</CardDescription>
         </CardHeader>
         <CardContent>
           {users.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">No users found.</p>
+              <p className="text-muted-foreground">{t.users.noUsersFound}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b text-left text-sm text-muted-foreground">
-                    <th className="pb-3 font-medium">User</th>
-                    <th className="pb-3 font-medium">Email</th>
-                    <th className="pb-3 font-medium">Role</th>
-                    <th className="pb-3 font-medium">Appointments</th>
-                    <th className="pb-3 font-medium">Orders</th>
-                    <th className="pb-3 font-medium">Joined</th>
-                    <th className="pb-3 font-medium">Actions</th>
+                    <th className="pb-3 font-medium">{t.users.table.user}</th>
+                    <th className="pb-3 font-medium">{t.users.table.email}</th>
+                    <th className="pb-3 font-medium">{t.users.table.role}</th>
+                    <th className="pb-3 font-medium">{t.users.table.appointments}</th>
+                    <th className="pb-3 font-medium">{t.users.table.orders}</th>
+                    <th className="pb-3 font-medium">{t.users.table.joined}</th>
+                    <th className="pb-3 font-medium">{t.users.table.actions}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -100,7 +102,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                             <div className="relative h-10 w-10 overflow-hidden rounded-full">
                               <Image
                                 src={user.image}
-                                alt={user.name || "User"}
+                                alt={user.name || t.users.altUser}
                                 fill
                                 className="object-cover"
                               />
@@ -110,7 +112,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                               {user.name?.split(" ").map(n => n[0]).join("") || "?"}
                             </div>
                           )}
-                          <p className="font-medium">{user.name || "No name"}</p>
+                          <p className="font-medium">{user.name || t.users.noName}</p>
                         </div>
                       </td>
                       <td className="py-4">
@@ -127,18 +129,18 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                               ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
                               : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                         }`}>
-                          {user.role}
+                          {t.users.roleLabel(user.role)}
                         </span>
                       </td>
                       <td className="py-4 text-sm">{user.customer?._count.appointments || 0}</td>
                       <td className="py-4 text-sm">{user.customer?._count.orders || 0}</td>
                       <td className="py-4 text-sm">
-                        {new Date(user.createdAt).toLocaleDateString()}
+                        {new Date(user.createdAt).toLocaleDateString(locale === "sl" ? "sl-SI" : "en-US")}
                       </td>
                       <td className="py-4">
                         <Link href={`/dashboard/users/${user.id}`}>
                           <Button variant="ghost" size="sm">
-                            View
+                            {t.common.actions.view}
                           </Button>
                         </Link>
                       </td>

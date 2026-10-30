@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { ShoppingBagIcon } from "@/components/icons"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface Order {
   id: string
@@ -24,12 +25,22 @@ interface ExportOrdersButtonProps {
 }
 
 export function ExportOrdersButton({ orders }: ExportOrdersButtonProps) {
+  const { t } = useI18n()
+
   const handleExport = () => {
-    const headers = ["Order ID", "Customer", "Email", "Items", "Total", "Status", "Date"]
+    const headers = [
+      t.orders.csv.orderId,
+      t.orders.csv.customer,
+      t.orders.csv.email,
+      t.orders.csv.items,
+      t.orders.csv.total,
+      t.orders.csv.status,
+      t.orders.csv.date,
+    ]
 
     const rows = orders.map((order) => [
       order.id,
-      order.customer?.name || order.guestName || "Guest",
+      order.customer?.name || order.guestName || t.orders.guest,
       order.customer?.email || order.guestEmail || "-",
       order._count.items.toString(),
       `€${order.total.toFixed(2)}`,
@@ -58,7 +69,7 @@ export function ExportOrdersButton({ orders }: ExportOrdersButtonProps) {
   return (
     <Button variant="outline" onClick={handleExport}>
       <ShoppingBagIcon size={16} className="mr-2" />
-      Export Orders
+      {t.orders.exportOrders}
     </Button>
   )
 }

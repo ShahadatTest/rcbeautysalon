@@ -10,6 +10,7 @@ import {
 import { getAdminProducts, getProductStats } from "@/app/actions/products"
 import { ProductSearch } from "@/components/dashboard/product-search"
 import { DeleteProductButton } from "@/components/dashboard/delete-product-button"
+import { getServerI18n } from "@/lib/i18n/server"
 
 interface ProductsPageProps {
   searchParams: Promise<{ search?: string }>
@@ -17,9 +18,10 @@ interface ProductsPageProps {
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const { search } = await searchParams
-  const [products, stats] = await Promise.all([
+  const [products, stats, { t }] = await Promise.all([
     getAdminProducts(search),
     getProductStats(),
+    getServerI18n(),
   ])
   return (
     <div className="space-y-6">
@@ -27,19 +29,19 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Shop{" "}
+            {t.products.title}{" "}
             <span className="from-primary to-accent bg-linear-to-r bg-clip-text text-transparent">
-              Products
+              {t.products.titleAccent}
             </span>
           </h1>
           <p className="text-muted-foreground">
-            Manage your shop inventory
+            {t.products.subtitle}
           </p>
         </div>
         <Link href="/dashboard/products/new">
           <Button>
             <PlusIcon size={16} className="mr-2" />
-            Add Product
+            {t.products.addProduct}
           </Button>
         </Link>
       </div>
@@ -48,25 +50,25 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total Products</CardDescription>
+            <CardDescription>{t.products.totalProducts}</CardDescription>
             <CardTitle className="text-3xl">{stats.totalProducts}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>In Stock</CardDescription>
+            <CardDescription>{t.products.inStock}</CardDescription>
             <CardTitle className="text-3xl text-green-600">{stats.inStock}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Low Stock</CardDescription>
+            <CardDescription>{t.products.lowStock}</CardDescription>
             <CardTitle className="text-3xl text-yellow-600">{stats.lowStock}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Out of Stock</CardDescription>
+            <CardDescription>{t.products.outOfStock}</CardDescription>
             <CardTitle className="text-3xl text-red-600">{stats.outOfStock}</CardTitle>
           </CardHeader>
         </Card>
@@ -78,17 +80,17 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       {/* Products Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Products</CardTitle>
-          <CardDescription>Manage your product inventory</CardDescription>
+          <CardTitle>{t.products.allProducts}</CardTitle>
+          <CardDescription>{t.products.allProductsDesc}</CardDescription>
         </CardHeader>
         <CardContent>
           {products.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">No products found.</p>
+              <p className="text-muted-foreground">{t.products.noProductsFound}</p>
               <Link href="/dashboard/products/new" className="mt-4 inline-block">
                 <Button>
                   <PlusIcon size={16} className="mr-2" />
-                  Add First Product
+                  {t.products.addFirstProduct}
                 </Button>
               </Link>
             </div>
@@ -97,13 +99,13 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               <table className="w-full">
                 <thead>
                   <tr className="border-b text-left text-sm text-muted-foreground">
-                    <th className="pb-3 font-medium">Product</th>
-                    <th className="pb-3 font-medium">Category</th>
-                    <th className="pb-3 font-medium">SKU</th>
-                    <th className="pb-3 font-medium">Price</th>
-                    <th className="pb-3 font-medium">Stock</th>
-                    <th className="pb-3 font-medium">Status</th>
-                    <th className="pb-3 font-medium">Actions</th>
+                    <th className="pb-3 font-medium">{t.products.colProduct}</th>
+                    <th className="pb-3 font-medium">{t.products.colCategory}</th>
+                    <th className="pb-3 font-medium">{t.products.colSku}</th>
+                    <th className="pb-3 font-medium">{t.products.colPrice}</th>
+                    <th className="pb-3 font-medium">{t.products.colStock}</th>
+                    <th className="pb-3 font-medium">{t.products.colStatus}</th>
+                    <th className="pb-3 font-medium">{t.products.colActions}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -128,7 +130,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                           <p className="font-medium">{product.name}</p>
                         </div>
                       </td>
-                      <td className="py-4 text-sm">{product.category?.name || "Uncategorized"}</td>
+                      <td className="py-4 text-sm">{product.category?.name || t.products.uncategorized}</td>
                       <td className="py-4 text-sm font-mono text-muted-foreground">{product.sku || "-"}</td>
                       <td className="py-4">
                         <div>
@@ -157,7 +159,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                             ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                             : "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
                         }`}>
-                          {product.isActive ? "Active" : "Inactive"}
+                          {product.isActive ? t.products.activeBadge : t.products.inactiveBadge}
                         </span>
                       </td>
                       <td className="py-4">

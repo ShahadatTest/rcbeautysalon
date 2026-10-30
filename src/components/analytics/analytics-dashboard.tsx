@@ -16,6 +16,7 @@ import {
   StaffPerformance,
   PeriodType,
 } from "@/lib/interfaces"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface AnalyticsDashboardProps {
   data: {
@@ -30,19 +31,20 @@ interface AnalyticsDashboardProps {
 }
 
 export function AnalyticsDashboard({ data, period }: AnalyticsDashboardProps) {
+  const { t } = useI18n()
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Business{" "}
+            {t.analytics.title}{" "}
             <span className="from-primary to-accent bg-linear-to-r bg-clip-text text-transparent">
-              Analytics
+              {t.analytics.titleAccent}
             </span>
           </h1>
           <p className="text-muted-foreground">
-            Monitor your business performance and trends
+            {t.analytics.subtitle}
           </p>
         </div>
         <PeriodSelector value={period} />

@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeftIcon } from "@/components/icons"
 import { getUserById } from "@/app/actions/users"
 import { UserEditForm } from "@/components/dashboard/user-edit-form"
+import { getServerI18n } from "@/lib/i18n/server"
 
 interface EditUserPageProps {
   params: Promise<{ id: string }>
 }
 
 export default async function EditUserPage({ params }: EditUserPageProps) {
+  const { t } = await getServerI18n()
   const { id } = await params
   const user = await getUserById(id)
 
@@ -32,7 +34,7 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
             <div className="relative h-12 w-12 overflow-hidden rounded-full">
               <Image
                 src={user.image}
-                alt={user.name || "User"}
+                alt={user.name || t.users.altUser}
                 fill
                 className="object-cover"
               />
@@ -46,7 +48,7 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
             </div>
           )}
           <div>
-            <h1 className="text-3xl font-bold">Edit User</h1>
+            <h1 className="text-3xl font-bold">{t.users.editUser}</h1>
             <p className="text-muted-foreground">{user.name || user.email}</p>
           </div>
         </div>
