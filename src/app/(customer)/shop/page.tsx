@@ -150,11 +150,11 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
                   )}
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl font-bold">
-                      ${product.price.toFixed(2)}
+                      €{product.price.toFixed(2)}
                     </span>
                     {product.compareAtPrice && (
                       <span className="text-muted-foreground text-sm line-through">
-                        ${product.compareAtPrice.toFixed(2)}
+                        €{product.compareAtPrice.toFixed(2)}
                       </span>
                     )}
                   </div>

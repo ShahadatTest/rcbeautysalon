@@ -37,13 +37,13 @@ export function RevenueChart({ data }: RevenueChartProps) {
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-rose-500" />
               <span className="text-muted-foreground">
-                Appointments: <span className="font-semibold text-foreground">${totalAppointments.toLocaleString()}</span>
+                Termini: <span className="font-semibold text-foreground">€{totalAppointments.toLocaleString()}</span>
               </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-amber-500" />
               <span className="text-muted-foreground">
-                Products: <span className="font-semibold text-foreground">${totalProducts.toLocaleString()}</span>
+                Izdelki: <span className="font-semibold text-foreground">€{totalProducts.toLocaleString()}</span>
               </span>
             </div>
           </div>
@@ -58,7 +58,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
               index="date"
               categories={["appointments", "products"]}
               colors={["rose", "amber"]}
-              valueFormatter={(value) => `$${value.toLocaleString()}`}
+              valueFormatter={(value) => `€${value.toLocaleString()}`}
               showLegend={false}
               showAnimation
               curveType="monotone"

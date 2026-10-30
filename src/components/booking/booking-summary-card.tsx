@@ -16,6 +16,7 @@ import {
   SpinnerGapIcon,
 } from "@/components/icons"
 import { format } from "date-fns"
+import { sl } from "date-fns/locale"
 import { AvailableStaffMember, TimeSlot } from "@/lib/interfaces"
 
 interface BookingSummaryCardProps {
@@ -61,24 +62,24 @@ export function BookingSummaryCard({
     <div className="space-y-4">
       <Card className="sticky top-4 border-border/50 shadow-xl">
         <CardHeader className="rounded-t-lg bg-linear-to-br from-primary/10 via-primary/5 to-accent/10 dark:from-primary/20 dark:via-primary/10 dark:to-accent/15">
-          <CardTitle className="text-foreground">Booking Summary</CardTitle>
+          <CardTitle className="text-foreground">Povzetek rezervacije</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 pt-6">
           <div className="space-y-3 text-sm">
             <div>
-              <p className="font-semibold text-muted-foreground">Service</p>
-              <p className="text-base font-medium text-foreground">{service?.name || "Not selected"}</p>
+              <p className="font-semibold text-muted-foreground">Storitev</p>
+              <p className="text-base font-medium text-foreground">{service?.name || "Ni izbrano"}</p>
             </div>
             <Separator className="bg-border/50" />
             <div>
-              <p className="font-semibold text-muted-foreground">Staff</p>
+              <p className="font-semibold text-muted-foreground">Osebje</p>
               <p className="text-base font-medium text-foreground">
-                {selectedStaff ? selectedStaff.name : "Not selected"}
+                {selectedStaff ? selectedStaff.name : "Ni izbrano"}
               </p>
             </div>
             <Separator className="bg-border/50" />
             <div>
-              <p className="font-semibold text-muted-foreground">Date & Time</p>
+              <p className="font-semibold text-muted-foreground">Datum in ura</p>
               <p className="text-base font-medium text-foreground">
                 {selectedDate && selectedTime ? (
                   <>
@@ -87,20 +88,20 @@ export function BookingSummaryCard({
                       className="mr-1 inline text-primary"
                       weight="regular"
                     />
-                    {format(selectedDate, "MMM d, yyyy")} at{" "}
+                    {format(selectedDate, "d. MMMM yyyy", { locale: sl })} ob{" "}
                     {selectedSlot?.formattedTime || selectedTime}
                   </>
                 ) : (
-                  "Not selected"
+                  "Ni izbrano"
                 )}
               </p>
             </div>
             <Separator className="bg-border/50" />
             <div>
-              <p className="font-semibold text-muted-foreground">Duration</p>
+              <p className="font-semibold text-muted-foreground">Trajanje</p>
               <p className="text-base font-medium text-foreground">
                 <ClockIcon size={14} className="mr-1 inline text-primary" weight="regular" />
-                {service?.duration || 0} minutes
+                {service?.duration || 0} minut
               </p>
             </div>
           </div>
@@ -109,27 +110,27 @@ export function BookingSummaryCard({
 
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Service Price</span>
+              <span className="text-muted-foreground">Cena storitve</span>
               <span className="font-medium text-foreground">{fmt(originalPrice)}</span>
             </div>
             {isEmployee && (
               <div className="flex justify-between text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                <span>Employee Discount (20%)</span>
+                <span>Popust za zaposlene (20&nbsp;%)</span>
                 <span>-{fmt(discountAmount)}</span>
               </div>
             )}
             {isEmployee && (
               <div className="flex justify-between text-sm font-semibold">
-                <span className="text-foreground">Final Price</span>
+                <span className="text-foreground">Končna cena</span>
                 <span className="text-primary">{fmt(finalPrice)}</span>
               </div>
             )}
             <Separator className="my-2 bg-border/50" />
             <div className="flex justify-between text-lg font-bold">
-              <span className="text-foreground">Deposit Required</span>
+              <span className="text-foreground">Obvezni polog</span>
               {isEmployee ? (
                 <span className="text-emerald-600 dark:text-emerald-400">
-                  Not required
+                  Ni potreben
                 </span>
               ) : (
                 <span className="text-primary">
@@ -150,12 +151,12 @@ export function BookingSummaryCard({
                 />
                 <div className="space-y-1">
                   <p className="text-base font-bold text-amber-950 dark:text-amber-300">
-                    Non-Refundable Deposit
+                    Nepovratni polog
                   </p>
                   <p className="text-sm text-amber-900 dark:text-amber-400">
-                    The {fmt(salonConfig.bookingDeposit)} deposit is
-                    required to secure your appointment and is{" "}
-                    <strong className="font-bold">non-refundable</strong>.
+                    Polog {fmt(salonConfig.bookingDeposit)} je potreben za
+                    potrditev termina in je{" "}
+                    <strong className="font-bold">nepovraten</strong>.
                   </p>
                 </div>
               </div>
@@ -168,11 +169,11 @@ export function BookingSummaryCard({
                 </div>
                 <div className="space-y-1">
                   <p className="text-base font-bold text-emerald-800 dark:text-emerald-300">
-                    Employee Booking
+                    Rezervacija zaposlenega
                   </p>
                   <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-                    No deposit required. Payment will be collected after your
-                    appointment is completed.
+                    Polog ni potreben. Plačilo bo obračunano po opravljeni
+                    storitvi.
                   </p>
                 </div>
               </div>
@@ -205,12 +206,12 @@ export function BookingSummaryCard({
             ) : isEmployee ? (
               <>
                 <CurrencyDollarIcon size={20} className="mr-2" weight="regular" />
-                Confirm Employee Booking
+                Potrdi rezervacijo zaposlenega
               </>
             ) : (
               <>
                 <CurrencyDollarIcon size={20} className="mr-2" weight="regular" />
-                Pay {fmt(salonConfig.bookingDeposit)} & Confirm Booking
+                Plačaj {fmt(salonConfig.bookingDeposit)} in potrdi rezervacijo
               </>
             )}
           </Button>
@@ -219,13 +220,13 @@ export function BookingSummaryCard({
           {process.env.NODE_ENV === "development" && (
             <div className="w-full rounded-lg border border-border bg-muted/50 p-3 text-xs">
               <p className="mb-1 font-bold text-muted-foreground">
-                Test Mode - No Real Charges
+                Testni način – brez pravih obremenitev
               </p>
               <p className="text-muted-foreground">
-                Use card: <code className="rounded bg-background px-1.5 py-0.5 font-mono font-bold text-foreground">4242 4242 4242 4242</code>
+                Kartica: <code className="rounded bg-background px-1.5 py-0.5 font-mono font-bold text-foreground">4242 4242 4242 4242</code>
               </p>
               <p className="text-muted-foreground">
-                Expiry: Any future date • CVV: Any 3 digits
+                Veljavnost: katerikoli prihodnji datum • CVV: katerikoli 3-mestni
               </p>
             </div>
           )}

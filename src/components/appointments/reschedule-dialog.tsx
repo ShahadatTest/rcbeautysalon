@@ -21,6 +21,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { CalendarIcon, ClockIcon, SpinnerGapIcon } from "@/components/icons"
 import { format } from "date-fns"
+import { sl } from "date-fns/locale"
 import { TimeSlot } from "@/lib/interfaces"
 
 interface RescheduleDialogProps {
@@ -78,18 +79,18 @@ export function RescheduleDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarIcon size={20} className="text-primary" />
-            Reschedule Appointment
+            Prestavi termin
           </DialogTitle>
           <DialogDescription>
-            Select a new date and time for your appointment. Current:{" "}
-            {format(currentDate, "PPP 'at' p")}
+            Izberite nov datum in uro termina. Trenutno:{" "}
+            {format(currentDate, "d. MMMM yyyy 'ob' HH:mm", { locale: sl })}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
           {/* Date Selection */}
           <div className="space-y-2">
-            <Label className="text-base font-semibold">Select New Date</Label>
+            <Label className="text-base font-semibold">Izberite nov datum</Label>
             <div className="flex justify-center rounded-lg border p-3">
               <Calendar
                 mode="single"
@@ -109,7 +110,7 @@ export function RescheduleDialog({
           <div className="space-y-2">
             <Label className="flex items-center gap-2 text-base font-semibold">
               <ClockIcon size={16} />
-              Select New Time
+              Izberite novo uro
             </Label>
             <Select
               value={selectedTime}
@@ -120,17 +121,17 @@ export function RescheduleDialog({
                 <SelectValue
                   placeholder={
                     !selectedDate
-                      ? "Select a date first"
+                      ? "Najprej izberite datum"
                       : loadingSlots
-                        ? "Loading times..."
-                        : "Select a time"
+                        ? "Nalaganje ur …"
+                        : "Izberite uro"
                   }
                 />
               </SelectTrigger>
               <SelectContent>
                 {availableTimeSlots.length === 0 && !loadingSlots ? (
                   <SelectItem value="no-slots" disabled>
-                    No available times for this date
+                    Za ta datum ni prostih ur
                   </SelectItem>
                 ) : (
                   availableTimeSlots.map((slot) => (
@@ -143,7 +144,7 @@ export function RescheduleDialog({
             </Select>
             {selectedDate && availableTimeSlots.length > 0 && !loadingSlots && (
               <p className="text-muted-foreground text-xs">
-                {availableTimeSlots.length} time slots available
+                Na voljo: {availableTimeSlots.length} terminov
               </p>
             )}
           </div>
@@ -156,7 +157,7 @@ export function RescheduleDialog({
             onClick={() => handleOpenChange(false)}
             disabled={isPending}
           >
-            Cancel
+            Prekliči
           </Button>
           <Button
             onClick={handleSubmit}
@@ -165,7 +166,7 @@ export function RescheduleDialog({
             {isPending && (
               <SpinnerGapIcon size={16} className="mr-2 animate-spin" />
             )}
-            Confirm Reschedule
+            Potrdi prestavitev
           </Button>
         </DialogFooter>
       </DialogContent>

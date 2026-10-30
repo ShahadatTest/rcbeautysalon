@@ -22,7 +22,7 @@ import {
   CheckCircleIcon,
   SpinnerGapIcon,
 } from "@/components/icons"
-import { format, parse } from "date-fns"
+import { format } from "date-fns"
 import {
   cancelAppointment,
   getAvailableTimeSlots,
@@ -60,9 +60,10 @@ export function AppointmentCard({
   // Handle date change in reschedule dialog
   const handleDateChange = async (date: Date) => {
     setLoadingSlots(true)
+    // Send "yyyy-MM-dd" — server resolves it in the salon timezone
     const slots = await getAvailableTimeSlots(
       appointment.staff.id,
-      date,
+      format(date, "yyyy-MM-dd"),
       totalDuration
     )
     setAvailableSlots(slots)
@@ -73,8 +74,12 @@ export function AppointmentCard({
   const handleReschedule = (newDate: Date, newTime: string) => {
     startTransition(async () => {
       setError(null)
-      const newStartTime = parse(newTime, "HH:mm", newDate)
-      const result = await rescheduleAppointment(appointment.id, newStartTime)
+      // Send salon-local date+time strings — the server builds the exact
+      // instant in the salon's timezone.
+      const result = await rescheduleAppointment(appointment.id, newDate, {
+        date: format(newDate, "yyyy-MM-dd"),
+        time: newTime,
+      })
 
       if (result.success) {
         setRescheduleOpen(false)
@@ -156,7 +161,7 @@ export function AppointmentCard({
               <CardDescription className="mt-2 flex items-center gap-1">
                 <CalendarIcon size={14} weight="regular" />
                 {format(new Date(appointment.startTime), "MMMM d, yyyy")} at{" "}
-                {format(new Date(appointment.startTime), "h:mm a")}
+                {format(new Date(appointment.startTime), "HH:mm")}
               </CardDescription>
             </div>
             {getStatusBadge(appointment.status)}

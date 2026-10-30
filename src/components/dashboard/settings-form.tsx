@@ -472,7 +472,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
             <CardContent className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="bookingDeposit">Booking Deposit ($)</Label>
+                  <Label htmlFor="bookingDeposit">Polog za rezervacijo (€)</Label>
                   <Input
                     id="bookingDeposit"
                     type="number"

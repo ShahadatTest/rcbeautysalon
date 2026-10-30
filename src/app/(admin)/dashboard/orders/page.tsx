@@ -65,7 +65,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Revenue This Month</CardDescription>
-            <CardTitle className="text-3xl">${stats.revenueThisMonth.toLocaleString()}</CardTitle>
+            <CardTitle className="text-3xl">€{stats.revenueThisMonth.toLocaleString()}</CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -115,7 +115,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                         </div>
                       </td>
                       <td className="py-4 text-sm">{order._count.items} items</td>
-                      <td className="py-4 font-medium">${order.total.toFixed(2)}</td>
+                      <td className="py-4 font-medium">€{order.total.toFixed(2)}</td>
                       <td className="py-4">
                         <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${statusColors[order.status]}`}>
                           {order.status}

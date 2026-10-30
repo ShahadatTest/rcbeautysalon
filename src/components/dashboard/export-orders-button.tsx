@@ -32,7 +32,7 @@ export function ExportOrdersButton({ orders }: ExportOrdersButtonProps) {
       order.customer?.name || order.guestName || "Guest",
       order.customer?.email || order.guestEmail || "-",
       order._count.items.toString(),
-      `$${order.total.toFixed(2)}`,
+      `€${order.total.toFixed(2)}`,
       order.status,
       new Date(order.createdAt).toLocaleDateString(),
     ])

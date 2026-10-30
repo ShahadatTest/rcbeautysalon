@@ -190,7 +190,7 @@ export function AppointmentDetailsDialog({
                     Time
                   </p>
                   <p className="mt-1 text-sm font-semibold sm:text-base">
-                    {format(new Date(appointment.startTime), "h:mm a")}
+                    {format(new Date(appointment.startTime), "HH:mm")}
                   </p>
                 </div>
               </div>

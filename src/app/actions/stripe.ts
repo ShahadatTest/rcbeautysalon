@@ -3,9 +3,10 @@
 import { stripe, isStripeConfigured } from "@/lib/stripe"
 import { auth } from "@/lib/auth/auth"
 import { prisma } from "@/lib/prisma"
-import { addMinutes, format } from "date-fns"
+import { addMinutes } from "date-fns"
 import { after } from "next/server"
-import { getServicesForBooking, getSalonConfig } from "./appointments"
+import { getServicesForBooking, getSalonConfig, getOrgTimezone } from "./appointments"
+import { instantFromParts, formatSalonTime } from "@/lib/booking-time"
 import { getPublicOrg, getSessionOrg, getOrgById } from "@/lib/tenant"
 import { CreateCheckoutSessionData } from "@/lib/interfaces"
 import { sendAppointmentConfirmationEmail } from "@/lib/email/appointment-confirmation"
@@ -37,14 +38,32 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
       }
     }
 
-    // Validate required fields
-    if (!data.staffId || !data.serviceIds.length || !data.startTime) {
-      return { success: false, error: "Missing required fields" }
+    // Validate required fields (date+time strings or a prebuilt ISO startTime)
+    if (
+      !data.staffId ||
+      !data.serviceIds.length ||
+      (!data.startTime && !(data.bookingDate && data.bookingTime))
+    ) {
+      return { success: false, error: "Manjkajo obvezni podatki" }
     }
 
     // Validate customer information
     if (!session?.user && (!data.guestName || !data.guestEmail)) {
-      return { success: false, error: "Customer information is required" }
+      return { success: false, error: "Potrebni so kontakt podatki" }
+    }
+
+    // Build the exact start instant in the SALON timezone from date+time
+    // strings (preferred contract) — avoids any client/server tz mismatch.
+    const tz = await getOrgTimezone(org.id)
+    const startInstant =
+      data.bookingDate && data.bookingTime
+        ? instantFromParts(data.bookingDate, data.bookingTime, tz)
+        : data.startTime
+          ? new Date(data.startTime)
+          : null
+
+    if (!startInstant || isNaN(startInstant.getTime())) {
+      return { success: false, error: "Neveljaven datum ali ura termina" }
     }
 
     // Fetch services to get names and calculate totals
@@ -92,7 +111,7 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
       line_items: [
         {
           price_data: {
-            currency: "usd",
+            currency: (config.currency || "EUR").toLowerCase(),
             product_data: {
               name: `Appointment Deposit - ${serviceNames}`,
               description: depositDescription,
@@ -107,7 +126,7 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
         orgId: org.id,
         serviceIds: JSON.stringify(data.serviceIds),
         staffId: data.staffId,
-        startTime: data.startTime,
+        startTime: startInstant.toISOString(),
         guestName: data.guestName || "",
         guestEmail: data.guestEmail || "",
         guestPhone: data.guestPhone || "",
@@ -253,7 +272,7 @@ export async function verifyAndCreateAppointment(sessionId: string) {
       return {
         success: false,
         error:
-          "This time slot is no longer available. Please contact the salon to reschedule or request a refund.",
+          "Ta termin ni več prost. Kontaktirajte salon za prestavitev rezervacije ali vračilo plačila.",
       }
     }
 
@@ -352,6 +371,7 @@ export async function verifyAndCreateAppointment(sessionId: string) {
     const customerEmail = guestEmail || checkoutSession.customer_email
     if (customerEmail) {
       const serviceNames = services.map((s) => s.name).join(", ")
+      const salonTz = await getOrgTimezone(org.id)
 
       after(async () => {
         await sendAppointmentConfirmationEmail({
@@ -360,7 +380,7 @@ export async function verifyAndCreateAppointment(sessionId: string) {
           serviceName: serviceNames,
           staffName: staff?.name || "Our Staff",
           appointmentDate: startTime,
-          appointmentTime: format(startTime, "h:mm a"),
+          appointmentTime: formatSalonTime(startTime, salonTz),
           duration: totalDuration,
           totalPrice,
           depositAmount: bookingDeposit,
@@ -437,6 +457,12 @@ export async function createDepositCheckoutForAppointment(appointmentId: string)
     const serviceNames = appointment.services.map((s) => s.service.name).join(", ")
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
 
+    // Salon currency for the deposit checkout
+    const depositConfig = await prisma.salonConfig.findFirst({
+      where: { organizationId: appointment.organizationId || org?.id || "" },
+      select: { currency: true },
+    })
+
     // Create Stripe checkout session
     const checkoutSession = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -445,7 +471,7 @@ export async function createDepositCheckoutForAppointment(appointmentId: string)
       line_items: [
         {
           price_data: {
-            currency: "usd",
+            currency: (depositConfig?.currency || "EUR").toLowerCase(),
             product_data: {
               name: `Appointment Deposit - ${serviceNames}`,
               description: "Non-refundable deposit for your appointment",

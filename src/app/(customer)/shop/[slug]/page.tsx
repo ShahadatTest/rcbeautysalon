@@ -170,11 +170,11 @@ const ProductDetails = async ({ params }: ProductDetailsProps) => {
             {/* Price */}
             <div className="mb-6 flex items-baseline gap-3">
               <span className="text-4xl font-bold text-primary">
-                ${product.price.toFixed(2)}
+                €{product.price.toFixed(2)}
               </span>
               {product.compareAtPrice && (
                 <span className="text-xl text-muted-foreground line-through">
-                  ${product.compareAtPrice.toFixed(2)}
+                  €{product.compareAtPrice.toFixed(2)}
                 </span>
               )}
               {product.compareAtPrice && (

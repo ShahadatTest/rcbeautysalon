@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/popover"
 import { CalendarIcon, SpinnerGapIcon } from "@/components/icons"
 import { format, setHours, setMinutes } from "date-fns"
+import { sl } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import {
   adminAppointmentSchema,
@@ -113,9 +114,10 @@ export default function AdminAppointmentForm({
     const loadSlots = async () => {
       setLoadingSlots(true)
       try {
+        // "yyyy-MM-dd" — the server resolves it in the salon timezone
         const slots = await getAvailableTimeSlots(
           selectedStaffId,
-          selectedDate,
+          format(selectedDate, "yyyy-MM-dd"),
           serviceDuration
         )
         setAvailableSlots(slots)
@@ -158,6 +160,10 @@ export default function AdminAppointmentForm({
         serviceIds: [data.serviceId],
         staffId: data.staffId,
         startTime,
+        // Preferred contract: the server builds the exact instant in the
+        // salon's timezone from these salon-local strings.
+        bookingDate: format(data.date, "yyyy-MM-dd"),
+        bookingTime: data.time,
         guestName: data.customerName,
         guestEmail: data.customerEmail || undefined,
         guestPhone: data.customerPhone,
@@ -167,11 +173,11 @@ export default function AdminAppointmentForm({
       if (result.success) {
         router.push("/dashboard/appointments")
       } else {
-        alert(result.error || "Failed to create appointment")
+        alert(result.error || "Ustvarjanje termina ni uspelo")
       }
     } catch (error) {
       console.error("Error creating appointment:", error)
-      alert("Failed to create appointment. Please try again.")
+      alert("Ustvarjanje termina ni uspelo. Poskusite znova.")
     } finally {
       setIsLoading(false)
     }
@@ -182,10 +188,10 @@ export default function AdminAppointmentForm({
       {/* Existing Customer Selection (optional) */}
       {customers && customers.length > 0 && (
         <div className="space-y-2">
-          <Label>Select Existing Customer (optional)</Label>
+          <Label>Izberi obstoječo stranko (neobvezno)</Label>
           <Select onValueChange={handleCustomerSelect}>
             <SelectTrigger>
-              <SelectValue placeholder="Search existing customers..." />
+              <SelectValue placeholder="Išči med obstoječimi strankami …" />
             </SelectTrigger>
             <SelectContent>
               {customers.map((customer) => (
@@ -196,21 +202,21 @@ export default function AdminAppointmentForm({
             </SelectContent>
           </Select>
           <p className="text-muted-foreground text-xs">
-            Select a customer to auto-fill their information, or enter manually
-            below
+            Izberite stranko za samodejno izpolnitev podatkov, ali jih vnesite
+            ročno spodaj
           </p>
         </div>
       )}
 
       {/* Customer Info Section */}
       <div className="space-y-4">
-        <h3 className="font-medium">Customer Information</h3>
+        <h3 className="font-medium">Podatki stranke</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="customerName">Name *</Label>
+            <Label htmlFor="customerName">Ime *</Label>
             <Input
               id="customerName"
-              placeholder="Customer name"
+              placeholder="Ime stranke"
               {...register("customerName")}
             />
             {errors.customerName && (
@@ -220,11 +226,11 @@ export default function AdminAppointmentForm({
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="customerPhone">Phone *</Label>
+            <Label htmlFor="customerPhone">Telefon *</Label>
             <Input
               id="customerPhone"
               type="tel"
-              placeholder="(555) 123-4567"
+              placeholder="040 123 456"
               {...register("customerPhone")}
             />
             {errors.customerPhone && (
@@ -235,11 +241,11 @@ export default function AdminAppointmentForm({
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="customerEmail">Email</Label>
+          <Label htmlFor="customerEmail">E-pošta</Label>
           <Input
             id="customerEmail"
             type="email"
-            placeholder="customer@email.com"
+            placeholder="stranka@email.si"
             {...register("customerEmail")}
           />
           {errors.customerEmail && (
@@ -252,18 +258,18 @@ export default function AdminAppointmentForm({
 
       {/* Service Selection */}
       <div className="space-y-2">
-        <Label>Service *</Label>
+        <Label>Storitev *</Label>
         <Select
           value={selectedServiceId}
           onValueChange={(value) => setValue("serviceId", value)}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select a service" />
+            <SelectValue placeholder="Izberite storitev" />
           </SelectTrigger>
           <SelectContent>
             {services.map((service) => (
               <SelectItem key={service.id} value={service.id}>
-                {service.name} - ${service.price} ({service.duration} min)
+                {service.name} – €{service.price} ({service.duration} min)
               </SelectItem>
             ))}
           </SelectContent>
@@ -326,7 +332,9 @@ export default function AdminAppointmentForm({
               disabled={!selectedStaffId}
             >
               <CalendarIcon size={16} className="mr-2" />
-              {selectedDate ? format(selectedDate, "PPP") : "Select a date"}
+              {selectedDate
+                ? format(selectedDate, "d. MMMM yyyy", { locale: sl })
+                : "Izberite datum"}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -334,7 +342,11 @@ export default function AdminAppointmentForm({
               mode="single"
               selected={selectedDate}
               onSelect={(date) => date && setValue("date", date)}
-              disabled={(date) => date < new Date()}
+              disabled={(date) => {
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
+                return date < today
+              }}
             />
           </PopoverContent>
         </Popover>

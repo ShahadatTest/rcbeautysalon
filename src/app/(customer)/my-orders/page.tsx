@@ -131,7 +131,7 @@ export default async function MyOrdersPage() {
                             {item.product.name}
                           </p>
                           <p className="text-muted-foreground text-sm">
-                            Qty: {item.quantity} × ${item.price.toFixed(2)}
+                            Qty: {item.quantity} × €{item.price.toFixed(2)}
                           </p>
                         </div>
 
@@ -150,7 +150,7 @@ export default async function MyOrdersPage() {
                         Total
                       </span>
                       <p className="text-xl font-bold">
-                        ${order.total.toFixed(2)}
+                        €{order.total.toFixed(2)}
                       </p>
                     </div>
 

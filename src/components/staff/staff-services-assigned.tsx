@@ -94,7 +94,7 @@ export function StaffServicesAssigned({ services }: StaffServicesAssignedProps) 
                             {service.duration} min
                           </span>
                           <span className="flex items-center gap-1">
-                            <CurrencyDollarIcon size={14} />$
+                            <CurrencyDollarIcon size={14} />€
                             {service.price.toFixed(2)}
                           </span>
                         </div>

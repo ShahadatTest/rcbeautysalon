@@ -19,23 +19,23 @@ export function CustomerInfoStep({ register, errors, isAuthenticated }: Customer
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-bold">
             4
           </div>
-          <CardTitle>Your Information</CardTitle>
+          <CardTitle>Vaši podatki</CardTitle>
         </div>
         <CardDescription>
           {isAuthenticated
-            ? "Confirm your contact details"
-            : "Please provide your contact details"}
+            ? "Potrdite svoje kontaktne podatke"
+            : "Vnesite svoje kontaktne podatke"}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="firstName">
-              First Name <span className="text-destructive">*</span>
+              Ime <span className="text-destructive">*</span>
             </Label>
             <Input
               id="firstName"
-              placeholder="John"
+              placeholder="Janez"
               disabled={isAuthenticated}
               {...register("firstName")}
             />
@@ -45,11 +45,11 @@ export function CustomerInfoStep({ register, errors, isAuthenticated }: Customer
           </div>
           <div className="space-y-2">
             <Label htmlFor="lastName">
-              Last Name <span className="text-destructive">*</span>
+              Priimek <span className="text-destructive">*</span>
             </Label>
             <Input
               id="lastName"
-              placeholder="Doe"
+              placeholder="Novak"
               disabled={isAuthenticated}
               {...register("lastName")}
             />
@@ -60,12 +60,12 @@ export function CustomerInfoStep({ register, errors, isAuthenticated }: Customer
         </div>
         <div className="space-y-2">
           <Label htmlFor="email">
-            Email <span className="text-destructive">*</span>
+            E-pošta <span className="text-destructive">*</span>
           </Label>
           <Input
             id="email"
             type="email"
-            placeholder="john@example.com"
+            placeholder="janez@primer.si"
             disabled={isAuthenticated}
             {...register("email")}
           />
@@ -73,21 +73,21 @@ export function CustomerInfoStep({ register, errors, isAuthenticated }: Customer
         </div>
         <div className="space-y-2">
           <Label htmlFor="phone">
-            Phone <span className="text-destructive">*</span>
+            Telefon <span className="text-destructive">*</span>
           </Label>
           <Input
             id="phone"
             type="tel"
-            placeholder="(555) 123-4567"
+            placeholder="040 123 456"
             {...register("phone")}
           />
           {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="notes">Special Requests (Optional)</Label>
+          <Label htmlFor="notes">Posebne želje (neobvezno)</Label>
           <Textarea
             id="notes"
-            placeholder="Any special requests or preferences?"
+            placeholder="Kakšne posebne želje ali preference?"
             rows={3}
             {...register("notes")}
           />

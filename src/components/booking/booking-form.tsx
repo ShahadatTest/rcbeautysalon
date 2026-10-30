@@ -19,6 +19,7 @@ import { CustomerInfoStep } from "./steps/customer-info-step"
 import { BookingSummaryCard } from "./booking-summary-card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { SparkleIcon } from "@/components/icons"
+import { format, isSameDay } from "date-fns"
 
 import { BookingFormProps, BookingFormValues } from "@/lib/interfaces"
 
@@ -85,7 +86,7 @@ export function BookingForm(props: BookingFormProps) {
   const onSubmit = async (data: BookingFormValues) => {
     // Validate service is selected in staff-first mode
     if (isStaffFirst && !selectedServiceId) {
-      setError("Please select a service")
+      setError("Izberite storitev")
       return
     }
 
@@ -94,7 +95,7 @@ export function BookingForm(props: BookingFormProps) {
 
     try {
       if (!data.date) {
-        setError("Please select a date")
+        setError("Izberite datum")
         setSubmitting(false)
         return
       }
@@ -102,17 +103,19 @@ export function BookingForm(props: BookingFormProps) {
       // Get the service ID based on mode
       const serviceId = isStaffFirst ? selectedServiceId : props.service.id
 
-      // Combine date and time into a single datetime
-      const [hours, minutes] = data.time.split(":").map(Number)
-      const startTime = new Date(data.date)
-      startTime.setHours(hours, minutes, 0, 0)
+      // Send salon-local "yyyy-MM-dd" + "HH:mm" — the server builds the
+      // exact instant in the salon's timezone (no client/server drift).
+      const bookingDate = format(data.date, "yyyy-MM-dd")
+      const bookingTime = data.time
 
       // Employee flow: Create appointment directly (no Stripe payment required)
       if (isEmployee) {
         const result = await createAppointment({
           serviceIds: [serviceId],
           staffId: data.staffId,
-          startTime,
+          startTime: new Date(),
+          bookingDate,
+          bookingTime,
           guestPhone: data.phone || undefined,
           notes: data.notes || undefined,
           isEmployee: true, // Apply 20% discount, no deposit
@@ -122,7 +125,7 @@ export function BookingForm(props: BookingFormProps) {
           // Redirect to my-appointments with success message
           router.push(`/my-appointments?new=${result.appointmentId}`)
         } else {
-          setError(result.error || "Failed to create appointment")
+          setError(result.error || "Ustvarjanje termina ni uspelo")
           setSubmitting(false)
         }
         return
@@ -132,7 +135,9 @@ export function BookingForm(props: BookingFormProps) {
       const result = await createCheckoutSession({
         serviceIds: [serviceId],
         staffId: data.staffId,
-        startTime: startTime.toISOString(),
+        startTime: bookingDate, // legacy field — server prefers bookingDate/bookingTime
+        bookingDate,
+        bookingTime,
         guestName: !isAuthenticated
           ? `${data.firstName} ${data.lastName}`
           : undefined,
@@ -145,12 +150,12 @@ export function BookingForm(props: BookingFormProps) {
         // Redirect to Stripe Checkout
         window.location.assign(result.checkoutUrl)
       } else {
-        setError(result.error || "Failed to create payment session")
+        setError(result.error || "Ustvarjanje plačila ni uspelo")
         setSubmitting(false)
       }
     } catch (err) {
       console.error("Error creating booking:", err)
-      setError("An unexpected error occurred. Please try again.")
+      setError("Prišlo je do nepričakovane napake. Poskusite znova.")
       setSubmitting(false)
     }
   }
@@ -162,7 +167,7 @@ export function BookingForm(props: BookingFormProps) {
         <Alert className="mb-6 border-primary/30 bg-linear-to-r from-primary/5 via-primary/10 to-accent/5 dark:border-primary/40 dark:from-primary/10 dark:via-primary/15 dark:to-accent/10">
           <SparkleIcon size={18} className="text-primary dark:text-primary" />
           <AlertDescription className="text-foreground/80 dark:text-foreground/90">
-            You&apos;re booking as an employee. A <strong className="text-primary">20% discount</strong> will be applied to your appointment.
+            Rezervirate kot zaposleni. Upoštevan bo <strong className="text-primary">popust 20&nbsp;%</strong>.
           </AlertDescription>
         </Alert>
       )}
@@ -181,7 +186,7 @@ export function BookingForm(props: BookingFormProps) {
                 services={props.staffServices}
                 selectedServiceId={selectedServiceId}
                 onSelectService={handleServiceSelect}
-                error={!selectedServiceId && error ? "Please select a service" : undefined}
+                error={!selectedServiceId && error ? "Izberite storitev" : undefined}
               />
             </>
           ) : (
@@ -208,9 +213,19 @@ export function BookingForm(props: BookingFormProps) {
             serviceDuration={selectedService?.duration || 60}
             selectedDate={selectedDate}
             selectedTime={selectedTime}
-            onSelectDate={(date) =>
-              setValue("date", date, { shouldValidate: true })
-            }
+            onSelectDate={(date) => {
+              // Clicking the selected day again toggles it off in
+              // react-day-picker (date === undefined) — keep the last valid
+              // selection instead of losing it.
+              const nextDate = date ?? selectedDate
+              setValue("date", nextDate, { shouldValidate: true })
+              // BUGFIX: clear a stale time when the day changes — otherwise
+              // the summary shows an old time and submit would send a slot
+              // that does not exist on the newly picked day.
+              if (selectedTime && nextDate && selectedDate && !isSameDay(nextDate, selectedDate)) {
+                setValue("time", "")
+              }
+            }}
             onSelectTime={(time) =>
               setValue("time", time, { shouldValidate: true })
             }

@@ -15,6 +15,8 @@ import {
 } from "@/components/icons"
 import { getAppointmentById } from "@/app/actions/appointments"
 import { format } from "date-fns"
+import { formatSalonTime } from "@/lib/booking-time"
+import { getSessionSalonTimezone } from "@/lib/tenant"
 import { formatCurrency } from "@/lib/utils/format"
 import { AppointmentStatusActions } from "@/components/appointments/status-actions"
 
@@ -52,6 +54,7 @@ export async function generateMetadata({ params }: PageProps) {
 }
 
 export default async function AppointmentDetailPage({ params }: PageProps) {
+  const salonTz = await getSessionSalonTimezone()
   const { id } = await params
   const appointment = await getAppointmentById(id)
 
@@ -147,8 +150,8 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
                   <div>
                     <p className="text-muted-foreground text-sm">Time</p>
                     <p className="font-medium">
-                      {format(new Date(appointment.startTime), "h:mm a")} -{" "}
-                      {format(new Date(appointment.endTime), "h:mm a")}
+                      {formatSalonTime(new Date(appointment.startTime), salonTz)} -{" "}
+                      {formatSalonTime(new Date(appointment.endTime), salonTz)}
                     </p>
                   </div>
                 </div>

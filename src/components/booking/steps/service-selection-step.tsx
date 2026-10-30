@@ -26,9 +26,9 @@ export function ServiceSelectionStep({
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
             1
           </div>
-          <CardTitle>Select Service</CardTitle>
+          <CardTitle>Izberite storitev</CardTitle>
         </div>
-        <CardDescription>Choose a service for your appointment</CardDescription>
+        <CardDescription>Izberite storitev za svoj termin</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 sm:grid-cols-2">

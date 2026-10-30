@@ -21,9 +21,12 @@ import {
   getRecentActivities,
 } from "@/app/actions/dashboard"
 import { format, formatDistanceToNow } from "date-fns"
+import { formatSalonTime } from "@/lib/booking-time"
+import { getSessionSalonTimezone } from "@/lib/tenant"
 import { formatCurrency, formatChange } from "@/lib/utils/format"
 
 export default async function AdminDashboard() {
+  const salonTz = await getSessionSalonTimezone()
   const [stats, todaysAppointments, recentActivities] = await Promise.all([
     getDashboardStats(),
     getTodaysAppointments(),
@@ -162,7 +165,7 @@ export default async function AdminDashboard() {
                     </div>
                     <div className="text-right">
                       <p className="font-semibold">
-                        {format(new Date(apt.startTime), "h:mm a")}
+                        {formatSalonTime(new Date(apt.startTime), salonTz)}
                       </p>
                       <Link href={`/dashboard/appointments/${apt.id}`}>
                         <Button variant="link" size="sm" className="h-auto p-0">

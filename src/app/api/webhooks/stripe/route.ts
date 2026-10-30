@@ -2,10 +2,11 @@ import { headers } from "next/headers"
 import { NextResponse } from "next/server"
 import { stripe } from "@/lib/stripe"
 import { prisma } from "@/lib/prisma"
-import { addMinutes, format } from "date-fns"
+import { addMinutes } from "date-fns"
 import { after } from "next/server"
 import { sendAppointmentConfirmationEmail } from "@/lib/email/appointment-confirmation"
 import { getOrgById, getPublicOrg } from "@/lib/tenant"
+import { formatSalonTime, safeTimezone } from "@/lib/booking-time"
 import Stripe from "stripe"
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
@@ -310,6 +311,13 @@ export async function POST(req: Request) {
       if (customerEmail) {
         const serviceNames = services.map((s) => s.name).join(", ")
 
+        // Salon timezone for a correct local display time in the email
+        const salonConfigTz = await prisma.salonConfig.findFirst({
+          where: { organizationId: org.id },
+          select: { timezone: true },
+        })
+        const salonTz = safeTimezone(salonConfigTz?.timezone)
+
         after(async () => {
           try {
             await sendAppointmentConfirmationEmail({
@@ -318,7 +326,7 @@ export async function POST(req: Request) {
               serviceName: serviceNames,
               staffName: staff?.name || "Our Staff",
               appointmentDate: startTime,
-              appointmentTime: format(startTime, "h:mm a"),
+              appointmentTime: formatSalonTime(startTime, salonTz),
               duration: totalDuration,
               totalPrice,
               depositAmount,

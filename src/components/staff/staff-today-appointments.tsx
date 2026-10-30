@@ -58,7 +58,7 @@ export function StaffTodayAppointments({
                 <div className="flex items-center gap-4">
                   {/* Time */}
                   <div className="w-20 text-sm font-medium">
-                    {format(new Date(appointment.startTime), "h:mm a")}
+                    {format(new Date(appointment.startTime), "HH:mm")}
                   </div>
 
                   {/* Customer Avatar */}

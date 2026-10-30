@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth/auth"
 import { requireAdmin, UnauthorizedError } from "@/lib/auth/guards"
 import type { Organization } from "@prisma/client"
+import { DEFAULT_SALON_TIMEZONE, safeTimezone } from "@/lib/booking-time"
 
 export const ORG_HEADER = "x-org-slug"
 
@@ -135,3 +136,14 @@ export async function isSlugAvailable(slug: string): Promise<boolean> {
   const existing = await prisma.organization.findUnique({ where: { slug } })
   return !existing
 }
+
+/** Salon timezone of the signed-in admin/staff session (for correct time display). */
+export const getSessionSalonTimezone = cache(async (): Promise<string> => {
+  const org = await getSessionOrg()
+  if (!org) return DEFAULT_SALON_TIMEZONE
+  const config = await prisma.salonConfig.findUnique({
+    where: { organizationId: org.id },
+    select: { timezone: true },
+  })
+  return safeTimezone(config?.timezone)
+})

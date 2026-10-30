@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { DayPicker } from "react-day-picker"
+import { sl } from "react-day-picker/locale"
 import { CaretLeftIcon, CaretRightIcon } from "@/components/icons"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
@@ -17,6 +18,7 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
+      locale={sl}
       className={cn("p-3", className)}
       classNames={{
         months: "flex flex-col sm:flex-row gap-4",

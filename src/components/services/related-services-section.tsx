@@ -98,7 +98,7 @@ export function RelatedServicesSection({
                     <div className="flex items-center gap-1 group-hover:text-accent transition-colors">
                       <CurrencyDollarIcon size={16} weight="regular" />
                       <span className="font-semibold">
-                        ${service.price}
+                        €{service.price}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">

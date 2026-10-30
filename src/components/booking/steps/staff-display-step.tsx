@@ -16,9 +16,9 @@ export function StaffDisplayStep({ staff }: StaffDisplayStepProps) {
       <CardHeader>
         <div className="flex items-center gap-2">
           <CheckCircleIcon size={24} weight="fill" className="text-primary" />
-          <CardTitle>Your Specialist</CardTitle>
+          <CardTitle>Vaš specialist</CardTitle>
         </div>
-        <CardDescription>You&apos;re booking with this specialist</CardDescription>
+        <CardDescription>Rezervirate pri tem specialistu</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4">

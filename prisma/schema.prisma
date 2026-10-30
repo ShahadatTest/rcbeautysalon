@@ -172,9 +172,9 @@ model SalonConfig {
   country String  @default("US")
 
   // Business hours
-  timezone String @default("America/New_York")
-  currency String @default("USD")
-  locale   String @default("en")
+  timezone String @default("Europe/Ljubljana")
+  currency String @default("EUR")
+  locale   String @default("sl")
 
   // Booking settings
   bookingDeposit     Decimal @default(50.00) @db.Decimal(10, 2)

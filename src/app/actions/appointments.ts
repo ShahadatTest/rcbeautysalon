@@ -11,7 +11,17 @@ import {
   CreateAppointmentData,
   AppointmentCreationResult,
 } from "@/lib/interfaces"
-import { addMinutes, format, parse, isAfter, isBefore } from "date-fns"
+import { addMinutes, format } from "date-fns"
+import {
+  toDateKey,
+  dayOfWeekFor,
+  dayBounds,
+  instantFromParts,
+  minutesToTime,
+  safeTimezone,
+  formatSalonTime,
+  DEFAULT_SALON_TIMEZONE,
+} from "@/lib/booking-time"
 import { sendAppointmentConfirmationEmail } from "@/lib/email/appointment-confirmation"
 import { Prisma } from "@prisma/client"
 import { AppointmentStatus } from "@/lib/types"
@@ -32,6 +42,15 @@ async function resolveRequestOrg() {
   // Tenant header (/s/[slug]) always wins over the session to avoid
   // cross-tenant leakage when a signed-in admin browses another salon.
   return getResolvedOrg()
+}
+
+/** Salon timezone for an organization (falls back to the platform default). */
+export async function getOrgTimezone(organizationId: string): Promise<string> {
+  const config = await prisma.salonConfig.findUnique({
+    where: { organizationId },
+    select: { timezone: true },
+  })
+  return safeTimezone(config?.timezone)
 }
 
 // Get current user's staff ID (if they are a staff member)
@@ -65,6 +84,7 @@ export const getSalonConfig = cache(async () => {
           maxBookingAdvance: true,
           cancellationPolicy: true,
           timezone: true,
+          currency: true,
         },
       })
     : null
@@ -75,7 +95,8 @@ export const getSalonConfig = cache(async () => {
       minBookingAdvance: 0,
       maxBookingAdvance: 30,
       cancellationPolicy: null,
-      timezone: "America/Chicago",
+      timezone: DEFAULT_SALON_TIMEZONE,
+      currency: "EUR",
     }
   }
   return {
@@ -172,14 +193,18 @@ export async function getAvailableTimeSlots(
   date: Date | string,
   serviceDuration: number
 ): Promise<TimeSlot[]> {
-  // Ensure date is a Date object (server actions serialize Date to string)
-  const dateObj = new Date(date)
-
   const org = await resolveRequestOrg()
   if (!org) return []
 
-  // Get day of week (0 = Sunday, 6 = Saturday)
-  const dayOfWeek = dateObj.getDay()
+  const tz = await getOrgTimezone(org.id)
+
+  // Normalize to a salon-local calendar key "yyyy-MM-dd" (never the server clock)
+  const dateKey = toDateKey(date, tz)
+  if (!dateKey) return []
+
+  // Day of week in the salon timezone (0 = Sunday, 6 = Saturday)
+  const dayOfWeek = dayOfWeekFor(dateKey, tz)
+  if (dayOfWeek === null) return []
 
   // Find working hours for this staff on this day
   const workingHours = await prisma.workingHours.findFirst({
@@ -194,20 +219,17 @@ export async function getAvailableTimeSlots(
     return [] // Staff doesn't work on this day
   }
 
-  // Get existing appointments for this day
-  const startOfDay = new Date(dateObj)
-  startOfDay.setHours(0, 0, 0, 0)
-
-  const endOfDay = new Date(dateObj)
-  endOfDay.setHours(23, 59, 59, 999)
+  // Existing appointments for that salon-local day (correct UTC boundaries)
+  const bounds = dayBounds(dateKey, tz)
+  if (!bounds) return []
 
   const existingAppointments = await prisma.appointment.findMany({
     where: {
       staffId,
       organizationId: org.id,
       startTime: {
-        gte: startOfDay,
-        lte: endOfDay,
+        gte: bounds.start,
+        lte: bounds.end,
       },
       status: {
         in: ["PENDING", "CONFIRMED"],
@@ -219,41 +241,43 @@ export async function getAvailableTimeSlots(
     },
   })
 
-  // Generate time slots
-  const workStart = parse(workingHours.startTime, "HH:mm", dateObj)
-  const workEnd = parse(workingHours.endTime, "HH:mm", dateObj)
+  // Generate slots as salon-local wall-clock minutes
+  const [sh, sm] = workingHours.startTime.split(":").map(Number)
+  const [eh, em] = workingHours.endTime.split(":").map(Number)
+  const workStartMin = sh * 60 + sm
+  const workEndMin = eh * 60 + em
+
   const slots: TimeSlot[] = []
-  let currentSlot = workStart
 
   // Loop through working hours creating 30-minute slots
-  while (isBefore(currentSlot, workEnd)) {
-    const slotEnd = addMinutes(currentSlot, serviceDuration)
-
-    // Check if slot fits within working hours
-    if (isAfter(slotEnd, workEnd)) {
-      break
-    }
+  for (
+    let startMin = workStartMin;
+    startMin + serviceDuration <= workEndMin;
+    startMin += 30
+  ) {
+    const slotStart = instantFromParts(dateKey, minutesToTime(startMin), tz)
+    if (!slotStart) continue
+    const slotEnd = new Date(slotStart.getTime() + serviceDuration * 60000)
 
     // Check for conflicts with existing appointments
     // Overlap formula: (startA < endB) && (endA > startB)
     const hasConflict = existingAppointments.some((apt) => {
       const aptStart = new Date(apt.startTime)
       const aptEnd = new Date(apt.endTime)
-      return isBefore(currentSlot, aptEnd) && isAfter(slotEnd, aptStart)
+      return slotStart < aptEnd && slotEnd > aptStart
     })
 
     // Check if slot is in the past
-    const isPast = isBefore(currentSlot, new Date())
+    const isPast = slotStart.getTime() <= Date.now()
+
+    const time = minutesToTime(startMin)
 
     // Add slot to array
     slots.push({
-      time: format(currentSlot, "HH:mm"),
-      formattedTime: format(currentSlot, "h:mm a"),
+      time,
+      formattedTime: time, // 24-hour format (Slovenian convention)
       available: !hasConflict && !isPast,
     })
-
-    // Move to next slot (30-minute intervals)
-    currentSlot = addMinutes(currentSlot, 30)
   }
 
   return slots
@@ -338,8 +362,12 @@ export async function createAppointment(
       return { success: false, error: "Booking is currently unavailable" }
     }
 
-    // Validate required fields
-    if (!data.staffId || !data.serviceIds.length || !data.startTime) {
+    // Validate required fields (date+time strings or a prebuilt startTime)
+    if (
+      !data.staffId ||
+      !data.serviceIds.length ||
+      (!data.startTime && !(data.bookingDate && data.bookingTime))
+    ) {
       return { success: false, error: "Missing required fields" }
     }
 
@@ -389,7 +417,21 @@ export async function createAppointment(
       : baseTotalPrice
 
     // Calculate appointment end time based on total duration
-    const endTime = addMinutes(new Date(data.startTime), totalDuration)
+    // Build the exact start instant in the SALON timezone from date+time
+    // strings (preferred contract) — never from the client/server local clock.
+    const tz = await getOrgTimezone(org.id)
+    const startInstant =
+      data.bookingDate && data.bookingTime
+        ? instantFromParts(data.bookingDate, data.bookingTime, tz)
+        : data.startTime
+          ? new Date(data.startTime)
+          : null
+
+    if (!startInstant || isNaN(startInstant.getTime())) {
+      return { success: false, error: "Neveljaven datum ali ura termina" }
+    }
+
+    const endTime = addMinutes(startInstant, totalDuration)
 
     // Get salon configuration for deposit amount
     const config = await getSalonConfig()
@@ -402,16 +444,19 @@ export async function createAppointment(
     // Verify the requested time slot is available
     const slots = await getAvailableTimeSlots(
       data.staffId,
-      new Date(data.startTime),
+      data.bookingDate ?? startInstant,
       totalDuration
     )
-    const requestedTime = format(new Date(data.startTime), "HH:mm")
+    const requestedTime = data.bookingTime ?? format(startInstant, "HH:mm")
     const slotAvailable = slots.find(
       (slot) => slot.time === requestedTime && slot.available
     )
 
     if (!slotAvailable) {
-      return { success: false, error: "Selected time slot is not available" }
+      return {
+        success: false,
+        error: "Izbrani termin ni več prost. Izberite drugi termin.",
+      }
     }
 
     // Handle customer creation/retrieval
@@ -491,7 +536,7 @@ export async function createAppointment(
         guestName: !customerId ? data.guestName : null,
         guestEmail: !customerId ? data.guestEmail : null,
         guestPhone: !customerId ? data.guestPhone : null,
-        startTime: new Date(data.startTime),
+        startTime: startInstant,
         endTime,
         status: appointmentStatus,
         notes: data.notes,
@@ -531,8 +576,8 @@ export async function createAppointment(
           customerName: customerName as string,
           serviceName: serviceNames,
           staffName: staff?.name || "Our Staff",
-          appointmentDate: new Date(data.startTime),
-          appointmentTime: format(new Date(data.startTime), "h:mm a"),
+          appointmentDate: startInstant,
+          appointmentTime: formatSalonTime(startInstant, tz),
           duration: totalDuration,
           totalPrice,
           depositAmount: config.bookingDeposit,
@@ -661,6 +706,7 @@ export async function cancelAppointment(appointmentId: string) {
 //Get admin appointments with filters
 export async function getAdminAppointments(filters?: AdminAppointmentsFilter) {
   const { org } = await requireAdminOrg()
+  const salonTz = await getOrgTimezone(org.id)
 
   // Automatically handle past appointments before fetching
   const now = new Date()
@@ -692,7 +738,7 @@ export async function getAdminAppointments(filters?: AdminAppointmentsFilter) {
           serviceName: apt.services.map((s) => s.service.name).join(", "),
           staffName: apt.staff?.name || "Our Staff",
           appointmentDate: apt.startTime,
-          appointmentTime: format(apt.startTime, "h:mm a"),
+          appointmentTime: formatSalonTime(apt.startTime, salonTz),
           depositAmount: apt.depositAmount.toNumber(),
         })
       })
@@ -735,7 +781,7 @@ export async function getAdminAppointments(filters?: AdminAppointmentsFilter) {
           serviceName: apt.services.map((s) => s.service.name).join(", "),
           staffName: apt.staff?.name || "Our Staff",
           appointmentDate: apt.startTime,
-          appointmentTime: format(apt.startTime, "h:mm a"),
+          appointmentTime: formatSalonTime(apt.startTime, salonTz),
           depositAmount: apt.depositAmount.toNumber(),
           appointmentId: apt.id,
         })
@@ -891,6 +937,7 @@ export async function updateAppointmentStatus(
   if (!org) {
     throw new Error("Unauthorized")
   }
+  const salonTz = await getOrgTimezone(org.id)
 
   // Get appointment details before updating (for email) — scoped to the org
   const appointmentDetails = await prisma.appointment.findFirst({
@@ -956,7 +1003,7 @@ export async function updateAppointmentStatus(
             serviceName,
             staffName,
             appointmentDate: appointmentDetails.startTime,
-            appointmentTime: format(appointmentDetails.startTime, "h:mm a"),
+            appointmentTime: formatSalonTime(appointmentDetails.startTime, salonTz),
             duration: totalDuration,
             totalPrice: appointmentDetails.totalPrice.toNumber(),
             depositAmount: appointmentDetails.depositAmount.toNumber(),
@@ -973,7 +1020,7 @@ export async function updateAppointmentStatus(
             serviceName,
             staffName,
             appointmentDate: appointmentDetails.startTime,
-            appointmentTime: format(appointmentDetails.startTime, "h:mm a"),
+            appointmentTime: formatSalonTime(appointmentDetails.startTime, salonTz),
             totalPrice: appointmentDetails.totalPrice.toNumber(),
             appointmentId: id,
           })
@@ -988,7 +1035,7 @@ export async function updateAppointmentStatus(
             serviceName,
             staffName,
             appointmentDate: appointmentDetails.startTime,
-            appointmentTime: format(appointmentDetails.startTime, "h:mm a"),
+            appointmentTime: formatSalonTime(appointmentDetails.startTime, salonTz),
             appointmentId: id,
             cancelledByAdmin: true,
           })
@@ -1003,7 +1050,7 @@ export async function updateAppointmentStatus(
             serviceName,
             staffName,
             appointmentDate: appointmentDetails.startTime,
-            appointmentTime: format(appointmentDetails.startTime, "h:mm a"),
+            appointmentTime: formatSalonTime(appointmentDetails.startTime, salonTz),
             depositAmount: appointmentDetails.depositAmount.toNumber(),
             appointmentId: id,
           })
@@ -1024,7 +1071,8 @@ export async function updateAppointmentStatus(
 
 export async function rescheduleAppointment(
   appointmentId: string,
-  newStartTime: Date
+  newStartTime: Date,
+  opts?: { date?: string; time?: string }
 ) {
   const session = await auth()
 
@@ -1097,11 +1145,26 @@ export async function rescheduleAppointment(
     }
   }
 
-  // Validate new time is not in the past
-  if (newStartTime < new Date()) {
+  // Build the target instant in the SALON timezone when date+time strings are
+  // provided — otherwise fall back to the caller-provided instant.
+  const tz = await getOrgTimezone(org.id)
+  const targetInstant =
+    opts?.date && opts?.time
+      ? instantFromParts(opts.date, opts.time, tz)
+      : newStartTime
+
+  if (!targetInstant || isNaN(targetInstant.getTime())) {
     return {
       success: false,
-      error: "Cannot reschedule to a past time",
+      error: "Neveljaven datum ali ura termina",
+    }
+  }
+
+  // Validate new time is not in the past
+  if (targetInstant < new Date()) {
+    return {
+      success: false,
+      error: "Termina v preteklosti ni mogoče prestaviti",
     }
   }
 
@@ -1110,15 +1173,15 @@ export async function rescheduleAppointment(
     0
   )
 
-  const newEndTime = addMinutes(newStartTime, totalDuration)
+  const newEndTime = addMinutes(targetInstant, totalDuration)
 
   const slots = await getAvailableTimeSlots(
     appointment.staffId,
-    newStartTime,
+    opts?.date ?? targetInstant,
     totalDuration
   )
 
-  const requestedTime = format(newStartTime, "HH:mm")
+  const requestedTime = opts?.time ?? format(targetInstant, "HH:mm")
   const slotAvailable = slots.find(
     (slot) => slot.time === requestedTime && slot.available
   )
@@ -1126,14 +1189,14 @@ export async function rescheduleAppointment(
   if (!slotAvailable) {
     return {
       success: false,
-      error: "Selected time slot is not available",
+      error: "Izbrani termin ni več prost. Izberite drugi termin.",
     }
   }
 
   await prisma.appointment.update({
     where: { id: appointmentId },
     data: {
-      startTime: newStartTime,
+      startTime: targetInstant,
       endTime: newEndTime,
     },
   })
@@ -1156,9 +1219,9 @@ export async function rescheduleAppointment(
         serviceName,
         staffName,
         oldDate: appointment.startTime,
-        oldTime: format(appointment.startTime, "h:mm a"),
-        newDate: newStartTime,
-        newTime: format(newStartTime, "h:mm a"),
+        oldTime: formatSalonTime(appointment.startTime, tz),
+        newDate: targetInstant,
+        newTime: formatSalonTime(targetInstant, tz),
         duration: totalDuration,
       })
     })

@@ -57,7 +57,7 @@ export function TopProductsChart({ data }: TopProductsChartProps) {
                     {product.name}
                   </span>
                   <span className="font-semibold tabular-nums text-foreground">
-                    ${product.revenue.toLocaleString()}
+                    €{product.revenue.toLocaleString()}
                   </span>
                 </div>
               ))}

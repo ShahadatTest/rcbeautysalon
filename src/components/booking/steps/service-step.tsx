@@ -21,9 +21,9 @@ export function ServiceStep({ service }: ServiceStepProps) {
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
             1
           </div>
-          <CardTitle>Selected Service</CardTitle>
+          <CardTitle>Izbrana storitev</CardTitle>
         </div>
-        <CardDescription>Your chosen service</CardDescription>
+        <CardDescription>Vaša izbrana storitev</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4">
@@ -40,7 +40,7 @@ export function ServiceStep({ service }: ServiceStepProps) {
           </div>
           <p className="text-sm text-muted-foreground">
             <ClockIcon size={14} className="mr-1 inline" weight="regular" />
-            {service.duration} minutes
+            {service.duration} minut
           </p>
         </div>
       </CardContent>

@@ -192,7 +192,7 @@ const StaffDetailPage = async ({ params }: StaffDetailPageProps) => {
                       {service.name}
                     </h3>
                     <span className="rounded-full bg-accent/10 px-3 py-1 text-sm font-semibold text-accent font-body">
-                      ${service.price}
+                      €{service.price}
                     </span>
                   </div>
                   {service.description && (

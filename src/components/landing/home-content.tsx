@@ -170,7 +170,7 @@ export function HomeContent({
                           </h3>
                           <div className="flex items-center justify-between text-sm text-white/90 transition-colors duration-300">
                             <span className="group-hover:text-accent/90 font-medium">
-                              ${service.price.toString()}
+                              €{service.price.toString()}
                             </span>
                             {service.duration && (
                               <span className="text-white/70 group-hover:text-accent/70 transition-colors">

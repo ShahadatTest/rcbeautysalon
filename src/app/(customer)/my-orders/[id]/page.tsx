@@ -118,7 +118,7 @@ export default async function OrderDetailPage({
                     <div className="min-w-0 flex-1">
                       <p className="font-medium">{item.product.name}</p>
                       <p className="text-muted-foreground text-sm">
-                        Qty: {item.quantity} × ${item.price.toFixed(2)}
+                        Qty: {item.quantity} × €{item.price.toFixed(2)}
                       </p>
                     </div>
 
@@ -135,16 +135,16 @@ export default async function OrderDetailPage({
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal</span>
-                    <span>${order.subtotal.toFixed(2)}</span>
+                    <span>€{order.subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Tax</span>
-                    <span>${order.tax.toFixed(2)}</span>
+                    <span>€{order.tax.toFixed(2)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total</span>
-                    <span>${order.total.toFixed(2)}</span>
+                    <span>€{order.total.toFixed(2)}</span>
                   </div>
                 </div>
               </CardContent>

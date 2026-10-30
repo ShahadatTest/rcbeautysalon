@@ -375,6 +375,10 @@ export interface CreateAppointmentData {
   serviceIds: string[]
   staffId: string
   startTime: Date
+  // Preferred contract: salon-local date "yyyy-MM-dd" + time "HH:mm" —
+  // the server builds the exact instant in the salon timezone.
+  bookingDate?: string
+  bookingTime?: string
   // Customer info (guest or authenticated)
   customerId?: string
   guestName?: string
@@ -428,6 +432,9 @@ export interface CreateCheckoutSessionData {
   serviceIds: string[]
   staffId: string
   startTime: string // ISO string
+  // Preferred contract: salon-local date "yyyy-MM-dd" + time "HH:mm"
+  bookingDate?: string
+  bookingTime?: string
   guestName?: string
   guestEmail?: string
   guestPhone?: string

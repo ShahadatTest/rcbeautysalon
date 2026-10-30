@@ -1,7 +1,7 @@
 // Utility functions for formatting data
 
-export function formatCurrency(amount: number, currency: string = "USD"): string {
-  return new Intl.NumberFormat("en-US", {
+export function formatCurrency(amount: number, currency: string = "EUR"): string {
+  return new Intl.NumberFormat("sl-SI", {
     style: "currency",
     currency,
   }).format(amount)
@@ -14,7 +14,7 @@ export function formatCurrency(amount: number, currency: string = "USD"): string
 
 export function formatDate(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("sl-SI", {
     month: "long",
     day: "numeric",
     year: "numeric",
@@ -23,10 +23,10 @@ export function formatDate(date: Date | string): string {
 
 export function formatTime(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
+  return new Intl.DateTimeFormat("sl-SI", {
+    hour: "2-digit",
     minute: "2-digit",
-    hour12: true,
+    hour12: false,
   }).format(d)
 }
 

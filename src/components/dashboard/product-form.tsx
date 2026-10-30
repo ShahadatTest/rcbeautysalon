@@ -277,7 +277,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="price">Price ($) *</Label>
+                  <Label htmlFor="price">Cena (€) *</Label>
                   <Input
                     id="price"
                     type="number"
@@ -293,7 +293,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="compareAtPrice">Compare at Price ($)</Label>
+                  <Label htmlFor="compareAtPrice">Compare at Cena (€)</Label>
                   <Input
                     id="compareAtPrice"
                     type="number"

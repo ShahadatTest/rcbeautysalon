@@ -18,6 +18,8 @@ import {
 } from "@/components/icons"
 import { getUserById, getCustomerTotalSpent } from "@/app/actions/users"
 import { format } from "date-fns"
+import { formatSalonTime } from "@/lib/booking-time"
+import { getSessionSalonTimezone } from "@/lib/tenant"
 import { formatCurrency } from "@/lib/utils/format"
 
 const roleColors: Record<string, string> = {
@@ -63,6 +65,7 @@ export async function generateMetadata({ params }: PageProps) {
 }
 
 export default async function UserDetailsPage({ params }: PageProps) {
+  const salonTz = await getSessionSalonTimezone()
   const { id } = await params
   const user = await getUserById(id)
 
@@ -140,7 +143,7 @@ export default async function UserDetailsPage({ params }: PageProps) {
                           </span>
                           <span className="flex items-center gap-1">
                             <ClockIcon size={14} />
-                            {format(new Date(apt.startTime), "h:mm a")}
+                            {formatSalonTime(new Date(apt.startTime), salonTz)}
                           </span>
                           <span>with {apt.staff.name}</span>
                         </div>

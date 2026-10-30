@@ -53,7 +53,7 @@ export function StaffPerformanceChart({ data }: StaffPerformanceChartProps) {
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-amber-500" />
               <span className="text-muted-foreground">
-                Revenue: <span className="font-semibold text-foreground">${totalRevenue.toLocaleString()}</span>
+                Prihodek: <span className="font-semibold text-foreground">€{totalRevenue.toLocaleString()}</span>
               </span>
             </div>
           </div>

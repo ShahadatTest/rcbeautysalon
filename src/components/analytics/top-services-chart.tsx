@@ -57,7 +57,7 @@ export function TopServicesChart({ data }: TopServicesChartProps) {
                     {service.name}
                   </span>
                   <span className="font-semibold tabular-nums text-foreground">
-                    ${service.revenue.toLocaleString()}
+                    €{service.revenue.toLocaleString()}
                   </span>
                 </div>
               ))}

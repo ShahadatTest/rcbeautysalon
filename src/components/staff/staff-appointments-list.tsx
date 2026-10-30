@@ -169,7 +169,7 @@ export function StaffAppointmentsList({
                         {format(new Date(appointment.startTime), "MMM d, yyyy")}
                       </p>
                       <p className="text-muted-foreground text-sm">
-                        {format(new Date(appointment.startTime), "h:mm a")}
+                        {format(new Date(appointment.startTime), "HH:mm")}
                       </p>
                     </TableCell>
 

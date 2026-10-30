@@ -14,6 +14,8 @@ import {
 } from "@/components/icons"
 import { getAdminAppointments } from "@/app/actions/appointments"
 import { format } from "date-fns"
+import { formatSalonTime } from "@/lib/booking-time"
+import { getSessionSalonTimezone } from "@/lib/tenant"
 import { formatCurrency } from "@/lib/utils/format"
 import { startOfDay, endOfDay } from "date-fns"
 
@@ -26,6 +28,7 @@ const statusColors: Record<string, string> = {
 }
 
 export default async function AppointmentsPage() {
+  const salonTz = await getSessionSalonTimezone()
   const appointments = await getAdminAppointments()
 
   // Calculate stats
@@ -164,7 +167,7 @@ export default async function AppointmentsPage() {
                       <td className="py-4 text-sm">
                         <p>{format(new Date(apt.startTime), "MMM d, yyyy")}</p>
                         <p className="text-muted-foreground">
-                          {format(new Date(apt.startTime), "h:mm a")}
+                          {formatSalonTime(new Date(apt.startTime), salonTz)}
                         </p>
                       </td>
                       <td className="py-4">

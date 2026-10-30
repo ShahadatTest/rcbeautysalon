@@ -132,10 +132,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                       <td className="py-4 text-sm font-mono text-muted-foreground">{product.sku || "-"}</td>
                       <td className="py-4">
                         <div>
-                          <p className="font-medium">${product.price.toFixed(2)}</p>
+                          <p className="font-medium">€{product.price.toFixed(2)}</p>
                           {product.compareAtPrice && (
                             <p className="text-sm text-muted-foreground line-through">
-                              ${product.compareAtPrice.toFixed(2)}
+                              €{product.compareAtPrice.toFixed(2)}
                             </p>
                           )}
                         </div>

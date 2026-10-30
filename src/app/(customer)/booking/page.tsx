@@ -73,10 +73,10 @@ export default async function BookingPage(props: BookingPageProps) {
           {/* Header */}
           <div className="mb-8 text-center">
             <h1 className="from-primary to-accent mb-2 bg-linear-to-r bg-clip-text text-4xl font-bold text-transparent">
-              Book with {staffData.name}
+              Rezerviraj pri {staffData.name}
             </h1>
             <p className="text-muted-foreground text-lg">
-              Select a service and choose your preferred time
+              Izberite storitev in željeni termin
             </p>
           </div>
 
@@ -122,10 +122,10 @@ export default async function BookingPage(props: BookingPageProps) {
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="from-primary to-accent mb-2 bg-linear-to-r bg-clip-text text-4xl font-bold text-transparent">
-            Book Your Appointment
+            Rezervirajte svoj termin
           </h1>
           <p className="text-muted-foreground text-lg">
-            Choose your preferred time and secure your spot
+            Izberite termin in si zagotovite svoj čas
           </p>
         </div>
 

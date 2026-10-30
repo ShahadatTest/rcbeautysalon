@@ -24,7 +24,7 @@ export function KPICards({ data }: KPICardsProps) {
   const cards = [
     {
       title: "Total Revenue",
-      metric: `$${data.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      metric: `€${data.totalRevenue.toLocaleString("sl-SI", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       change: data.revenueChange,
       icon: CurrencyDollarIcon,
       color: "text-emerald-600 dark:text-emerald-400",

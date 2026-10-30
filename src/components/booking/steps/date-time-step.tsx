@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { SpinnerGapIcon } from "@/components/icons"
 import { format, addDays } from "date-fns"
+import { sl } from "date-fns/locale"
 import { getAvailableTimeSlots } from "@/app/actions/appointments"
 import { TimeSlot } from "@/lib/interfaces"
 
@@ -46,7 +47,10 @@ export function DateTimeStep({
 
       setLoadingSlots(true)
       try {
-        const slots = await getAvailableTimeSlots(selectedStaffId, selectedDate, serviceDuration)
+        // Send a plain "yyyy-MM-dd" key — the server interprets it in the
+        // salon's timezone (never the server's own clock).
+        const dateKey = format(selectedDate, "yyyy-MM-dd")
+        const slots = await getAvailableTimeSlots(selectedStaffId, dateKey, serviceDuration)
         setAvailableSlots(slots)
       } catch (err) {
         console.error("Error loading time slots:", err)
@@ -67,14 +71,14 @@ export function DateTimeStep({
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-bold">
             3
           </div>
-          <CardTitle>Select Date & Time</CardTitle>
+          <CardTitle>Izberite datum in uro</CardTitle>
         </div>
-        <CardDescription>Choose when you'd like to visit</CardDescription>
+        <CardDescription>Izberite, kdaj želite obiskati salon</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {!selectedStaffId ? (
           <p className="text-center text-sm text-muted-foreground">
-            Please select a staff member first
+            Najprej izberite osebje
           </p>
         ) : (
           <>
@@ -99,7 +103,7 @@ export function DateTimeStep({
             {selectedDate && (
               <div className="space-y-2">
                 <Label className="block text-base font-semibold">
-                  Available Times on {format(selectedDate, "MMMM d, yyyy")}
+                  Prosti termini za {format(selectedDate, "d. MMMM yyyy", { locale: sl })}
                 </Label>
                 {loadingSlots ? (
                   <div className="flex justify-center py-8">
@@ -107,7 +111,7 @@ export function DateTimeStep({
                   </div>
                 ) : availableSlots.length === 0 ? (
                   <p className="text-center text-muted-foreground">
-                    No available time slots for this day
+                    Za ta dan ni prostih terminov
                   </p>
                 ) : (
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">

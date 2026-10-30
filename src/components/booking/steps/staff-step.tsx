@@ -26,15 +26,15 @@ export function StaffStep({
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-bold">
             2
           </div>
-          <CardTitle>Select Staff Member</CardTitle>
+          <CardTitle>Izberite specialista</CardTitle>
         </div>
-        <CardDescription>Choose your preferred specialist</CardDescription>
+        <CardDescription>Izberite svojega specialista</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-col gap-4">
           {availableStaff.length === 0 ? (
             <p className="text-center text-muted-foreground">
-              No staff available for this service
+              Za to storitev ni prostega osebja
             </p>
           ) : (
             availableStaff.map((staff) => (
