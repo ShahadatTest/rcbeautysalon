@@ -11,6 +11,10 @@ export default async function AuthLayout({
   const locale = await getLocaleFromCookies()
 
   return (
-    <AdminI18nProvider initialLocale={locale}>{children}</AdminI18nProvider>
+    <div className="admin-sans-headings">
+      <AdminI18nProvider initialLocale={locale}>
+        {children}
+      </AdminI18nProvider>
+    </div>
   )
 }

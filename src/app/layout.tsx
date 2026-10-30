@@ -26,17 +26,17 @@ const rougeScript = Rouge_Script({
 
 const poppins = Poppins({
   variable: "--font-poppins",
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   weight: ["300", "400", "500", "600", "700", "800"],
   display: "swap",
 })
 
-const playfair = Playfair_Display({ variable: "--font-playfair", subsets: ["latin"], display: "swap" })
-const cormorant = Cormorant_Garamond({ variable: "--font-cormorant", subsets: ["latin"], weight: ["400", "500", "600"], display: "swap" })
-const oswald = Oswald({ variable: "--font-oswald", subsets: ["latin"], display: "swap" })
-const montserrat = Montserrat({ variable: "--font-montserrat", subsets: ["latin"], display: "swap" })
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" })
-const lora = Lora({ variable: "--font-lora", subsets: ["latin"], display: "swap" })
+const playfair = Playfair_Display({ variable: "--font-playfair", subsets: ["latin", "latin-ext"], display: "swap" })
+const cormorant = Cormorant_Garamond({ variable: "--font-cormorant", subsets: ["latin", "latin-ext"], weight: ["400", "500", "600"], display: "swap" })
+const oswald = Oswald({ variable: "--font-oswald", subsets: ["latin", "latin-ext"], display: "swap" })
+const montserrat = Montserrat({ variable: "--font-montserrat", subsets: ["latin", "latin-ext"], display: "swap" })
+const inter = Inter({ variable: "--font-inter", subsets: ["latin", "latin-ext"], display: "swap" })
+const lora = Lora({ variable: "--font-lora", subsets: ["latin", "latin-ext"], display: "swap" })
 
 /** Resolve which organization brands the current request:
  *  1. tenant from /s/[slug] (header set by proxy)

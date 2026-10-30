@@ -14,7 +14,7 @@ export default async function AdminLayout({
 
   return (
     <AdminI18nProvider initialLocale={locale}>
-      <div className="flex h-screen overflow-hidden bg-background">
+      <div className="admin-sans-headings flex h-screen overflow-hidden bg-background">
         {/* Desktop Sidebar */}
         <AdminSidebar />
 
