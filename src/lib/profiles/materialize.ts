@@ -9,6 +9,7 @@
 import { prisma } from "@/lib/prisma"
 import { getProfile } from "./registry"
 import type { ActivityProfile } from "./types"
+import type { Prisma } from "@prisma/client"
 
 /** Materialize the profile's form + workflow templates for one org. */
 export async function materializeProfileAssets(
@@ -27,7 +28,7 @@ export async function materializeProfileAssets(
         description: form.description,
         version: 1,
         isActive: true,
-        fields: form.fields,
+        fields: form.fields as unknown as Prisma.InputJsonValue,
       },
       update: {
         // Never clobber owner edits: only create if missing (update is a no-op).

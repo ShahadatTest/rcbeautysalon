@@ -18,6 +18,7 @@ import type {
   CapabilityKey,
   ProfileOption,
   TerminologyEntry,
+  TerminologySet,
 } from "./types"
 
 // ------------------------------------------------------------
@@ -157,7 +158,7 @@ function terms(t: {
   bookingCta: string
   orderEn: { singular: string; plural: string }
   ctaEn: string
-}): Record<keyof CapabilityMatrix | "bookingCta", unknown> {
+}): TerminologySet {
   // Convenience builder — Slovenian + English terminology pairs.
   const e = (sl: string, en: string): TerminologyEntry => ({ sl, en })
   return {
@@ -172,7 +173,7 @@ function terms(t: {
     customerSingular: e(t.customerSingular ?? "Stranka", "Customer"),
     customerPlural: e(t.customerPlural ?? "Stranke", "Customers"),
     bookingCta: e(t.bookingCta, t.ctaEn),
-  } as never
+  }
 }
 
 // ------------------------------------------------------------

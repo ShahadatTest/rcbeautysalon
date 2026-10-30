@@ -10,7 +10,7 @@
  *   DATABASE_URL="postgresql://..." bun scripts/backfill-profile-assets.ts
  */
 
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient, Prisma } from "@prisma/client"
 import { getProfile } from "../src/lib/profiles/registry"
 
 const prisma = new PrismaClient()
@@ -42,7 +42,7 @@ async function main() {
             description: form.description,
             version: 1,
             isActive: true,
-            fields: form.fields,
+            fields: form.fields as unknown as Prisma.InputJsonValue,
           },
         })
         forms++
