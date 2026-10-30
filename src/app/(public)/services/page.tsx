@@ -1,27 +1,45 @@
+import type { Metadata } from "next"
 import Image from "next/image"
 import { cloudinaryPresets } from "@/lib/utils/cloudinary"
-import {
-  getAllServicesGroupedByCategory,
-  getAllCategories,
-  getAllActiveStaff
-} from "@/app/actions/services"
+import { getPublicSiteData, getPublicServicesGrouped, getPublicCategories, getPublicActiveStaffOptions } from "@/lib/public-site"
+import { orgPath } from "@/lib/org-path"
 import { HeroVideo } from "@/components/services/hero-video"
 import { ServicesList } from "@/components/services/services-list"
 import { Suspense } from "react"
 import { ServicesListSkeleton } from "@/components/services/services-list-skeleton"
 import { BookingButton } from "@/components/services/booking-button"
+import { AccentSpan, splitLastWord } from "@/components/landing/section-title"
 
-export const metadata = {
-  title: "Our Services | RC Beauty Salon",
-  description: "Explore our full range of professional beauty services",
+export async function generateMetadata(): Promise<Metadata> {
+  const site = await getPublicSiteData()
+  const orgName = site?.org.name ?? "Salon"
+  return {
+    title: `${site?.content.services.title ?? "Storitve"} | ${orgName}`,
+    description:
+      site?.content.services.subtitle ??
+      "Celoten pregled profesionalnih storitev našega salona",
+  }
 }
 
 export default async function ServicesPage() {
-  // Get all data for services page
+  const site = await getPublicSiteData()
+
+  if (!site) {
+    return (
+      <div className="container mx-auto flex min-h-[60vh] items-center justify-center px-4">
+        <h1 className="text-2xl font-bold">Salon ni konfiguriran</h1>
+      </div>
+    )
+  }
+
+  const { org, content } = site
+  const slug = org.slug
+
+  // Get all data for services page (tenant-scoped)
   const [servicesByCategory, categories, staff] = await Promise.all([
-    getAllServicesGroupedByCategory(),
-    getAllCategories(),
-    getAllActiveStaff()
+    getPublicServicesGrouped(org.id),
+    getPublicCategories(org.id),
+    getPublicActiveStaffOptions(org.id),
   ])
 
   // Convert Decimal to number for client components
@@ -42,31 +60,49 @@ export default async function ServicesPage() {
     }>>
   >((acc, [categoryName, services]) => {
     acc[categoryName] = services.map(service => ({
-      ...service,
-      price: service.price.toNumber()
+      id: service.id,
+      name: service.name,
+      slug: service.slug,
+      description: service.description,
+      duration: service.duration,
+      price: service.price.toNumber(),
+      imageUrl: service.imageUrl,
+      category: service.category
+        ? {
+            id: service.category.id,
+            name: service.category.name,
+            slug: service.category.slug,
+          }
+        : null,
     }))
     return acc
   }, {})
+
+  const servicesHeading = splitLastWord(content.services.title)
 
   return (
     <div className="flex min-h-screen flex-col">
       {/* Hero Section with Video Background */}
       <section className="relative overflow-hidden bg-black py-16 md:py-24">
         {/* Client Component for Video */}
-        <HeroVideo />
+        <HeroVideo
+          videoUrl={content.hero.videoUrl}
+          posterUrl={content.hero.posterUrl ?? content.hero.imageUrl}
+        />
 
         {/* Content */}
         <div className="container relative z-20 mx-auto px-4">
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="font-heading mb-4 text-5xl tracking-tight text-white sm:text-6xl md:text-7xl">
-              Our{" "}
-              <span className="from-accent to-primary bg-linear-to-r bg-clip-text text-transparent">
-                Services
-              </span>
+              {servicesHeading.lead}{" "}
+              {servicesHeading.accent && (
+                <span className="from-accent to-primary bg-linear-to-r bg-clip-text text-transparent">
+                  {servicesHeading.accent}
+                </span>
+              )}
             </h1>
             <p className="text-lg text-white/90 md:text-xl">
-              Discover our complete range of professional beauty treatments
-              designed to help you look and feel your best.
+              {content.services.subtitle}
             </p>
           </div>
         </div>
@@ -90,8 +126,11 @@ export default async function ServicesPage() {
         {/* Background Image */}
         <div className="absolute inset-0">
           <Image
-            src={cloudinaryPresets.serviceHero("Beauty Salon/services/book-appoiment_vqo5wj")}
-            alt="Book appointment background"
+            src={
+              content.cta.imageUrl ||
+              cloudinaryPresets.serviceHero("Beauty Salon/services/book-appoiment_vqo5wj")
+            }
+            alt={content.cta.title}
             fill
             className="object-cover"
           />
@@ -102,15 +141,19 @@ export default async function ServicesPage() {
 
         <div className="relative container mx-auto px-4 text-center text-white">
           <h2 className="font-heading mb-4 text-4xl md:text-5xl lg:text-6xl">
-            Ready to Book Your{" "}
-            <span className="from-accent to-primary bg-linear-to-r bg-clip-text text-transparent">
-              Appointment?
-            </span>
+            {(() => {
+              const { lead, accent } = splitLastWord(content.cta.title)
+              return (
+                <>
+                  {lead} {accent && <AccentSpan>{accent}</AccentSpan>}
+                </>
+              )
+            })()}
           </h2>
           <p className="mb-8 text-lg opacity-90 md:text-xl">
-            Choose your service and get started today
+            {content.cta.text}
           </p>
-          <BookingButton />
+          <BookingButton href={orgPath(slug, content.cta.buttonHref)} label={content.cta.buttonLabel} />
         </div>
       </section>
     </div>

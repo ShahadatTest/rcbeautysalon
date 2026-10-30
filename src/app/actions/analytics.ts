@@ -1,7 +1,7 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
-import { auth } from "@/lib/auth/auth"
+import { requireAdminOrg } from "@/lib/tenant"
 import {
   KPIData,
   RevenueDataPoint,
@@ -71,10 +71,7 @@ function calculateChange(current: number, previous: number): number {
 }
 
 export async function getKPIData(period: PeriodType = "30d"): Promise<KPIData> {
-  const session = await auth()
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized")
-  }
+  const { org } = await requireAdminOrg()
 
   const { startDate, endDate, previousStartDate, previousEndDate } = getAnalyticsPeriod(period)
 
@@ -83,6 +80,7 @@ export async function getKPIData(period: PeriodType = "30d"): Promise<KPIData> {
   // Revenue de appointments (depósitos pagados)
   const appointmentRevenue = await prisma.appointment.aggregate({
     where: {
+      organizationId: org.id,
       depositPaid: true,
       createdAt: { gte: startDate, lte: endDate }
     },
@@ -92,6 +90,7 @@ export async function getKPIData(period: PeriodType = "30d"): Promise<KPIData> {
   // Revenue de orders (productos vendidos)
   const orderRevenue = await prisma.order.aggregate({
     where: {
+      organizationId: org.id,
       status: "PAID",
       createdAt: { gte: startDate, lte: endDate }
     },
@@ -101,6 +100,7 @@ export async function getKPIData(period: PeriodType = "30d"): Promise<KPIData> {
   // Total appointments
   const totalAppointments = await prisma.appointment.count({
     where: {
+      organizationId: org.id,
       createdAt: { gte: startDate, lte: endDate }
     }
   })
@@ -108,6 +108,7 @@ export async function getKPIData(period: PeriodType = "30d"): Promise<KPIData> {
   // Total orders pagadas
   const totalOrders = await prisma.order.count({
     where: {
+      organizationId: org.id,
       status: "PAID",
       createdAt: { gte: startDate, lte: endDate }
     }
@@ -117,6 +118,7 @@ export async function getKPIData(period: PeriodType = "30d"): Promise<KPIData> {
   const [appointmentCustomers, orderCustomers] = await Promise.all([
     prisma.appointment.findMany({
       where: {
+        organizationId: org.id,
         createdAt: { gte: startDate, lte: endDate },
         customerId: { not: null }
       },
@@ -125,6 +127,7 @@ export async function getKPIData(period: PeriodType = "30d"): Promise<KPIData> {
     }),
     prisma.order.findMany({
       where: {
+        organizationId: org.id,
         status: "PAID",
         createdAt: { gte: startDate, lte: endDate },
         customerId: { not: null }
@@ -144,6 +147,7 @@ export async function getKPIData(period: PeriodType = "30d"): Promise<KPIData> {
 
   const prevAppointmentRevenue = await prisma.appointment.aggregate({
     where: {
+      organizationId: org.id,
       depositPaid: true,
       createdAt: { gte: previousStartDate, lte: previousEndDate }
     },
@@ -152,6 +156,7 @@ export async function getKPIData(period: PeriodType = "30d"): Promise<KPIData> {
 
   const prevOrderRevenue = await prisma.order.aggregate({
     where: {
+      organizationId: org.id,
       status: "PAID",
       createdAt: { gte: previousStartDate, lte: previousEndDate }
     },
@@ -160,12 +165,14 @@ export async function getKPIData(period: PeriodType = "30d"): Promise<KPIData> {
 
   const prevTotalAppointments = await prisma.appointment.count({
     where: {
+      organizationId: org.id,
       createdAt: { gte: previousStartDate, lte: previousEndDate }
     }
   })
 
   const prevTotalOrders = await prisma.order.count({
     where: {
+      organizationId: org.id,
       status: "PAID",
       createdAt: { gte: previousStartDate, lte: previousEndDate }
     }
@@ -174,6 +181,7 @@ export async function getKPIData(period: PeriodType = "30d"): Promise<KPIData> {
   const [prevAppointmentCustomers, prevOrderCustomers] = await Promise.all([
     prisma.appointment.findMany({
       where: {
+        organizationId: org.id,
         createdAt: { gte: previousStartDate, lte: previousEndDate },
         customerId: { not: null }
       },
@@ -182,6 +190,7 @@ export async function getKPIData(period: PeriodType = "30d"): Promise<KPIData> {
     }),
     prisma.order.findMany({
       where: {
+        organizationId: org.id,
         status: "PAID",
         createdAt: { gte: previousStartDate, lte: previousEndDate },
         customerId: { not: null }
@@ -220,10 +229,7 @@ export async function getKPIData(period: PeriodType = "30d"): Promise<KPIData> {
 }
 
 export async function getRevenueChartData(period: PeriodType = "30d"): Promise<RevenueDataPoint[]> {
-  const session = await auth()
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized")
-  }
+  const { org } = await requireAdminOrg()
 
   const { startDate, endDate } = getAnalyticsPeriod(period)
 
@@ -246,6 +252,7 @@ export async function getRevenueChartData(period: PeriodType = "30d"): Promise<R
   const [appointments, orders] = await Promise.all([
     prisma.appointment.findMany({
       where: {
+        organizationId: org.id,
         depositPaid: true,
         createdAt: { gte: startDate, lte: endDate }
       },
@@ -256,6 +263,7 @@ export async function getRevenueChartData(period: PeriodType = "30d"): Promise<R
     }),
     prisma.order.findMany({
       where: {
+        organizationId: org.id,
         status: "PAID",
         createdAt: { gte: startDate, lte: endDate }
       },
@@ -301,10 +309,7 @@ export async function getRevenueChartData(period: PeriodType = "30d"): Promise<R
 }
 
 export async function getTopServices(period: PeriodType = "30d"): Promise<TopService[]> {
-  const session = await auth()
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized")
-  }
+  const { org } = await requireAdminOrg()
 
   const { startDate, endDate } = getAnalyticsPeriod(period)
 
@@ -312,6 +317,7 @@ export async function getTopServices(period: PeriodType = "30d"): Promise<TopSer
   const appointmentServices = await prisma.appointmentService.findMany({
     where: {
       appointment: {
+        organizationId: org.id,
         depositPaid: true,
         createdAt: { gte: startDate, lte: endDate }
       }
@@ -354,10 +360,7 @@ export async function getTopServices(period: PeriodType = "30d"): Promise<TopSer
 }
 
 export async function getTopProducts(period: PeriodType = "30d"): Promise<TopProduct[]> {
-  const session = await auth()
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized")
-  }
+  const { org } = await requireAdminOrg()
 
   const { startDate, endDate } = getAnalyticsPeriod(period)
 
@@ -365,6 +368,7 @@ export async function getTopProducts(period: PeriodType = "30d"): Promise<TopPro
   const orderItems = await prisma.orderItem.findMany({
     where: {
       order: {
+        organizationId: org.id,
         status: "PAID",
         createdAt: { gte: startDate, lte: endDate }
       }
@@ -404,16 +408,14 @@ export async function getTopProducts(period: PeriodType = "30d"): Promise<TopPro
 }
 
 export async function getAppointmentsByStatus(period: PeriodType = "30d"): Promise<AppointmentsByStatus[]> {
-  const session = await auth()
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized")
-  }
+  const { org } = await requireAdminOrg()
 
   const { startDate, endDate } = getAnalyticsPeriod(period)
 
   const statusCounts = await prisma.appointment.groupBy({
     by: ["status"],
     where: {
+      organizationId: org.id,
       createdAt: { gte: startDate, lte: endDate }
     },
     _count: {
@@ -428,16 +430,14 @@ export async function getAppointmentsByStatus(period: PeriodType = "30d"): Promi
 }
 
 export async function getStaffPerformance(period: PeriodType = "30d"): Promise<StaffPerformance[]> {
-  const session = await auth()
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized")
-  }
+  const { org } = await requireAdminOrg()
 
   const { startDate, endDate } = getAnalyticsPeriod(period)
 
   // Obtener appointments completados con info del staff
   const appointments = await prisma.appointment.findMany({
     where: {
+      organizationId: org.id,
       status: "COMPLETED",
       depositPaid: true,
       createdAt: { gte: startDate, lte: endDate }

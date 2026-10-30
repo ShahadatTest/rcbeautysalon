@@ -14,15 +14,19 @@ import { CartButton } from "@/components/shop/cart-button"
 import { SearchInput } from "@/components/shop/search-input"
 import { PackageIcon } from "@/components/icons"
 import { AddToCartButton } from "@/components/shop/add-to-cart-button"
-import { getShopProducts } from "@/app/actions/products"
+import { getPublicSiteData, getPublicShopProducts } from "@/lib/public-site"
+import { orgPath } from "@/lib/org-path"
 
-export const metadata: Metadata = {
-  title: "Shop | RC Beauty Salon",
-  description:
-    "Professional beauty products for home care. Hair care, skin care, and nail care products.",
+export async function generateMetadata(): Promise<Metadata> {
+  const site = await getPublicSiteData()
+  const orgName = site?.org.name ?? "Salon"
+  return {
+    title: `${site?.content.shop.title ?? "Trgovina"} | ${orgName}`,
+    description:
+      site?.content.shop.subtitle ??
+      "Profesionalni izdelki za nego na dom — nega las, kože in nohtov.",
+  }
 }
-
-export const revalidate = 60
 
 interface ShopPageProps {
   searchParams: Promise<{ search?: string }>
@@ -30,7 +34,19 @@ interface ShopPageProps {
 
 export default async function ShopPage({ searchParams }: ShopPageProps) {
   const { search } = await searchParams
-  const allProducts = await getShopProducts()
+  const site = await getPublicSiteData()
+
+  if (!site) {
+    return (
+      <div className="container mx-auto flex min-h-[60vh] items-center justify-center px-4">
+        <h1 className="text-2xl font-bold">Salon ni konfiguriran</h1>
+      </div>
+    )
+  }
+
+  const { org, content } = site
+  const slug = org.slug
+  const allProducts = await getPublicShopProducts(org.id)
 
   // Filter products based on search query
   const products = search
@@ -48,10 +64,8 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold">Our Shop</h1>
-              <p className="text-muted-foreground">
-                Professional beauty products for home care
-              </p>
+              <h1 className="text-3xl font-bold">{content.shop.title}</h1>
+              <p className="text-muted-foreground">{content.shop.subtitle}</p>
             </div>
             <div className="hidden md:block">
               <CartButton />
@@ -66,7 +80,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <SearchInput className="flex-1 md:max-w-md" />
             <Button variant="outline" size="sm" asChild>
-              <Link href="/shop">All Products</Link>
+              <Link href={orgPath(slug, "/shop")}>Vsi izdelki</Link>
             </Button>
           </div>
         </div>
@@ -108,18 +122,18 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
                     <div className="absolute top-2 right-2 flex flex-col gap-1">
                       {product.isFeatured && (
                         <Badge className="bg-accent text-accent-foreground">
-                          Featured
+                          Izpostavljeno
                         </Badge>
                       )}
                       {!inStock && (
-                        <Badge variant="destructive">Out of Stock</Badge>
+                        <Badge variant="destructive">Ni na zalogi</Badge>
                       )}
                       {product.compareAtPrice && inStock && (
                         <Badge
                           variant="secondary"
                           className="bg-primary text-primary-foreground"
                         >
-                          Sale
+                          Akcija
                         </Badge>
                       )}
                     </div>
@@ -160,7 +174,9 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
                     className="border-primary/50 hover:bg-primary hover:text-primary-foreground w-full"
                     asChild
                   >
-                    <Link href={`/shop/${product.id}`}>See Details</Link>
+                    <Link href={orgPath(slug, `/shop/${product.id}`)}>
+                      Podrobnosti
+                    </Link>
                   </Button>
                 </CardFooter>
               </Card>

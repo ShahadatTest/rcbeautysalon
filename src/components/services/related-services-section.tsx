@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { CalendarIcon, ClockIcon, CurrencyDollarIcon } from "@/components/icons"
 import { cloudinaryPresets } from "@/lib/utils/cloudinary"
+import { orgPath } from "@/lib/org-path"
 
 interface RelatedService {
   id: string
@@ -20,11 +21,13 @@ interface RelatedService {
 interface RelatedServicesSectionProps {
   services: RelatedService[]
   currentServiceId: string
+  orgSlug?: string | null
 }
 
 export function RelatedServicesSection({
   services,
   currentServiceId,
+  orgSlug,
 }: RelatedServicesSectionProps) {
   // Filter out current service and limit to 3
   const relatedServices = services
@@ -105,7 +108,7 @@ export function RelatedServicesSection({
                   </div>
 
                   {/* View Details Button */}
-                  <Link href={`/services/${service.slug}`}>
+                  <Link href={orgPath(orgSlug, `/services/${service.slug}`)}>
                     <Button
                       variant="outline"
                       className="border-primary/50 hover:bg-primary/5 w-full"

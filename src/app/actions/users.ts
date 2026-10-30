@@ -3,6 +3,8 @@
 import { cache } from "react"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { UnauthorizedError } from "@/lib/auth/guards"
+import { requireAdminOrg } from "@/lib/tenant"
 
 type UserRole = "ADMIN" | "STAFF" | "CLIENTE"
 
@@ -11,17 +13,29 @@ export interface AdminUpdateUserInput {
   notes?: string
 }
 
-// Admin: Get all users with customer data
+// Admin: Get all users with customer data (scoped to the admin's organization)
 export async function getAdminUsers(search?: string) {
+  const { org } = await requireAdminOrg()
+
+  // A user belongs to this org directly, or via their customer profile
+  const orgMembership = {
+    OR: [{ organizationId: org.id }, { customer: { organizationId: org.id } }],
+  }
+
   const users = await prisma.user.findMany({
     where: search
       ? {
-          OR: [
-            { name: { contains: search, mode: "insensitive" } },
-            { email: { contains: search, mode: "insensitive" } },
+          AND: [
+            orgMembership,
+            {
+              OR: [
+                { name: { contains: search, mode: "insensitive" } },
+                { email: { contains: search, mode: "insensitive" } },
+              ],
+            },
           ],
         }
-      : undefined,
+      : orgMembership,
     include: {
       customer: {
         include: {
@@ -42,27 +56,41 @@ export async function getAdminUsers(search?: string) {
 
 // Admin: Get user statistics
 export async function getUserStats() {
+  const { org } = await requireAdminOrg()
+
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
+  const orgMembership = {
+    OR: [{ organizationId: org.id }, { customer: { organizationId: org.id } }],
+  }
+
   const [totalUsers, activeThisMonth, newThisMonth, totalCustomers] =
     await Promise.all([
-      prisma.user.count(),
+      prisma.user.count({ where: orgMembership }),
       prisma.user.count({
         where: {
-          sessions: {
-            some: {
-              expires: { gte: now },
+          AND: [
+            orgMembership,
+            {
+              sessions: {
+                some: {
+                  expires: { gte: now },
+                },
+              },
             },
-          },
+          ],
         },
       }),
       prisma.user.count({
         where: {
-          createdAt: { gte: startOfMonth },
+          AND: [
+            orgMembership,
+            { createdAt: { gte: startOfMonth } },
+          ],
         },
       }),
-      prisma.customer.count(),
+      prisma.customer.count({ where: { organizationId: org.id } }),
     ])
 
   return { totalUsers, activeThisMonth, newThisMonth, totalCustomers }
@@ -71,7 +99,9 @@ export async function getUserStats() {
 // Admin: Get user by ID with full details
 // Cached to avoid duplicate fetches in generateMetadata + page component
 export const getUserById = cache(async (id: string) => {
-  return await prisma.user.findUnique({
+  const { org } = await requireAdminOrg()
+
+  const user = await prisma.user.findUnique({
     where: { id },
     include: {
       customer: {
@@ -104,14 +134,35 @@ export const getUserById = cache(async (id: string) => {
       staff: true,
     },
   })
+
+  // Tenant check: the user must belong to the admin's organization
+  // (directly, via their customer profile, or via their staff profile)
+  if (!user) return null
+  const belongsToOrg =
+    user.organizationId === org.id ||
+    user.customer?.organizationId === org.id ||
+    user.staff?.organizationId === org.id
+  if (!belongsToOrg) return null
+
+  return user
 })
 
 // Calculate total spent by customer
 export async function getCustomerTotalSpent(customerId: string) {
+  const { org } = await requireAdminOrg()
+
+  // Tenant check: the customer must belong to this organization
+  const customer = await prisma.customer.findFirst({
+    where: { id: customerId, organizationId: org.id },
+    select: { id: true },
+  })
+  if (!customer) return 0
+
   const [appointmentTotal, orderTotal] = await Promise.all([
     prisma.appointment.aggregate({
       where: {
         customerId,
+        organizationId: org.id,
         status: "COMPLETED",
         // Count all completed appointments (service was rendered)
       },
@@ -122,6 +173,7 @@ export async function getCustomerTotalSpent(customerId: string) {
     prisma.order.aggregate({
       where: {
         customerId,
+        organizationId: org.id,
         status: { in: ["PAID", "COMPLETED"] },
       },
       _sum: {
@@ -139,6 +191,8 @@ export async function getCustomerTotalSpent(customerId: string) {
 // Admin: Update user role
 export async function updateUserRole(userId: string, role: UserRole) {
   try {
+    const { org } = await requireAdminOrg()
+
     // If changing to STAFF, create staff profile if doesn't exist
     if (role === "STAFF") {
       const user = await prisma.user.findUnique({
@@ -158,15 +212,22 @@ export async function updateUserRole(userId: string, role: UserRole) {
             email: user.email,
             image: user.image, // Copy user's profile image
             isActive: true,
+            organization: { connect: { id: org.id } },
             user: { connect: { id: userId } },
           },
         })
       }
     }
 
+    // Assign the user to the admin's organization if they have none yet
+    const target = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { organizationId: true },
+    })
+
     await prisma.user.update({
       where: { id: userId },
-      data: { role },
+      data: { role, ...(target && !target.organizationId ? { organizationId: org.id } : {}) },
     })
 
     revalidatePath(`/dashboard/users/${userId}`)
@@ -176,6 +237,9 @@ export async function updateUserRole(userId: string, role: UserRole) {
 
     return { success: true }
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return { success: false, error: error.message }
+    }
     console.error("Error updating user role:", error)
     return { success: false, error: "Failed to update user role" }
   }
@@ -184,12 +248,14 @@ export async function updateUserRole(userId: string, role: UserRole) {
 // Admin: Update customer notes
 export async function updateCustomerNotes(userId: string, notes: string) {
   try {
+    const { org } = await requireAdminOrg()
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { customer: true },
     })
 
-    if (!user) {
+    if (!user || user.customer?.organizationId !== org.id) {
       return { success: false, error: "User not found" }
     }
 
@@ -206,6 +272,9 @@ export async function updateCustomerNotes(userId: string, notes: string) {
 
     return { success: true }
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return { success: false, error: error.message }
+    }
     console.error("Error updating customer notes:", error)
     return { success: false, error: "Failed to update notes" }
   }
@@ -214,42 +283,50 @@ export async function updateCustomerNotes(userId: string, notes: string) {
 // Admin: Delete user
 export async function deleteUser(userId: string) {
   try {
+    const { org } = await requireAdminOrg()
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        customer: {
-          include: {
-            _count: {
-              select: {
-                appointments: true,
-                orders: true,
-              },
-            },
-          },
-        },
-        staff: {
-          include: {
-            _count: {
-              select: {
-                appointments: true,
-              },
-            },
-          },
-        },
+        customer: true,
+        staff: true,
       },
     })
 
-    if (!user) {
+    // Tenant check: the user must belong to the admin's organization
+    if (
+      !user ||
+      !(
+        user.organizationId === org.id ||
+        user.customer?.organizationId === org.id ||
+        user.staff?.organizationId === org.id
+      )
+    ) {
       return { success: false, error: "User not found" }
     }
 
-    // Check if user has appointments or orders
-    const hasCustomerData =
-      user.customer &&
-      (user.customer._count.appointments > 0 || user.customer._count.orders > 0)
+    // Check if user has appointments or orders (within this organization)
+    const [customerAppointments, customerOrders, staffAppointments] =
+      await Promise.all([
+        user.customer
+          ? prisma.appointment.count({
+              where: { customerId: user.customer.id, organizationId: org.id },
+            })
+          : Promise.resolve(0),
+        user.customer
+          ? prisma.order.count({
+              where: { customerId: user.customer.id, organizationId: org.id },
+            })
+          : Promise.resolve(0),
+        user.staff
+          ? prisma.appointment.count({
+              where: { staffId: user.staff.id, organizationId: org.id },
+            })
+          : Promise.resolve(0),
+      ])
 
-    const hasStaffData =
-      user.staff && user.staff._count.appointments > 0
+    const hasCustomerData = customerAppointments > 0 || customerOrders > 0
+    const hasStaffData = staffAppointments > 0
 
     if (hasCustomerData || hasStaffData) {
       return {
@@ -274,6 +351,9 @@ export async function deleteUser(userId: string) {
 
     return { success: true }
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return { success: false, error: error.message }
+    }
     console.error("Error deleting user:", error)
     return { success: false, error: "Failed to delete user" }
   }

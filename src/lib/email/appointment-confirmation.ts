@@ -2,7 +2,9 @@ import { Resend } from "resend"
 import { render } from "@react-email/components"
 import { AppointmentConfirmationTemplate } from "./templates/appointment-confirmation-template"
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
+const resend = new Resend(
+  process.env.RESEND_API_KEY || "re_placeholder_not_configured"
+)
 
 interface SendAppointmentConfirmationParams {
   email: string

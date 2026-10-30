@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Rouge_Script, Poppins } from "next/font/google"
+import { Rouge_Script, Poppins, Playfair_Display, Cormorant_Garamond, Oswald, Montserrat, Inter, Lora } from "next/font/google"
 import { SessionProvider } from "@/components/providers/session-provider"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { CartProvider } from "@/components/providers/cart-provider"
@@ -8,6 +8,14 @@ import { TooltipProvider } from "@/components/providers/tooltip-provider"
 import { Toaster } from "sonner"
 import "./globals.css"
 import Footer from "@/components/layouts/footer"
+import { headers } from "next/headers"
+import { auth } from "@/lib/auth/auth"
+import { getOrgBySlug, getOrgById } from "@/lib/tenant"
+import { prisma } from "@/lib/prisma"
+import { paletteCssVars, PALETTES, type Palette } from "@/lib/verticals"
+import { mergeSiteContent } from "@/lib/site-content"
+import { CurrencyProvider } from "@/lib/currency"
+import type { Organization } from "@prisma/client"
 
 const rougeScript = Rouge_Script({
   variable: "--font-rouge-script",
@@ -23,30 +31,92 @@ const poppins = Poppins({
   display: "swap",
 })
 
-export const metadata: Metadata = {
-  title: "RC Beauty Salon - Professional Beauty Services",
-  description:
-    "Book appointments, shop products, and manage your beauty salon experience",
-  icons: {
-    icon: "/favicon.svg",
-  },
-  manifest: "/manifest.json",
+const playfair = Playfair_Display({ variable: "--font-playfair", subsets: ["latin"], display: "swap" })
+const cormorant = Cormorant_Garamond({ variable: "--font-cormorant", subsets: ["latin"], weight: ["400", "500", "600"], display: "swap" })
+const oswald = Oswald({ variable: "--font-oswald", subsets: ["latin"], display: "swap" })
+const montserrat = Montserrat({ variable: "--font-montserrat", subsets: ["latin"], display: "swap" })
+const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" })
+const lora = Lora({ variable: "--font-lora", subsets: ["latin"], display: "swap" })
+
+/** Resolve which organization brands the current request:
+ *  1. tenant from /s/[slug] (header set by proxy)
+ *  2. signed-in user's organization (dashboard)
+ *  3. default (first) organization (bare public routes, anonymous) */
+async function resolveBrandOrg(): Promise<Organization | null> {
+  try {
+    const h = await headers()
+    const slug = h.get("x-org-slug")
+    if (slug) {
+      const org = await getOrgBySlug(slug)
+      if (org) return org
+    }
+    const session = await auth()
+    if (session?.user?.organizationId) {
+      return await getOrgById(session.user.organizationId)
+    }
+    if (session?.user?.role === "ADMIN") {
+      return prisma.organization.findFirst({ where: { status: "ACTIVE" }, orderBy: { createdAt: "asc" } })
+    }
+    return prisma.organization.findFirst({ where: { status: "ACTIVE" }, orderBy: { createdAt: "asc" } })
+  } catch {
+    return null
+  }
 }
 
-export default function RootLayout({
+export async function generateMetadata(): Promise<Metadata> {
+  const org = await resolveBrandOrg()
+  if (!org) {
+    return {
+      title: "Salon Platform",
+      description: "Rezervacije, trgovina in predstavitev vašega salona",
+    }
+  }
+  const config = await prisma.salonConfig.findUnique({ where: { organizationId: org.id } })
+  const content = mergeSiteContent(config?.siteContent, org.vertical)
+  const title = content.seo.title || org.name
+  const description = content.seo.description || content.hero.subtitle
+  return {
+    title,
+    description,
+    icons: { icon: org.logo || "/favicon.svg" },
+    manifest: "/manifest.json",
+  }
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const org = await resolveBrandOrg()
+  let themeCss = ""
+  let orgCurrency = "EUR"
+  if (org) {
+    const paletteId = org.palette && PALETTES[org.palette] ? org.palette : "rose"
+    const palette: Palette = PALETTES[paletteId]
+    const vars = paletteCssVars(palette)
+    themeCss = `:root{${Object.entries(vars)
+      .map(([k, v]) => `${k}:${v}`)
+      .join(";")}}`
+    const config = await prisma.salonConfig.findUnique({
+      where: { organizationId: org.id },
+      select: { currency: true },
+    })
+    orgCurrency = config?.currency || "EUR"
+  }
+
   return (
     <html
-      lang="en"
+      lang="sl"
       className="scroll-smooth"
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
+      <head>
+        {themeCss && <style id="org-theme" dangerouslySetInnerHTML={{ __html: themeCss }} />}
+      </head>
       <body
-        className={`${rougeScript.variable} ${poppins.variable} antialiased`}
+        className={`${rougeScript.variable} ${poppins.variable} ${playfair.variable} ${cormorant.variable} ${oswald.variable} ${montserrat.variable} ${inter.variable} ${lora.variable} antialiased`}
       >
         <ThemeProvider
           attribute="class"
@@ -55,14 +125,16 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <SessionProvider>
-            <CartProvider>
-              <TooltipProvider>
-                {children}
+            <CurrencyProvider currency={orgCurrency}>
+              <CartProvider>
+                <TooltipProvider>
+                  {children}
 
-                {/* Footer - Appears on ALL pages (public, customer, admin) */}
-                <Footer />
-              </TooltipProvider>
-            </CartProvider>
+                  {/* Footer - Appears on ALL pages (public, customer, admin) */}
+                  <Footer />
+                </TooltipProvider>
+              </CartProvider>
+            </CurrencyProvider>
 
             <Toaster position="top-right" richColors />
           </SessionProvider>

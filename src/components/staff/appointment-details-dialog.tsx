@@ -1,4 +1,5 @@
 "use client"
+import { useFormatPrice } from "@/lib/currency"
 
 import {
   Dialog,
@@ -85,6 +86,7 @@ export function AppointmentDetailsDialog({
   onMarkNoShow,
   isPending = false,
 }: AppointmentDetailsDialogProps) {
+  const fmt = useFormatPrice()
   if (!appointment) return null
 
   const customerEmail =
@@ -226,7 +228,7 @@ export function AppointmentDetailsDialog({
                       </div>
                     </div>
                     <p className="text-primary ml-3 text-sm font-bold sm:text-base">
-                      ${item.service.price.toFixed(2)}
+                      {fmt(item.service.price)}
                     </p>
                   </div>
                 ))}
@@ -247,7 +249,7 @@ export function AppointmentDetailsDialog({
                   Total Price
                 </span>
                 <span className="text-primary text-xl font-bold sm:text-2xl">
-                  ${appointment.totalPrice.toFixed(2)}
+                  {fmt(appointment.totalPrice)}
                 </span>
               </div>
             </div>

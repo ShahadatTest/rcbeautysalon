@@ -1,16 +1,36 @@
-import { getStaffMembers } from "@/app/actions/staff"
-import { Metadata } from "next"
+import type { Metadata } from "next"
+import { getPublicSiteData, getPublicStaffMembers } from "@/lib/public-site"
+import { orgPath } from "@/lib/org-path"
+import { splitLastWord } from "@/components/landing/section-title"
 import Link from "next/link"
 import Image from "next/image"
 import { cloudinaryPresets } from "@/lib/utils/cloudinary"
 
-export const metadata: Metadata = {
-  title: "Our Team | RC Beauty Salon",
-  description: "Meet our talented team of beauty professionals",
+export async function generateMetadata(): Promise<Metadata> {
+  const site = await getPublicSiteData()
+  const orgName = site?.org.name ?? "Salon"
+  return {
+    title: `${site?.content.team.title ?? "Naša ekipa"} | ${orgName}`,
+    description:
+      site?.content.team.subtitle ??
+      "Spoznajte našo ekipo lepotnih strokovnjakov",
+  }
 }
 
 const StaffPage = async () => {
-  const staffMembers = await getStaffMembers()
+  const site = await getPublicSiteData()
+
+  if (!site) {
+    return (
+      <div className="container mx-auto flex min-h-[60vh] items-center justify-center px-4">
+        <h1 className="text-2xl font-bold">Salon ni konfiguriran</h1>
+      </div>
+    )
+  }
+
+  const { org, content } = site
+  const slug = org.slug
+  const staffMembers = await getPublicStaffMembers(org.id)
 
   // Generate slug from name
   const generateSlug = (name: string) => {
@@ -20,6 +40,8 @@ const StaffPage = async () => {
       .replace(/[^a-z0-9-]/g, "")
   }
 
+  const teamHeading = splitLastWord(content.team.title)
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -27,17 +49,18 @@ const StaffPage = async () => {
         <div className="container relative z-10 mx-auto px-4">
           <div className="mx-auto max-w-3xl text-center">
             <span className="mb-4 inline-block rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary font-body">
-              Meet the Experts
+              Spoznajte strokovnjake
             </span>
             <h1 className="font-heading mb-4 text-5xl sm:text-6xl md:text-7xl lg:text-8xl">
-              Our{" "}
-              <span className="bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">
-                Team
-              </span>
+              {teamHeading.lead}{" "}
+              {teamHeading.accent && (
+                <span className="bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">
+                  {teamHeading.accent}
+                </span>
+              )}
             </h1>
             <p className="text-lg text-muted-foreground md:text-xl font-body">
-              Our talented professionals are dedicated to helping you look and
-              feel your absolute best.
+              {content.team.subtitle}
             </p>
           </div>
         </div>
@@ -63,9 +86,9 @@ const StaffPage = async () => {
                   />
                 </svg>
               </div>
-              <h3 className="font-heading mb-2 text-3xl md:text-4xl">No team members yet</h3>
+              <h3 className="font-heading mb-2 text-3xl md:text-4xl">Ekipa še ni objavljena</h3>
               <p className="text-muted-foreground font-body">
-                Our team is being assembled. Check back soon!
+                Naša ekipa se dograjuje. Preverite kmalu!
               </p>
             </div>
           ) : (
@@ -73,7 +96,7 @@ const StaffPage = async () => {
               {staffMembers.map((staff) => (
                 <Link
                   key={staff.id}
-                  href={`/staff/${generateSlug(staff.name)}`}
+                  href={orgPath(slug, `/staff/${generateSlug(staff.name)}`)}
                   className="group relative block aspect-3/4 overflow-hidden rounded-2xl shadow-lg transition-all duration-500 hover:shadow-2xl hover:-translate-y-2"
                 >
                   {/* Background Image */}
@@ -97,7 +120,7 @@ const StaffPage = async () => {
                     {/* Services Count Badge */}
                     <div className="absolute top-4 right-4 rounded-full bg-white/20 backdrop-blur-sm px-3 py-1 transition-all duration-300 group-hover:bg-accent group-hover:text-black">
                       <span className="text-xs font-medium font-body">
-                        {staff.services.length} services
+                        {staff.services.length} storitev
                       </span>
                     </div>
 
@@ -115,7 +138,7 @@ const StaffPage = async () => {
 
                     {/* View Profile Button */}
                     <div className="flex items-center gap-2 text-sm font-medium text-accent opacity-0 translate-y-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0 font-body">
-                      <span>View Profile</span>
+                      <span>Poglej profil</span>
                       <svg
                         className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
                         fill="none"
@@ -145,16 +168,16 @@ const StaffPage = async () => {
       <section className="border-t bg-linear-to-br from-primary/5 to-accent/5 py-16">
         <div className="container mx-auto px-4 text-center">
           <h2 className="font-heading mb-4 text-4xl md:text-5xl lg:text-6xl">
-            Ready to Transform Your Look?
+            {content.cta.title}
           </h2>
           <p className="mb-8 text-muted-foreground font-body">
-            Book an appointment with one of our talented stylists today
+            {content.cta.text}
           </p>
           <Link
-            href="/booking"
+            href={orgPath(slug, content.cta.buttonHref)}
             className="inline-flex items-center justify-center rounded-full bg-primary px-8 py-3 font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-lg font-body"
           >
-            Book Now
+            {content.cta.buttonLabel}
           </Link>
         </div>
       </section>

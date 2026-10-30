@@ -1,0 +1,557 @@
+"use client"
+
+import { useEffect, useMemo, useRef, useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { signIn } from "next-auth/react"
+import { toast } from "sonner"
+
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Logo } from "@/components/ui/logo"
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  CheckCircleIcon,
+  SparkleIcon,
+  SpinnerIcon,
+  StorefrontIcon,
+  XCircleIcon,
+} from "@/components/icons"
+import { PALETTE_OPTIONS, VERTICAL_OPTIONS } from "@/lib/palettes-client"
+import { checkSlugAvailability, createSalonOrganization } from "@/app/actions/onboarding"
+import { cn } from "@/lib/utils"
+
+// Client-safe slugify (mirror of src/lib/tenant.ts, which is server-only)
+function slugifyLocal(input: string): string {
+  return input
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove diacritics (č->c, š->s, ž->z)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+}
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
+type SlugStatus = "idle" | "checking" | "available" | "taken"
+
+const STEPS = [
+  { id: 1, label: "Panoga" },
+  { id: 2, label: "Salon" },
+  { id: 3, label: "Lastnik" },
+] as const
+
+export function StartWizard() {
+  const router = useRouter()
+
+  const [step, setStep] = useState(1)
+  const [creating, setCreating] = useState(false)
+
+  // Step 1 — vertical & palette
+  const [vertical, setVertical] = useState<string | null>(null)
+  const [palette, setPalette] = useState<string | null>(null)
+
+  // Step 2 — salon details
+  const [name, setName] = useState("")
+  const [slug, setSlug] = useState("")
+  const [slugTouched, setSlugTouched] = useState(false)
+  const [slugStatus, setSlugStatus] = useState<SlugStatus>("idle")
+
+  // Step 3 — owner
+  const [ownerName, setOwnerName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+
+  const selectedVertical = useMemo(
+    () => VERTICAL_OPTIONS.find((v) => v.id === vertical) ?? null,
+    [vertical]
+  )
+  const selectedPalette = useMemo(
+    () => PALETTE_OPTIONS.find((p) => p.id === palette) ?? null,
+    [palette]
+  )
+
+  // Debounced slug availability check (state is set in change handlers;
+  // this effect only schedules the async lookup)
+  const checkIdRef = useRef(0)
+  useEffect(() => {
+    const trimmed = slug.trim()
+    if (trimmed.length < 2) return
+    const id = ++checkIdRef.current
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkSlugAvailability(trimmed)
+        if (checkIdRef.current !== id) return // stale response
+        setSlugStatus(res.available ? "available" : "taken")
+      } catch {
+        if (checkIdRef.current !== id) return
+        setSlugStatus("idle")
+      }
+    }, 450)
+    return () => clearTimeout(timer)
+  }, [slug])
+
+  // Auto-slug from salon name until the user edits the slug manually
+  function handleNameChange(value: string) {
+    setName(value)
+    if (!slugTouched) {
+      const next = slugifyLocal(value)
+      setSlug(next)
+      setSlugStatus(next.trim().length < 2 ? "idle" : "checking")
+    }
+  }
+
+  function handleSlugChange(value: string) {
+    setSlugTouched(true)
+    const next = slugifyLocal(value)
+    setSlug(next)
+    setSlugStatus(next.trim().length < 2 ? "idle" : "checking")
+  }
+
+  function selectVertical(id: string) {
+    setVertical(id)
+    const preset = VERTICAL_OPTIONS.find((v) => v.id === id)
+    if (preset) setPalette(preset.palette)
+  }
+
+  function validateStep(current: number): boolean {
+    if (current === 1) {
+      if (!vertical) {
+        toast.error("Izberite panogo.", { description: "Izberite eno od panog za nadaljevanje." })
+        return false
+      }
+      if (!palette) {
+        toast.error("Izberite barvno paleto.")
+        return false
+      }
+      return true
+    }
+    if (current === 2) {
+      if (name.trim().length < 2) {
+        toast.error("Ime salona mora imeti vsaj 2 znaka.")
+        return false
+      }
+      if (slug.trim().length < 2) {
+        toast.error("Vnesite URL naslov za vašo stran.")
+        return false
+      }
+      if (slugStatus === "checking") {
+        toast.error("Preverjam razpoložljivost URL naslova …")
+        return false
+      }
+      if (slugStatus !== "available") {
+        toast.error("Ta URL naslov ni prost. Izberite drugega.")
+        return false
+      }
+      if (!palette) {
+        toast.error("Izberite barvno paleto.")
+        return false
+      }
+      return true
+    }
+    // Step 3
+    if (ownerName.trim().length < 2) {
+      toast.error("Vnesite ime in priimek.")
+      return false
+    }
+    if (!EMAIL_REGEX.test(email.trim())) {
+      toast.error("Vnesite veljaven e-poštni naslov.")
+      return false
+    }
+    if (password.length < 8) {
+      toast.error("Geslo mora imeti vsaj 8 znakov.")
+      return false
+    }
+    if (password !== confirmPassword) {
+      toast.error("Gesli se ne ujemata.")
+      return false
+    }
+    return true
+  }
+
+  function goNext() {
+    if (!validateStep(step)) return
+    setStep((s) => Math.min(3, s + 1))
+  }
+
+  function goBack() {
+    setStep((s) => Math.max(1, s - 1))
+  }
+
+  async function handleSubmit() {
+    if (!validateStep(3)) return
+    setCreating(true)
+    try {
+      const res = await createSalonOrganization({
+        name: name.trim(),
+        slug: slug.trim(),
+        vertical: vertical!,
+        palette: palette!,
+        ownerName: ownerName.trim(),
+        email: email.trim(),
+        password,
+      })
+
+      if (!res.success) {
+        toast.error(res.error ?? "Pri ustvarjanju salona je prišlo do napake. Poskusite znova.")
+        setCreating(false)
+        return
+      }
+
+      const login = await signIn("credentials", {
+        email: email.trim(),
+        password,
+        redirect: false,
+      })
+
+      if (login?.error) {
+        toast.error("Salon je ustvarjen, avtomatska prijava pa ni uspela.", {
+          description: "Prijavite se ročno z vašo e-pošto in geslom.",
+          duration: 8000,
+        })
+        router.push("/login")
+        return
+      }
+
+      toast.success("Salon je ustvarjen!", {
+        description: `Vaša stran je na voljo na /s/${res.slug}`,
+      })
+      router.push("/dashboard?welcome=1")
+      router.refresh()
+    } catch {
+      toast.error("Pri ustvarjanju salona je prišlo do napake. Poskusite znova.")
+      setCreating(false)
+    }
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
+      {/* Header */}
+      <header className="border-b border-border">
+        <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-4">
+          <Link href="/" aria-label="Na začetno stran">
+            <Logo variant="navbar" />
+          </Link>
+          <p className="text-sm text-muted-foreground">
+            Imate že račun?{" "}
+            <Link href="/login" className="font-medium text-primary hover:underline">
+              Prijava
+            </Link>
+          </p>
+        </div>
+      </header>
+
+      {/* Main */}
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:py-10">
+        {/* Step indicator */}
+        <nav aria-label="Koraki registracije" className="mb-8">
+          <ol className="flex items-center">
+            {STEPS.map((s, i) => {
+              const isActive = s.id === step
+              const isDone = s.id < step
+              return (
+                <li key={s.id} className={cn("flex items-center", i < STEPS.length - 1 && "flex-1")}>
+                  <div className="flex flex-col items-center gap-1.5">
+                    <span
+                      aria-current={isActive ? "step" : undefined}
+                      className={cn(
+                        "flex h-9 w-9 items-center justify-center rounded-full border text-sm font-semibold transition-colors",
+                        isDone && "border-primary bg-primary text-primary-foreground",
+                        isActive && "border-primary bg-primary/10 text-primary",
+                        !isActive && !isDone && "border-border bg-background text-muted-foreground"
+                      )}
+                    >
+                      {isDone ? <CheckCircleIcon size={18} weight="bold" /> : s.id}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-xs font-medium",
+                        isActive ? "text-foreground" : "text-muted-foreground"
+                      )}
+                    >
+                      {s.label}
+                    </span>
+                  </div>
+                  {i < STEPS.length - 1 && (
+                    <div
+                      aria-hidden="true"
+                      className={cn(
+                        "mx-3 mb-6 h-px flex-1 sm:mx-4",
+                        s.id < step ? "bg-primary" : "bg-border"
+                      )}
+                    />
+                  )}
+                </li>
+              )
+            })}
+          </ol>
+        </nav>
+
+        {/* Step 1 — Vertical */}
+        {step === 1 && (
+          <section aria-labelledby="step-1-title">
+            <h1 id="step-1-title" className="text-2xl font-bold tracking-tight sm:text-3xl">
+              Kaj počnete v vašem salonu?
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              Izberite panogo — prilagodili vam bomo katalog storitev, barve in vsebino strani.
+            </p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {VERTICAL_OPTIONS.map((v) => {
+                const paletteOption = PALETTE_OPTIONS.find((p) => p.id === v.palette)
+                const isSelected = vertical === v.id
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => selectVertical(v.id)}
+                    aria-pressed={isSelected}
+                    className={cn(
+                      "flex items-start gap-3 rounded-xl border p-4 text-left transition-all hover:border-primary/50 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      isSelected && "border-primary bg-primary/5 ring-2 ring-primary/20"
+                    )}
+                  >
+                    <span className="mt-0.5 flex shrink-0 items-center">
+                      <span
+                        className="h-5 w-5 rounded-full ring-1 ring-border"
+                        style={{ backgroundColor: paletteOption?.primary ?? "#000000" }}
+                      />
+                      <span
+                        className="-ml-2 h-5 w-5 rounded-full ring-1 ring-border"
+                        style={{ backgroundColor: paletteOption?.accent ?? "#d4af37" }}
+                      />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-semibold leading-tight">{v.label}</span>
+                      <span className="mt-1 block text-sm text-muted-foreground">{v.description}</span>
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Step 2 — Salon */}
+        {step === 2 && (
+          <section aria-labelledby="step-2-title">
+            <h1 id="step-2-title" className="text-2xl font-bold tracking-tight sm:text-3xl">
+              Podatki o salonu
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              To se bo prikazalo vašim strankam na vaši spletni strani.
+            </p>
+
+            <div className="mt-6 space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="salon-name">Ime salona</Label>
+                <Input
+                  id="salon-name"
+                  value={name}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  placeholder="npr. Studio Nika"
+                  maxLength={60}
+                  autoComplete="organization"
+                  disabled={creating}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="salon-slug">URL naslov</Label>
+                <Input
+                  id="salon-slug"
+                  value={slug}
+                  onChange={(e) => handleSlugChange(e.target.value)}
+                  placeholder="npr. studio-nika"
+                  maxLength={40}
+                  disabled={creating}
+                />
+                <div className="flex min-h-5 flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                  <span className="font-mono text-muted-foreground">
+                    Vaša stran: <span className="text-foreground">/s/{slug || "…"}</span>
+                  </span>
+                  {slugStatus === "checking" && (
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <SpinnerIcon size={14} className="animate-spin" /> Preverjam …
+                    </span>
+                  )}
+                  {slugStatus === "available" && (
+                    <span className="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+                      <CheckCircleIcon size={16} weight="fill" /> Prosto
+                    </span>
+                  )}
+                  {slugStatus === "taken" && (
+                    <span className="flex items-center gap-1.5 font-medium text-destructive">
+                      <XCircleIcon size={16} weight="fill" /> Zasedeno
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label>Paleta</Label>
+                <div className="grid grid-cols-4 gap-3 sm:grid-cols-8">
+                  {PALETTE_OPTIONS.map((p) => {
+                    const isSelected = palette === p.id
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        title={p.label}
+                        aria-label={`Paleta ${p.label}`}
+                        aria-pressed={isSelected}
+                        onClick={() => setPalette(p.id)}
+                        className={cn(
+                          "flex h-11 w-full items-center justify-center rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                          isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                        )}
+                      >
+                        <span
+                          className="h-9 w-9 rounded-full ring-1 ring-black/10"
+                          style={{
+                            background: `linear-gradient(135deg, ${p.primary} 50%, ${p.accent} 50%)`,
+                          }}
+                        />
+                      </button>
+                    )
+                  })}
+                </div>
+                {selectedPalette && (
+                  <p className="text-sm text-muted-foreground">
+                    Izbrana paleta: <span className="font-medium text-foreground">{selectedPalette.label}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Step 3 — Owner */}
+        {step === 3 && (
+          <section aria-labelledby="step-3-title">
+            <h1 id="step-3-title" className="text-2xl font-bold tracking-tight sm:text-3xl">
+              Vaš račun
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              S tem računom upravljate salon, rezervacije in trgovino.
+            </p>
+
+            <div className="mt-6 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="owner-name">Ime in priimek</Label>
+                <Input
+                  id="owner-name"
+                  value={ownerName}
+                  onChange={(e) => setOwnerName(e.target.value)}
+                  placeholder="npr. Nika Novak"
+                  autoComplete="name"
+                  disabled={creating}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="owner-email">E-pošta</Label>
+                <Input
+                  id="owner-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="npr. nika@studionika.si"
+                  autoComplete="email"
+                  disabled={creating}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="owner-password">Geslo</Label>
+                <Input
+                  id="owner-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Najmanj 8 znakov"
+                  autoComplete="new-password"
+                  disabled={creating}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="owner-password-confirm">Potrditev gesla</Label>
+                <Input
+                  id="owner-password-confirm"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Ponovite geslo"
+                  autoComplete="new-password"
+                  disabled={creating}
+                />
+              </div>
+
+              <div className="rounded-lg border border-border bg-muted/50 p-4">
+                <p className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                  <SparkleIcon size={18} weight="fill" className="mt-0.5 shrink-0 text-primary" />
+                  <span>
+                    Po registraciji dobite takoj svojo spletno stran z rezervacijami in trgovino.
+                    {slug ? (
+                      <>
+                        {" "}
+                        Vaša stran bo na voljo na{" "}
+                        <span className="font-mono font-medium text-foreground">/s/{slug}</span>.
+                      </>
+                    ) : null}
+                  </span>
+                </p>
+                {selectedVertical && (
+                  <p className="mt-2 flex items-start gap-2.5 text-sm text-muted-foreground">
+                    <StorefrontIcon size={18} weight="fill" className="mt-0.5 shrink-0 text-primary" />
+                    <span>
+                      Panoga <span className="font-medium text-foreground">{selectedVertical.label}</span>{" "}
+                      prihaja s pripravljenim katalogom storitev, ki ga lahko poljubno urejate.
+                    </span>
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+      </main>
+
+      {/* Sticky footer */}
+      <footer className="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          {step > 1 ? (
+            <Button variant="outline" onClick={goBack} disabled={creating} className="min-h-11">
+              <ArrowLeftIcon size={16} weight="bold" className="mr-1.5" />
+              Nazaj
+            </Button>
+          ) : (
+            <span aria-hidden="true" />
+          )}
+
+          {step < 3 ? (
+            <Button onClick={goNext} className="min-h-11">
+              Naprej
+              <ArrowRightIcon size={16} weight="bold" className="ml-1.5" />
+            </Button>
+          ) : (
+            <Button onClick={handleSubmit} disabled={creating} className="min-h-11">
+              {creating ? (
+                <>
+                  <SpinnerIcon size={16} className="mr-1.5 animate-spin" />
+                  Ustvarjam salon …
+                </>
+              ) : (
+                "Ustvari salon"
+              )}
+            </Button>
+          )}
+        </div>
+      </footer>
+    </div>
+  )
+}

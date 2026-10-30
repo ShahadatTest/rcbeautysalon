@@ -1,3 +1,4 @@
+import { useFormatPrice } from "@/lib/currency"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ClockIcon, CheckCircleIcon } from "@/components/icons"
@@ -17,6 +18,7 @@ export function ServiceSelectionStep({
   onSelectService,
   error,
 }: ServiceSelectionStepProps) {
+  const fmt = useFormatPrice()
   return (
     <Card className="border-primary/20 shadow-lg">
       <CardHeader>
@@ -83,7 +85,7 @@ export function ServiceSelectionStep({
                     variant={isSelected ? "default" : "secondary"}
                     className="text-sm"
                   >
-                    ${service.price.toFixed(2)}
+                    {fmt(service.price)}
                   </Badge>
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <ClockIcon size={12} />

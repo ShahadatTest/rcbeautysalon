@@ -1,13 +1,22 @@
 import { PublicNavbar } from "@/components/layouts/public-navbar"
+import { getPublicOrg } from "@/lib/tenant"
 
-export default function PublicLayout({
+export default async function PublicLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const org = await getPublicOrg()
+
   return (
     <>
-      <PublicNavbar />
+      <PublicNavbar
+        org={{
+          slug: org?.slug ?? null,
+          name: org?.name ?? "Salon",
+          logo: org?.logo ?? null,
+        }}
+      />
       <main>{children}</main>
     </>
   )

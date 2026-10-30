@@ -1,3 +1,4 @@
+import { useFormatPrice } from "@/lib/currency"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ClockIcon } from "@/components/icons"
@@ -12,6 +13,7 @@ interface ServiceStepProps {
 }
 
 export function ServiceStep({ service }: ServiceStepProps) {
+  const fmt = useFormatPrice()
   return (
     <Card className="border-primary/20 shadow-lg">
       <CardHeader>
@@ -33,7 +35,7 @@ export function ServiceStep({ service }: ServiceStepProps) {
               )}
             </div>
             <Badge variant="secondary" className="text-base">
-              ${service.price.toFixed(2)}
+              {fmt(service.price)}
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">

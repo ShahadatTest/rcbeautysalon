@@ -21,6 +21,18 @@ import { sendAppointmentCompletedEmail } from "@/lib/email/appointment-completed
 import { sendAppointmentCancelledEmail } from "@/lib/email/appointment-cancelled"
 import { sendAppointmentRescheduledEmail } from "@/lib/email/appointment-rescheduled"
 import { sendAppointmentExpiredEmail } from "@/lib/email/appointment-expired"
+import { getPublicOrg, getSessionOrg, requireAdminOrg, getResolvedOrg } from "@/lib/tenant"
+
+/**
+ * Resolve the organization for the current request: admins/staff act within
+ * their session org, everyone else (guests, customers) within the public
+ * tenant org. Returns null when no org can be determined.
+ */
+async function resolveRequestOrg() {
+  // Tenant header (/s/[slug]) always wins over the session to avoid
+  // cross-tenant leakage when a signed-in admin browses another salon.
+  return getResolvedOrg()
+}
 
 // Get current user's staff ID (if they are a staff member)
 // Used to prevent staff from booking appointments with themselves
@@ -39,19 +51,23 @@ export async function getCurrentUserStaffId(): Promise<string | null> {
   return staff?.id || null
 }
 
-// Get salon configuration
+// Get salon configuration (per organization)
 export const getSalonConfig = cache(async () => {
-  const config = await prisma.salonConfig.findUnique({
-    where: { id: "salon_config" },
-    select: {
-      bookingDeposit: true,
-      depositRefundable: true,
-      minBookingAdvance: true,
-      maxBookingAdvance: true,
-      cancellationPolicy: true,
-      timezone: true,
-    },
-  })
+  const org = await resolveRequestOrg()
+
+  const config = org
+    ? await prisma.salonConfig.findFirst({
+        where: { organizationId: org.id },
+        select: {
+          bookingDeposit: true,
+          depositRefundable: true,
+          minBookingAdvance: true,
+          maxBookingAdvance: true,
+          cancellationPolicy: true,
+          timezone: true,
+        },
+      })
+    : null
   if (!config) {
     return {
       bookingDeposit: 50,
@@ -72,10 +88,13 @@ export const getSalonConfig = cache(async () => {
 export async function getAvailableStaff(
   serviceId: string
 ): Promise<AvailableStaffMember[]> {
+  const org = await resolveRequestOrg()
+  if (!org) return []
+
   const availableStaff = await prisma.staffService.findMany({
     where: {
       serviceId,
-      staff: { isActive: true },
+      staff: { isActive: true, organizationId: org.id },
     },
     include: {
       staff: {
@@ -96,12 +115,15 @@ export async function getAvailableStaff(
 
 // Get staff member with their services for booking (staff-first flow)
 export async function getStaffForBooking(staffId: string) {
-  const staff = await prisma.staff.findUnique({
-    where: { id: staffId, isActive: true },
+  const org = await resolveRequestOrg()
+  if (!org) return null
+
+  const staff = await prisma.staff.findFirst({
+    where: { id: staffId, isActive: true, organizationId: org.id },
     include: {
       services: {
         where: {
-          service: { isActive: true },
+          service: { isActive: true, organizationId: org.id },
         },
         include: {
           service: {
@@ -153,6 +175,9 @@ export async function getAvailableTimeSlots(
   // Ensure date is a Date object (server actions serialize Date to string)
   const dateObj = new Date(date)
 
+  const org = await resolveRequestOrg()
+  if (!org) return []
+
   // Get day of week (0 = Sunday, 6 = Saturday)
   const dayOfWeek = dateObj.getDay()
 
@@ -179,6 +204,7 @@ export async function getAvailableTimeSlots(
   const existingAppointments = await prisma.appointment.findMany({
     where: {
       staffId,
+      organizationId: org.id,
       startTime: {
         gte: startOfDay,
         lte: endOfDay,
@@ -235,9 +261,16 @@ export async function getAvailableTimeSlots(
 
 //Get single service details for booking
 export async function getServiceForBooking(serviceSlug: string) {
+  const org = await resolveRequestOrg()
+  if (!org) return null
+
   // Fetch service details for booking page by slug
-  const service = await prisma.service.findUnique({
-    where: { slug: serviceSlug, isActive: true },
+  const service = await prisma.service.findFirst({
+    where: {
+      slug: serviceSlug,
+      isActive: true,
+      organizationId: org.id,
+    },
     select: {
       id: true,
       name: true,
@@ -266,11 +299,15 @@ export async function getServiceForBooking(serviceSlug: string) {
 
 //Get multiple services for multi-service booking
 export async function getServicesForBooking(serviceIds: string[]) {
+  const org = await resolveRequestOrg()
+  if (!org) return []
+
   // Fetch multiple services for multi-service appointments
   const services = await prisma.service.findMany({
     where: {
       id: { in: serviceIds },
       isActive: true,
+      organizationId: org.id,
     },
     select: {
       id: true,
@@ -295,6 +332,12 @@ export async function createAppointment(
     // Get current session to identify if user is authenticated
     const session = await auth()
 
+    // Resolve the tenant organization for this booking
+    const org = await resolveRequestOrg()
+    if (!org) {
+      return { success: false, error: "Booking is currently unavailable" }
+    }
+
     // Validate required fields
     if (!data.staffId || !data.serviceIds.length || !data.startTime) {
       return { success: false, error: "Missing required fields" }
@@ -306,7 +349,7 @@ export async function createAppointment(
     }
 
     // Prevent employees from booking appointments with themselves
-    if (data.isEmployee && session?.user) {
+    if (session?.user && ["STAFF", "ADMIN"].includes(session.user.role)) {
       const currentUserStaff = await prisma.staff.findUnique({
         where: { userId: session.user.id },
         select: { id: true },
@@ -316,18 +359,32 @@ export async function createAppointment(
       }
     }
 
-    // Fetch selected services and calculate totals
+    // Fetch selected services and calculate totals (scoped to this organization)
     const services = await getServicesForBooking(data.serviceIds)
-    if (services.length === 0) {
+    if (
+      services.length === 0 ||
+      services.length !== new Set(data.serviceIds).size
+    ) {
       return { success: false, error: "Invalid service selection" }
     }
 
     const baseTotalPrice = services.reduce((sum, s) => sum + s.price, 0)
     const totalDuration = services.reduce((sum, s) => sum + s.duration, 0)
 
+    // Check if admin is creating appointment for a customer
+    const isAdminCreating = session?.user?.role === "ADMIN" && data.guestName
+
+    // SECURITY: employee discount is derived server-side from the session role,
+    // never trusted from client arguments. It only applies when an authenticated
+    // STAFF/ADMIN user books for themselves (not when creating for a customer).
+    const isEmployeeBooking =
+      !!session?.user &&
+      ["STAFF", "ADMIN"].includes(session.user.role) &&
+      !isAdminCreating
+
     // Apply 20% employee discount if applicable
     const employeeDiscountRate = 0.20
-    const totalPrice = data.isEmployee
+    const totalPrice = isEmployeeBooking
       ? baseTotalPrice * (1 - employeeDiscountRate)
       : baseTotalPrice
 
@@ -338,9 +395,9 @@ export async function createAppointment(
     const config = await getSalonConfig()
 
     // Employee bookings don't require deposit
-    const depositAmount = data.isEmployee ? 0 : config.bookingDeposit
-    const depositPaid = data.isEmployee ? true : false // Employees don't need to pay deposit
-    const appointmentStatus = data.isEmployee ? "CONFIRMED" : "PENDING"
+    const depositAmount = isEmployeeBooking ? 0 : config.bookingDeposit
+    const depositPaid = isEmployeeBooking ? true : false // Employees don't need to pay deposit
+    const appointmentStatus = isEmployeeBooking ? "CONFIRMED" : "PENDING"
 
     // Verify the requested time slot is available
     const slots = await getAvailableTimeSlots(
@@ -360,9 +417,6 @@ export async function createAppointment(
     // Handle customer creation/retrieval
     let customerId: string | null = null
 
-    // Check if admin is creating appointment for a customer
-    const isAdminCreating = session?.user?.role === "ADMIN" && data.guestName
-
     if (session?.user && !isAdminCreating) {
       // Regular customer booking for themselves
       const userWithCustomer = await prisma.user.findUnique({
@@ -381,15 +435,16 @@ export async function createAppointment(
             email: session.user.email || data.guestEmail,
             phone: data.guestPhone,
             userId: session.user.id,
+            organizationId: org.id,
           },
         })
         customerId = customer.id
       }
     } else if (data.guestEmail) {
       // Admin creating for a customer OR guest booking
-      // Check if customer already exists by email
+      // Check if customer already exists by email (within this organization)
       const existingCustomer = await prisma.customer.findFirst({
-        where: { email: data.guestEmail },
+        where: { email: data.guestEmail, organizationId: org.id },
       })
 
       if (existingCustomer) {
@@ -409,21 +464,27 @@ export async function createAppointment(
             name: data.guestName,
             email: data.guestEmail,
             phone: data.guestPhone,
+            organizationId: org.id,
           },
         })
         customerId = customer.id
       }
     }
 
-    // Get staff info for the email
-    const staff = await prisma.staff.findUnique({
-      where: { id: data.staffId },
-      select: { name: true },
+    // Get staff info for the email (must belong to this organization)
+    const staff = await prisma.staff.findFirst({
+      where: { id: data.staffId, organizationId: org.id },
+      select: { id: true, name: true },
     })
+
+    if (!staff) {
+      return { success: false, error: "Invalid staff selection" }
+    }
 
     // Create the appointment with associated services
     const appointment = await prisma.appointment.create({
       data: {
+        organizationId: org.id,
         staffId: data.staffId,
         customerId,
         // Guest info only used for non-authenticated bookings
@@ -599,12 +660,7 @@ export async function cancelAppointment(appointmentId: string) {
 
 //Get admin appointments with filters
 export async function getAdminAppointments(filters?: AdminAppointmentsFilter) {
-  const session = await auth()
-
-  // Ensure user is an admin
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized")
-  }
+  const { org } = await requireAdminOrg()
 
   // Automatically handle past appointments before fetching
   const now = new Date()
@@ -612,6 +668,7 @@ export async function getAdminAppointments(filters?: AdminAppointmentsFilter) {
   // 1. Handle PENDING (unpaid) appointments - cancel and notify
   const pendingToCancel = await prisma.appointment.findMany({
     where: {
+      organizationId: org.id,
       status: "PENDING",
       endTime: { lt: now },
     },
@@ -644,6 +701,7 @@ export async function getAdminAppointments(filters?: AdminAppointmentsFilter) {
 
   await prisma.appointment.updateMany({
     where: {
+      organizationId: org.id,
       status: "PENDING",
       endTime: { lt: now },
     },
@@ -653,6 +711,7 @@ export async function getAdminAppointments(filters?: AdminAppointmentsFilter) {
   // 2. Handle CONFIRMED (paid) appointments - mark as NO_SHOW
   const confirmedToNoShow = await prisma.appointment.findMany({
     where: {
+      organizationId: org.id,
       status: "CONFIRMED",
       endTime: { lt: now },
     },
@@ -686,6 +745,7 @@ export async function getAdminAppointments(filters?: AdminAppointmentsFilter) {
 
   await prisma.appointment.updateMany({
     where: {
+      organizationId: org.id,
       status: "CONFIRMED",
       endTime: { lt: now },
     },
@@ -693,7 +753,9 @@ export async function getAdminAppointments(filters?: AdminAppointmentsFilter) {
   })
 
   // Build where clause based on filters
-  const where: Prisma.AppointmentWhereInput = {}
+  const where: Prisma.AppointmentWhereInput = {
+    organizationId: org.id,
+  }
 
   // Apply status filter
   if (filters?.status) {
@@ -746,15 +808,10 @@ export async function getAdminAppointments(filters?: AdminAppointmentsFilter) {
 
 // Cached version to avoid duplicate fetches in generateMetadata + page component
 export const getAppointmentById = cache(async (id: string) => {
-  const session = await auth()
+  const { org } = await requireAdminOrg()
 
-  // Ensure user is authenticated
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized")
-  }
-
-  const appointment = await prisma.appointment.findUnique({
-    where: { id },
+  const appointment = await prisma.appointment.findFirst({
+    where: { id, organizationId: org.id },
     include: {
       staff: { select: { id: true, name: true, email: true, phone: true } },
       customer: {
@@ -790,18 +847,14 @@ export const getAppointmentById = cache(async (id: string) => {
 
 // Mark past appointments as NO_SHOW
 export async function markNoShowAppointments() {
-  const session = await auth()
-
-  // Only allow admins to run this
-  if (!session?.user || session.user.role !== "ADMIN") {
-    return { updated: 0 }
-  }
+  const { org } = await requireAdminOrg()
 
   const now = new Date()
 
   // Find and update all PENDING or CONFIRMED appointments where endTime has passed
   const result = await prisma.appointment.updateMany({
     where: {
+      organizationId: org.id,
       status: {
         in: ["PENDING", "CONFIRMED"],
       },
@@ -834,9 +887,14 @@ export async function updateAppointmentStatus(
     throw new Error("Unauthorized")
   }
 
-  // Get appointment details before updating (for email)
-  const appointmentDetails = await prisma.appointment.findUnique({
-    where: { id },
+  const org = await getSessionOrg()
+  if (!org) {
+    throw new Error("Unauthorized")
+  }
+
+  // Get appointment details before updating (for email) — scoped to the org
+  const appointmentDetails = await prisma.appointment.findFirst({
+    where: { id, organizationId: org.id },
     include: {
       customer: { select: { name: true, email: true } },
       staff: { select: { name: true } },
@@ -850,6 +908,17 @@ export async function updateAppointmentStatus(
 
   if (!appointmentDetails) {
     throw new Error("Appointment not found")
+  }
+
+  // SECURITY: STAFF may only update their own appointments (ADMIN can update all)
+  if (session.user.role === "STAFF") {
+    const ownStaff = await prisma.staff.findUnique({
+      where: { userId: session.user.id },
+      select: { id: true },
+    })
+    if (!ownStaff || appointmentDetails.staffId !== ownStaff.id) {
+      throw new Error("Unauthorized")
+    }
   }
 
   // Update appointment status
@@ -966,8 +1035,19 @@ export async function rescheduleAppointment(
     }
   }
 
-  const appointment = await prisma.appointment.findUnique({
-    where: { id: appointmentId },
+  const org = await resolveRequestOrg()
+  if (!org) {
+    return {
+      success: false,
+      error: "Appointment not found",
+    }
+  }
+
+  const appointment = await prisma.appointment.findFirst({
+    where: {
+      id: appointmentId,
+      organizationId: org.id,
+    },
     include: {
       customer: {
         include: {

@@ -3,7 +3,9 @@ import { NextResponse } from "next/server"
 import { stripe } from "@/lib/stripe"
 import { prisma } from "@/lib/prisma"
 import { addMinutes, format } from "date-fns"
+import { after } from "next/server"
 import { sendAppointmentConfirmationEmail } from "@/lib/email/appointment-confirmation"
+import { getOrgById, getPublicOrg } from "@/lib/tenant"
 import Stripe from "stripe"
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
@@ -41,22 +43,120 @@ export async function POST(req: Request) {
     const metadata = session.metadata
 
     if (!metadata) {
-      console.error("No metadata in checkout session")
-      return NextResponse.json({ error: "No metadata" }, { status: 400 })
+      console.error("Webhook: no metadata in checkout session", session.id)
+      // Acknowledge — retrying won't fix bad metadata
+      return NextResponse.json({ received: true })
+    }
+
+    // Handle product orders (e-commerce checkout)
+    if (metadata.type === "product_order" && metadata.orderId) {
+      try {
+        const order = await prisma.order.findUnique({
+          where: { id: metadata.orderId },
+          include: { items: true },
+        })
+
+        if (!order) {
+          console.error(
+            `Webhook: order ${metadata.orderId} not found (session ${session.id})`
+          )
+          return NextResponse.json({ received: true })
+        }
+
+        // Idempotency — skip if already processed (webhook retries, or the
+        // client-side success page got there first)
+        if (order.status !== "PENDING") {
+          return NextResponse.json({ received: true })
+        }
+
+        const paymentIntentId =
+          typeof session.payment_intent === "string"
+            ? session.payment_intent
+            : session.payment_intent?.id ?? null
+
+        await prisma.$transaction(async (tx) => {
+          // Conditional update guards against racing with verifyProductOrder.
+          // Backfill organizationId for legacy orders missing it.
+          const updated = await tx.order.updateMany({
+            where: { id: order.id, status: "PENDING" },
+            data: {
+              status: "PAID",
+              stripePaymentIntentId: paymentIntentId,
+              ...(metadata.orgId && !order.organizationId
+                ? { organizationId: metadata.orgId }
+                : {}),
+            },
+          })
+
+          if (updated.count === 0) return
+
+          for (const item of order.items) {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stockQuantity: { decrement: item.quantity } },
+            })
+          }
+        })
+
+        // NOTE: no order confirmation email template exists in the codebase yet
+        console.log(`Webhook: order ${order.id} marked as PAID`)
+        return NextResponse.json({ received: true })
+      } catch (error) {
+        console.error("Webhook: error processing product order:", error)
+        // Acknowledge to avoid infinite retries; order can be reconciled manually
+        return NextResponse.json({ received: true })
+      }
     }
 
     try {
+      // Resolve the tenant organization for this checkout:
+      // from metadata.orgId, falling back to the first ACTIVE organization.
+      const org = metadata.orgId
+        ? await getOrgById(metadata.orgId)
+        : await getPublicOrg()
+
+      if (!org) {
+        console.error("Webhook: no organization available", session.id)
+        return NextResponse.json({ received: true })
+      }
+
       // Handle existing appointment payment (from "Pay Now" button)
       if (metadata.type === "existing_appointment" && metadata.appointmentId) {
+        const existingAppointment = await prisma.appointment.findUnique({
+          where: { id: metadata.appointmentId },
+          select: { id: true, organizationId: true },
+        })
+
+        if (!existingAppointment) {
+          console.error(
+            `Webhook: appointment ${metadata.appointmentId} not found (session ${session.id})`
+          )
+          return NextResponse.json({ received: true })
+        }
+
+        // Tenant check: the appointment must belong to the resolved organization
+        if (
+          existingAppointment.organizationId &&
+          existingAppointment.organizationId !== org.id
+        ) {
+          console.error(
+            `Webhook: appointment ${existingAppointment.id} does not belong to org ${org.id}`
+          )
+          return NextResponse.json({ received: true })
+        }
+
         await prisma.appointment.update({
           where: { id: metadata.appointmentId },
           data: {
             depositPaid: true,
             status: "CONFIRMED",
             stripePaymentId: session.payment_intent as string,
+            ...(existingAppointment.organizationId
+              ? {}
+              : { organizationId: org.id }),
           },
         })
-        console.log(`Existing appointment paid: ${metadata.appointmentId}`)
+        console.log(`Webhook: existing appointment paid ${metadata.appointmentId}`)
         return NextResponse.json({ received: true })
       }
 
@@ -71,11 +171,37 @@ export async function POST(req: Request) {
       const userId = metadata.userId || null
       const customerName = metadata.customerName || "Customer"
 
-      // Get services for duration calculation
+      if (!staffId || !metadata.startTime || serviceIds.length === 0) {
+        console.error("Webhook: incomplete appointment metadata", session.id)
+        return NextResponse.json({ received: true })
+      }
+
+      const paymentIntentId = session.payment_intent as string
+
+      // IDEMPOTENCY — the webhook can be retried by Stripe, and the
+      // /booking/success fallback may have created the appointment already.
+      const existing = await prisma.appointment.findFirst({
+        where: { stripePaymentId: paymentIntentId },
+        select: { id: true },
+      })
+
+      if (existing) {
+        console.log(`Webhook: appointment already exists for payment ${paymentIntentId}`)
+        return NextResponse.json({ received: true })
+      }
+
+      // Get services for duration calculation (scoped to this organization)
       const services = await prisma.service.findMany({
-        where: { id: { in: serviceIds } },
+        where: { id: { in: serviceIds }, organizationId: org.id },
         select: { id: true, name: true, duration: true, price: true },
       })
+
+      if (services.length !== new Set(serviceIds).size) {
+        console.error(
+          `Webhook: services not found in org ${org.id} (session ${session.id})`
+        )
+        return NextResponse.json({ received: true })
+      }
 
       const totalDuration = services.reduce((sum, s) => sum + s.duration, 0)
       const totalPrice = services.reduce(
@@ -84,9 +210,28 @@ export async function POST(req: Request) {
       )
       const endTime = addMinutes(startTime, totalDuration)
 
-      // Get salon config
-      const config = await prisma.salonConfig.findUnique({
-        where: { id: "salon_config" },
+      // DOUBLE-BOOKING GUARD — re-check that the slot is still free before
+      // confirming. Payment received for a taken slot is logged for manual refund.
+      const overlapping = await prisma.appointment.count({
+        where: {
+          staffId,
+          organizationId: org.id,
+          status: { in: ["PENDING", "CONFIRMED"] },
+          startTime: { lt: endTime },
+          endTime: { gt: startTime },
+        },
+      })
+
+      if (overlapping > 0) {
+        console.error(
+          `Webhook: PAID booking for an occupied slot! staff=${staffId} start=${startTime.toISOString()} payment=${paymentIntentId} — manual refund required`
+        )
+        return NextResponse.json({ received: true })
+      }
+
+      // Get salon config for this organization
+      const config = await prisma.salonConfig.findFirst({
+        where: { organizationId: org.id },
       })
       const depositAmount = config?.bookingDeposit.toNumber() || 50
 
@@ -110,21 +255,30 @@ export async function POST(req: Request) {
               email: userWithCustomer.email,
               phone: guestPhone,
               userId: userId,
+              organizationId: org.id,
             },
           })
           customerId = customer.id
         }
       }
 
-      // Get staff info
-      const staff = await prisma.staff.findUnique({
-        where: { id: staffId },
+      // Get staff info (must belong to this organization)
+      const staff = await prisma.staff.findFirst({
+        where: { id: staffId, organizationId: org.id },
         select: { name: true },
       })
+
+      if (!staff) {
+        console.error(
+          `Webhook: staff ${staffId} not found in org ${org.id} (session ${session.id})`
+        )
+        return NextResponse.json({ received: true })
+      }
 
       // Create the appointment
       const appointment = await prisma.appointment.create({
         data: {
+          organizationId: org.id,
           staffId,
           customerId,
           guestName: !customerId ? guestName : null,
@@ -137,7 +291,7 @@ export async function POST(req: Request) {
           totalPrice,
           depositAmount,
           depositPaid: true, // Payment was successful
-          stripePaymentId: session.payment_intent as string,
+          stripePaymentId: paymentIntentId,
           services: {
             create: serviceIds.map((serviceId: string) => ({
               serviceId,
@@ -151,32 +305,36 @@ export async function POST(req: Request) {
         },
       })
 
-      // Send confirmation email
+      // Send confirmation email (non-blocking, never fails the webhook)
       const customerEmail = guestEmail || session.customer_email
       if (customerEmail) {
         const serviceNames = services.map((s) => s.name).join(", ")
 
-        await sendAppointmentConfirmationEmail({
-          email: customerEmail,
-          customerName,
-          serviceName: serviceNames,
-          staffName: staff?.name || "Our Staff",
-          appointmentDate: startTime,
-          appointmentTime: format(startTime, "h:mm a"),
-          duration: totalDuration,
-          totalPrice,
-          depositAmount,
-          appointmentId: appointment.id,
+        after(async () => {
+          try {
+            await sendAppointmentConfirmationEmail({
+              email: customerEmail,
+              customerName,
+              serviceName: serviceNames,
+              staffName: staff?.name || "Our Staff",
+              appointmentDate: startTime,
+              appointmentTime: format(startTime, "h:mm a"),
+              duration: totalDuration,
+              totalPrice,
+              depositAmount,
+              appointmentId: appointment.id,
+            })
+          } catch (emailError) {
+            console.error("Webhook: confirmation email failed:", emailError)
+          }
         })
       }
 
-      console.log(`Appointment created: ${appointment.id}`)
+      console.log(`Webhook: appointment created ${appointment.id}`)
     } catch (error) {
-      console.error("Error processing checkout session:", error)
-      return NextResponse.json(
-        { error: "Error processing payment" },
-        { status: 500 }
-      )
+      console.error("Webhook: error processing checkout session:", error)
+      // Acknowledge — payment intent id dedupe makes a manual replay safe
+      return NextResponse.json({ received: true })
     }
   }
 

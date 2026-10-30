@@ -1,3 +1,4 @@
+import { useFormatPrice } from "@/lib/currency"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,6 +11,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ name, price, image, isFeatured }: ProductCardProps) {
+  const fmt = useFormatPrice()
   return (
     <Card>
       <CardHeader>
@@ -22,7 +24,7 @@ export function ProductCard({ name, price, image, isFeatured }: ProductCardProps
       </CardHeader>
       <CardContent>
         <CardTitle className="text-lg">{name}</CardTitle>
-        <p className="mt-2 text-2xl font-bold">${price.toFixed(2)}</p>
+        <p className="mt-2 text-2xl font-bold">{fmt(price)}</p>
       </CardContent>
       <CardFooter>
         <Button className="w-full">Add to Cart</Button>

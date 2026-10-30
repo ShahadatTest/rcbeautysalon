@@ -1,17 +1,37 @@
-import { getFeaturedServices } from "@/app/actions/services"
-import { getFeaturedProducts } from "@/app/actions/products"
-import { getFeaturedStaff } from "@/app/actions/staff"
+import {
+  getPublicSiteData,
+  getPublicFeaturedServices,
+  getPublicFeaturedProducts,
+  getPublicFeaturedStaff,
+} from "@/lib/public-site"
 import { HomeContent } from "@/components/landing/home-content"
 
 export default async function HomePage() {
+  const site = await getPublicSiteData()
+
+  if (!site) {
+    return (
+      <div className="container mx-auto flex min-h-[60vh] flex-col items-center justify-center px-4 py-24 text-center">
+        <h1 className="text-3xl font-bold md:text-4xl">Salon ni konfiguriran</h1>
+        <p className="text-muted-foreground mt-3 max-w-md">
+          Ta stran še ni nastavljena. Če ste lastnik salona, se prijavite v
+          nadzorno ploščo in dokončajte nastavitve.
+        </p>
+      </div>
+    )
+  }
+
+  const { org, content } = site
   const [featuredServices, featuredProducts, featuredStaff] = await Promise.all([
-    getFeaturedServices(),
-    getFeaturedProducts(),
-    getFeaturedStaff(),
+    getPublicFeaturedServices(org.id),
+    getPublicFeaturedProducts(org.id),
+    getPublicFeaturedStaff(org.id),
   ])
 
   return (
     <HomeContent
+      org={{ slug: org.slug, name: org.name, logo: org.logo }}
+      content={content}
       featuredServices={featuredServices}
       featuredProducts={featuredProducts}
       featuredStaff={featuredStaff}

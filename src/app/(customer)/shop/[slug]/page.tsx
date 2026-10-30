@@ -1,7 +1,9 @@
+import type { Metadata } from "next"
 import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { getProductById, getShopProducts } from "@/app/actions/products"
+import { getPublicProductById, getPublicSiteData } from "@/lib/public-site"
+import { orgPath } from "@/lib/org-path"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -21,41 +23,37 @@ interface ProductDetailsProps {
   params: Promise<{ slug: string }>
 }
 
-export async function generateStaticParams() {
-  const products = await getShopProducts()
-  return products.map((product) => ({
-    slug: product.id,
-  }))
-}
-
-export async function generateMetadata({ params }: ProductDetailsProps) {
+export async function generateMetadata({ params }: ProductDetailsProps): Promise<Metadata> {
   const { slug } = await params
-  const product = await getProductById(slug)
+  const site = await getPublicSiteData()
+  const orgName = site?.org.name ?? "Salon"
+  const product = site ? await getPublicProductById(site.org.id, slug) : null
 
   if (!product) {
     return {
-      title: "Product Not Found | RC Beauty Salon",
-      description: "The requested product could not be found.",
+      title: `Izdelka ni mogoče najti | ${orgName}`,
+      description: "Zahtevanega izdelka ni mogoče najti.",
     }
   }
 
   return {
-    title: `${product.name} | RC Beauty Salon`,
+    title: `${product.name} | ${orgName}`,
     description:
-      product.description || "Professional beauty products for beauty care.",
+      product.description ||
+      "Profesionalni izdelki za nego lepote v vašem salonu.",
   }
 }
 
-export const revalidate = 60
-
 const ProductDetails = async ({ params }: ProductDetailsProps) => {
   const { slug } = await params
-  const product = await getProductById(slug)
+  const site = await getPublicSiteData()
+  const product = site ? await getPublicProductById(site.org.id, slug) : null
 
   if (!product) {
     notFound()
   }
 
+  const orgSlug = site?.org.slug ?? null
   const inStock = product.stockQuantity > 0
   const mainImage = product.images?.[0] || null
 
@@ -68,9 +66,9 @@ const ProductDetails = async ({ params }: ProductDetailsProps) => {
           className="mb-6 -ml-2 hover:bg-primary/10 hover:text-primary"
           asChild
         >
-          <Link href="/shop">
+          <Link href={orgPath(orgSlug, "/shop")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Shop
+            Nazaj v trgovino
           </Link>
         </Button>
 
@@ -102,17 +100,17 @@ const ProductDetails = async ({ params }: ProductDetailsProps) => {
               <div className="absolute left-4 top-4 flex flex-col gap-2">
                 {product.isFeatured && (
                   <Badge className="bg-accent text-accent-foreground shadow-md">
-                    Featured
+                    Izpostavljeno
                   </Badge>
                 )}
                 {!inStock && (
                   <Badge variant="destructive" className="shadow-md">
-                    Out of Stock
+                    Ni na zalogi
                   </Badge>
                 )}
                 {product.compareAtPrice && inStock && (
                   <Badge className="bg-primary text-primary-foreground shadow-md">
-                    Sale
+                    Akcija
                   </Badge>
                 )}
               </div>
@@ -128,7 +126,7 @@ const ProductDetails = async ({ params }: ProductDetailsProps) => {
                   >
                     <Image
                       src={image}
-                      alt={`${product.name} - Image ${index + 1}`}
+                      alt={`${product.name} - slika ${index + 1}`}
                       fill
                       className="object-cover"
                     />
@@ -165,7 +163,7 @@ const ProductDetails = async ({ params }: ProductDetailsProps) => {
                 ))}
               </div>
               <span className="text-sm text-muted-foreground">
-                (0 reviews)
+                (0 ocen)
               </span>
             </div>
 
@@ -181,7 +179,7 @@ const ProductDetails = async ({ params }: ProductDetailsProps) => {
               )}
               {product.compareAtPrice && (
                 <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                  Save ${(product.compareAtPrice - product.price).toFixed(2)}
+                  Prihranite ${(product.compareAtPrice - product.price).toFixed(2)}
                 </Badge>
               )}
             </div>
@@ -192,14 +190,14 @@ const ProductDetails = async ({ params }: ProductDetailsProps) => {
                 <>
                   <Check size={20} weight="bold" className="text-green-600" />
                   <span className="font-medium text-green-600">
-                    In Stock ({product.stockQuantity} available)
+                    Na zalogi ({product.stockQuantity} kos)
                   </span>
                 </>
               ) : (
                 <>
                   <X size={20} weight="bold" className="text-destructive" />
                   <span className="font-medium text-destructive">
-                    Out of Stock
+                    Ni na zalogi
                   </span>
                 </>
               )}
@@ -208,7 +206,7 @@ const ProductDetails = async ({ params }: ProductDetailsProps) => {
             {/* Description */}
             {product.description && (
               <div className="mb-6">
-                <h3 className="mb-2 font-semibold">Description</h3>
+                <h3 className="mb-2 font-semibold">Opis</h3>
                 <p className="leading-relaxed text-muted-foreground">
                   {product.description}
                 </p>
@@ -238,9 +236,9 @@ const ProductDetails = async ({ params }: ProductDetailsProps) => {
                     <Truck size={20} className="text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">Free Shipping</p>
+                    <p className="text-sm font-medium">Brezplačna dostava</p>
                     <p className="text-xs text-muted-foreground">
-                      On orders over $50
+                      Za naročila nad 50 €
                     </p>
                   </div>
                 </div>
@@ -249,9 +247,9 @@ const ProductDetails = async ({ params }: ProductDetailsProps) => {
                     <ShieldCheck size={20} className="text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">Secure Payment</p>
+                    <p className="text-sm font-medium">Varen nakup</p>
                     <p className="text-xs text-muted-foreground">
-                      100% protected
+                      100 % zaščiteno
                     </p>
                   </div>
                 </div>

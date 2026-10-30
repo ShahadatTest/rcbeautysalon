@@ -1,4 +1,5 @@
 "use client"
+import { useFormatPrice } from "@/lib/currency"
 
 import { useState } from "react"
 import Link from "next/link"
@@ -28,6 +29,7 @@ import { toast } from "sonner"
 import { createProductCheckoutSession } from "@/app/actions/product-checkout"
 
 export function CartContent() {
+  const fmt = useFormatPrice()
   const router = useRouter()
   const { data: session, status } = useSession()
   const { items, getTotalPrice, getTotalItems, clearCart } = useCartStore()
@@ -163,29 +165,29 @@ export function CartContent() {
             <CardContent className="space-y-4 p-6">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-medium">${totalPrice.toFixed(2)}</span>
+                <span className="font-medium">{fmt(totalPrice)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Shipping</span>
                 {shipping === 0 ? (
                   <span className="font-medium text-green-600">Free</span>
                 ) : (
-                  <span className="font-medium">${shipping.toFixed(2)}</span>
+                  <span className="font-medium">{fmt(shipping)}</span>
                 )}
               </div>
               {shipping > 0 && totalPrice > 0 && (
                 <p className="text-muted-foreground bg-accent/10 rounded-lg p-2 text-center text-xs">
-                  Add ${(50 - totalPrice).toFixed(2)} more for free shipping!
+                  Add {fmt((50 - totalPrice))} more for free shipping!
                 </p>
               )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Estimated Tax</span>
-                <span className="font-medium">${tax.toFixed(2)}</span>
+                <span className="font-medium">{fmt(tax)}</span>
               </div>
               <Separator />
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>
-                <span className="text-primary">${grandTotal.toFixed(2)}</span>
+                <span className="text-primary">{fmt(grandTotal)}</span>
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-3 p-6 pt-0">

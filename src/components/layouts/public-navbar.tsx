@@ -22,47 +22,52 @@ import {
 import { MenuIcon, CloseIcon, UserIcon, LogoutIcon, CalendarCheckIcon, SettingsIcon, ReceiptIcon, UserCogIcon, StarIcon, SpinnerGapIcon } from "@/components/icons"
 import { useNavigationStore } from "@/store/navigation-store"
 import { NavCartButton } from "@/components/shop/nav-cart-button"
+import { orgPath } from "@/lib/org-path"
 
-interface NavLink {
+interface NavLinkItem {
   href: string
+  sectionId?: string
   label: string
-  isExternal?: boolean
 }
 
-const navLinks: NavLink[] = [
-  { href: "/#services", label: "Services", isExternal: true },
-  { href: "/#about", label: "About", isExternal: true },
-  { href: "/#team", label: "Team", isExternal: true },
-  { href: "/#shop", label: "Shop", isExternal: true },
-  { href: "/#contact", label: "Contact", isExternal: true },
-]
+interface PublicNavbarProps {
+  org: { slug: string | null; name: string; logo: string | null }
+}
 
-export function PublicNavbar() {
+export function PublicNavbar({ org }: PublicNavbarProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const { data: session, status } = useSession()
   const { activeSection } = useNavigationStore()
 
+  const homeHref = orgPath(org.slug, "/")
+  const navLinks: NavLinkItem[] = [
+    { href: `${homeHref}#services`, sectionId: "services", label: "Storitve" },
+    { href: `${homeHref}#about`, sectionId: "about", label: "O nas" },
+    { href: `${homeHref}#team`, sectionId: "team", label: "Ekipa" },
+    { href: `${homeHref}#shop`, sectionId: "shop", label: "Trgovina" },
+    { href: `${homeHref}#contact`, sectionId: "contact", label: "Kontakt" },
+  ]
+
   const isLoading = status === "loading"
   const isAuthenticated = !!session?.user
 
-  const isActive = (href: string) => {
+  const isActive = (link: NavLinkItem) => {
     // Home page
-    if (href === "/") {
-      return pathname === "/"
+    if (link.href === homeHref) {
+      return pathname === homeHref
     }
 
     // Hash links (like /#about, /#contact) - check active section from scroll
-    if (href.startsWith("/#")) {
-      const sectionId = href.replace("/#", "")
-      return pathname === "/" && activeSection === sectionId
+    if (link.sectionId) {
+      return pathname === homeHref && activeSection === link.sectionId
     }
 
     // Regular routes like /services, /shop
     // Match exact path or any subpath (e.g., /services/haircut)
-    if (pathname === href) return true
-    if (pathname?.startsWith(href + "/")) return true
+    if (pathname === link.href) return true
+    if (pathname?.startsWith(link.href + "/")) return true
 
     return false
   }
@@ -71,8 +76,8 @@ export function PublicNavbar() {
     <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-card/95 backdrop-blur-md shadow-sm">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
-        <Link href="/" className="shrink-0">
-          <Logo variant="navbar" />
+        <Link href={homeHref} className="shrink-0">
+          <Logo variant="navbar" src={org.logo} alt={org.name} />
         </Link>
 
         {/* Desktop Navigation - Shows at md (768px+) */}
@@ -82,7 +87,7 @@ export function PublicNavbar() {
               key={link.href}
               href={link.href}
               className={`text-sm font-medium transition-all px-2.5 py-1.5 rounded-md xl:px-3 xl:py-2 ${
-                isActive(link.href)
+                isActive(link)
                   ? "text-primary-foreground bg-primary shadow-sm"
                   : "text-foreground/70 hover:text-primary hover:bg-primary/10"
               }`}
@@ -109,7 +114,7 @@ export function PublicNavbar() {
                     </DropdownMenuTrigger>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Account</p>
+                    <p>Račun</p>
                   </TooltipContent>
                 </Tooltip>
                 <DropdownMenuContent align="end" className="w-48">
@@ -117,7 +122,7 @@ export function PublicNavbar() {
                     <DropdownMenuItem asChild>
                       <Link href="/dashboard" className="flex items-center gap-2 cursor-pointer">
                         <SettingsIcon size={16} />
-                        Dashboard
+                        Nadzorna plošča
                       </Link>
                     </DropdownMenuItem>
                   )}
@@ -134,25 +139,25 @@ export function PublicNavbar() {
                       <DropdownMenuItem asChild>
                         <Link href="/my-account" className="flex items-center gap-2 cursor-pointer">
                           <UserCogIcon size={16} />
-                          My Account
+                          Moj račun
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href="/my-appointments" className="flex items-center gap-2 cursor-pointer">
                           <CalendarCheckIcon size={16} />
-                          My Appointments
+                          Moji termini
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href="/my-orders" className="flex items-center gap-2 cursor-pointer">
                           <ReceiptIcon size={16} />
-                          My Orders
+                          Moja naročila
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href="/my-reviews" className="flex items-center gap-2 cursor-pointer">
                           <StarIcon size={16} />
-                          My Reviews
+                          Moje ocene
                         </Link>
                       </DropdownMenuItem>
                     </>
@@ -163,20 +168,20 @@ export function PublicNavbar() {
                     className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive"
                   >
                     <LogoutIcon size={16} />
-                    Sign Out
+                    Odjava
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
               <Link href="/login">
                 <Button variant="ghost" size="sm" className="text-foreground/80 hover:bg-secondary hover:text-primary">
-                  Login
+                  Prijava
                 </Button>
               </Link>
             )}
-            <Link href="/booking">
+            <Link href={orgPath(org.slug, "/booking")}>
               <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-md">
-                Book Now
+                Rezerviraj
               </Button>
             </Link>
           </div>
@@ -189,7 +194,7 @@ export function PublicNavbar() {
           <button
             className="text-foreground/70 hover:text-primary transition-colors p-2 -mr-2"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
+            aria-label="Preklopi meni"
           >
             {mobileMenuOpen ? (
               <CloseIcon size={24} weight="bold" />
@@ -211,7 +216,7 @@ export function PublicNavbar() {
                   key={link.href}
                   href={link.href}
                   className={`text-sm font-medium transition-all px-3 py-2.5 rounded-md text-center sm:text-left ${
-                    isActive(link.href)
+                    isActive(link)
                       ? "text-primary-foreground bg-primary shadow-sm"
                       : "text-foreground/70 hover:text-primary hover:bg-primary/10"
                   }`}
@@ -234,14 +239,14 @@ export function PublicNavbar() {
               <div className="space-y-1">
                 {/* User name header */}
                 <div className="px-3 py-2 text-sm font-medium text-muted-foreground">
-                  {session.user.name || "Account"}
+                  {session.user.name || "Račun"}
                 </div>
 
                 {session.user.role === "ADMIN" && (
                   <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full h-11 text-foreground/80 hover:bg-secondary hover:text-primary gap-2 justify-start">
                       <SettingsIcon size={18} />
-                      Dashboard
+                      Nadzorna plošča
                     </Button>
                   </Link>
                 )}
@@ -258,25 +263,25 @@ export function PublicNavbar() {
                     <Link href="/my-account" onClick={() => setMobileMenuOpen(false)}>
                       <Button variant="ghost" className="w-full h-11 text-foreground/80 hover:bg-secondary hover:text-primary gap-2 justify-start">
                         <UserCogIcon size={18} />
-                        My Account
+                        Moj račun
                       </Button>
                     </Link>
                     <Link href="/my-appointments" onClick={() => setMobileMenuOpen(false)}>
                       <Button variant="ghost" className="w-full h-11 text-foreground/80 hover:bg-secondary hover:text-primary gap-2 justify-start">
                         <CalendarCheckIcon size={18} />
-                        My Appointments
+                        Moji termini
                       </Button>
                     </Link>
                     <Link href="/my-orders" onClick={() => setMobileMenuOpen(false)}>
                       <Button variant="ghost" className="w-full h-11 text-foreground/80 hover:bg-secondary hover:text-primary gap-2 justify-start">
                         <ReceiptIcon size={18} />
-                        My Orders
+                        Moja naročila
                       </Button>
                     </Link>
                     <Link href="/my-reviews" onClick={() => setMobileMenuOpen(false)}>
                       <Button variant="ghost" className="w-full h-11 text-foreground/80 hover:bg-secondary hover:text-primary gap-2 justify-start">
                         <StarIcon size={18} />
-                        My Reviews
+                        Moje ocene
                       </Button>
                     </Link>
                   </>
@@ -290,21 +295,21 @@ export function PublicNavbar() {
                   }}
                 >
                   <LogoutIcon size={18} />
-                  Sign Out
+                  Odjava
                 </Button>
               </div>
             ) : (
               <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="ghost" className="w-full h-11 text-foreground/80 hover:bg-secondary hover:text-primary">
-                  Login
+                  Prijava
                 </Button>
               </Link>
             )}
 
             {/* Book Now Button */}
-            <Link href="/booking" onClick={() => setMobileMenuOpen(false)} className="mt-2">
+            <Link href={orgPath(org.slug, "/booking")} onClick={() => setMobileMenuOpen(false)} className="mt-2">
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90 w-full h-12 text-base">
-                Book Now
+                Rezerviraj
               </Button>
             </Link>
           </nav>

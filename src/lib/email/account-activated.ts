@@ -2,7 +2,9 @@ import { Resend } from "resend"
 import { render } from "@react-email/components"
 import { AccountActivatedTemplate } from "./templates/account-activated-template"
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
+const resend = new Resend(
+  process.env.RESEND_API_KEY || "re_placeholder_not_configured"
+)
 
 export async function sendAccountActivatedEmail(
   email: string,

@@ -1,9 +1,10 @@
 "use server"
 
-import { stripe } from "@/lib/stripe"
+import { stripe, isStripeConfigured } from "@/lib/stripe"
 import { auth } from "@/lib/auth/auth"
 import { prisma } from "@/lib/prisma"
 import { validateCartStock } from "./cart"
+import { getPublicOrg } from "@/lib/tenant"
 import type { CartItem } from "@/store/cart-store"
 
 const TAX_RATE = 0.08
@@ -26,6 +27,15 @@ export async function createProductCheckoutSession(
   items: CartItem[]
 ): Promise<CheckoutResult> {
   try {
+    // Payments are an optional, salon-owned integration — degrade gracefully
+    if (!isStripeConfigured()) {
+      return {
+        success: false,
+        error:
+          "Online payments are not configured yet. Please contact the salon to place your order.",
+      }
+    }
+
     // Get current session
     const session = await auth()
 
@@ -36,6 +46,15 @@ export async function createProductCheckoutSession(
       }
     }
 
+    // Resolve the tenant organization for this checkout
+    const org = await getPublicOrg()
+    if (!org) {
+      return {
+        success: false,
+        error: "The shop is currently unavailable. Please try again later.",
+      }
+    }
+
     if (items.length === 0) {
       return {
         success: false,
@@ -43,8 +62,8 @@ export async function createProductCheckoutSession(
       }
     }
 
-    // Validate stock
-    const stockValidation = await validateCartStock(items)
+    // Validate stock (scoped to this organization)
+    const stockValidation = await validateCartStock(items, org.id)
     if (!stockValidation.valid) {
       return {
         success: false,
@@ -53,8 +72,42 @@ export async function createProductCheckoutSession(
       }
     }
 
-    // Calculate totals
-    const subtotal = items.reduce(
+    // SECURITY: re-price everything from the database. Client-supplied prices
+    // (from the Zustand cart) are never trusted for payment amounts.
+    // Products MUST belong to the current organization — their price is only
+    // used when organizationId matches.
+    const productIds = items.map((item) => item.productId)
+    const dbProducts = await prisma.product.findMany({
+      where: {
+        id: { in: productIds },
+        isActive: true,
+        organizationId: org.id,
+      },
+      select: { id: true, name: true, images: true, price: true },
+    })
+
+    const productMap = new Map(dbProducts.map((p) => [p.id, p]))
+
+    if (dbProducts.length !== new Set(productIds).size) {
+      return {
+        success: false,
+        error: "Some items in your cart are no longer available",
+      }
+    }
+
+    const pricedItems = items.map((item) => {
+      const product = productMap.get(item.productId)! // existence guaranteed above
+      return {
+        productId: item.productId,
+        quantity: item.quantity,
+        price: product.price.toNumber(),
+        name: product.name,
+        image: product.images[0] || null,
+      }
+    })
+
+    // Calculate totals from trusted prices
+    const subtotal = pricedItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
     )
@@ -77,6 +130,7 @@ export async function createProductCheckoutSession(
           name: user.name || "Customer",
           email: user.email,
           userId: user.id,
+          organizationId: org.id,
         },
       })
       customerId = customer.id
@@ -85,13 +139,14 @@ export async function createProductCheckoutSession(
     // Create order in database with PENDING status
     const order = await prisma.order.create({
       data: {
+        organizationId: org.id,
         customerId,
         subtotal,
         tax,
         total,
         status: "PENDING",
         items: {
-          create: items.map((item) => ({
+          create: pricedItems.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
             price: item.price,
@@ -103,8 +158,8 @@ export async function createProductCheckoutSession(
     // Get base URL for redirects
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
 
-    // Create Stripe line items
-    const lineItems = items.map((item) => ({
+    // Create Stripe line items from trusted prices
+    const lineItems = pricedItems.map((item) => ({
       price_data: {
         currency: "usd",
         product_data: {
@@ -142,6 +197,7 @@ export async function createProductCheckoutSession(
         orderId: order.id,
         userId: session.user.id,
         type: "product_order",
+        orgId: org.id,
       },
       success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/checkout/cancel`,
@@ -163,6 +219,16 @@ export async function createProductCheckoutSession(
 // Verify payment and update order status
 export async function verifyProductOrder(sessionId: string) {
   try {
+    // Only authenticated users can checkout, so require a session here too
+    const session = await auth()
+
+    if (!session?.user) {
+      return {
+        success: false,
+        error: "You must be logged in to verify your order",
+      }
+    }
+
     // Retrieve the checkout session from Stripe
     const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ["payment_intent"],
@@ -203,6 +269,32 @@ export async function verifyProductOrder(sessionId: string) {
       }
     }
 
+    // Tenant check: the order must belong to the current organization
+    // (legacy orders without organizationId are still honored)
+    const org = await getPublicOrg()
+    if (existingOrder.organizationId && org && existingOrder.organizationId !== org.id) {
+      return {
+        success: false,
+        error: "Order not found",
+      }
+    }
+
+    // SECURITY: the order must belong to the current user
+    const userWithCustomer = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { customer: { select: { id: true } } },
+    })
+
+    if (
+      existingOrder.customerId &&
+      existingOrder.customerId !== userWithCustomer?.customer?.id
+    ) {
+      return {
+        success: false,
+        error: "You do not have permission to view this order",
+      }
+    }
+
     if (existingOrder.status === "PAID") {
       return {
         success: true,
@@ -213,12 +305,15 @@ export async function verifyProductOrder(sessionId: string) {
 
     // Update order status and reduce stock
     await prisma.$transaction(async (tx) => {
-      // Update order
+      // Update order (backfill organizationId for legacy orders)
       await tx.order.update({
         where: { id: orderId },
         data: {
           status: "PAID",
           stripePaymentIntentId: paymentIntentId,
+          ...(org && !existingOrder.organizationId
+            ? { organizationId: org.id }
+            : {}),
         },
       })
 

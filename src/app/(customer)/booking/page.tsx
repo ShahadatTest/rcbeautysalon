@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth/auth"
+import { getResolvedOrg } from "@/lib/tenant"
+import { orgPath } from "@/lib/org-path"
 import {
   getServiceForBooking,
   getAvailableStaff,
@@ -17,6 +19,10 @@ export default async function BookingPage(props: BookingPageProps) {
   const searchParams = await props.searchParams
   const serviceSlug = searchParams.service
   const staffId = searchParams.staff
+
+  // Tenant-aware redirects: /s/[slug]/booking must keep its prefix
+  const org = await getResolvedOrg()
+  const p = (path: string) => orgPath(org?.slug, path)
 
   // Get current session
   const session = await auth()
@@ -45,21 +51,20 @@ export default async function BookingPage(props: BookingPageProps) {
   // User selected a staff member first, now picks service
   // ============================================
   if (staffId) {
-    // Prevent employees from booking with themselves
     if (isEmployee && currentUserStaffId === staffId) {
-      redirect("/staff?error=self-booking")
+      redirect(p("/staff?error=self-booking"))
     }
 
     const staffData = await getStaffForBooking(staffId)
 
     // Redirect if staff not found or inactive
     if (!staffData) {
-      redirect("/staff")
+      redirect(p("/staff"))
     }
 
     // Redirect if staff has no services
     if (staffData.services.length === 0) {
-      redirect("/staff")
+      redirect(p("/staff"))
     }
 
     return (
@@ -95,13 +100,13 @@ export default async function BookingPage(props: BookingPageProps) {
   // Traditional flow: service selected, now picks staff
   // ============================================
   if (!serviceSlug) {
-    redirect("/services")
+    redirect(p("/services"))
   }
 
   const service = await getServiceForBooking(serviceSlug)
 
   if (!service) {
-    redirect("/services")
+    redirect(p("/services"))
   }
 
   let availableStaff = await getAvailableStaff(service.id)

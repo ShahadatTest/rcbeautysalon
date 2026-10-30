@@ -2,7 +2,18 @@
 
 import { useRef } from "react"
 
-export function HeroVideo() {
+// Fallback defaults (current visuals) when no tenant video is configured
+const DEFAULT_VIDEO_WEBM =
+  "https://res.cloudinary.com/caballerorandy/video/upload/v1763776430/Beauty%20Salon/services/services_ija8oq.webm"
+const DEFAULT_VIDEO_MP4 =
+  "https://res.cloudinary.com/caballerorandy/video/upload/v1763776446/Beauty%20Salon/services/services_umsjwg.mp4"
+
+interface HeroVideoProps {
+  videoUrl?: string | null
+  posterUrl?: string | null
+}
+
+export function HeroVideo({ videoUrl, posterUrl }: HeroVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
 
   // Handle smooth video loop by restarting before it ends
@@ -28,9 +39,19 @@ export function HeroVideo() {
           loop
           onTimeUpdate={handleTimeUpdate}
           className="h-full w-full object-cover"
+          poster={posterUrl || undefined}
         >
-          <source src="https://res.cloudinary.com/caballerorandy/video/upload/v1763776430/Beauty%20Salon/services/services_ija8oq.webm" type="video/webm" />
-          <source src="https://res.cloudinary.com/caballerorandy/video/upload/v1763776446/Beauty%20Salon/services/services_umsjwg.mp4" type="video/mp4" />
+          {videoUrl ? (
+            <source
+              src={videoUrl}
+              type={videoUrl.toLowerCase().endsWith(".webm") ? "video/webm" : "video/mp4"}
+            />
+          ) : (
+            <>
+              <source src={DEFAULT_VIDEO_WEBM} type="video/webm" />
+              <source src={DEFAULT_VIDEO_MP4} type="video/mp4" />
+            </>
+          )}
         </video>
       </div>
 

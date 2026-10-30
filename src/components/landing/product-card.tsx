@@ -1,4 +1,5 @@
 "use client"
+import { useFormatPrice } from "@/lib/currency"
 
 import {
   Card,
@@ -24,9 +25,12 @@ interface ProductCardProps {
   price: number
   category: string
   image?: string | null
+  /** Prefix for internal links, e.g. "/s/salon-luna" on tenant sites. */
+  hrefPrefix?: string
 }
 
-export function ProductCard({ id, name, price, category, image }: ProductCardProps) {
+export function ProductCard({ id, name, price, category, image, hrefPrefix = "" }: ProductCardProps) {
+  const fmt = useFormatPrice()
   const addItem = useCartStore((state) => state.addItem)
 
   const handleAddToCart = () => {
@@ -62,12 +66,12 @@ export function ProductCard({ id, name, price, category, image }: ProductCardPro
       <CardHeader>
         <CardTitle className="text-lg group-hover:text-accent transition-colors">{name}</CardTitle>
         <CardDescription className="text-primary text-xl font-bold group-hover:text-accent transition-colors">
-          ${price.toFixed(2)}
+          {fmt(price)}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex gap-2">
-          <Link href={`/shop/${id}`} className="flex-1">
+          <Link href={`${hrefPrefix}/shop/${id}`} className="flex-1">
             <Button
               variant="outline"
               className="w-full border-primary/50 hover:bg-primary hover:text-primary-foreground"

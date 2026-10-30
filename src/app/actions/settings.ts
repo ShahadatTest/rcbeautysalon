@@ -3,20 +3,27 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { SalonSettingsInput } from "@/lib/interfaces"
+import { UnauthorizedError } from "@/lib/auth/guards"
+import { requireAdminOrg, getPublicOrg, getSessionOrg } from "@/lib/tenant"
 
-// Get salon settings (create default if not exists)
+/**
+ * Get salon settings for the current context:
+ * dashboard (admin) -> session org; public pages -> tenant/default org.
+ * Creates the config row on first access.
+ */
 export async function getSalonSettings() {
+  let org = await getSessionOrg()
+  if (!org) org = await getPublicOrg()
+
+  if (!org) return null
+
   let settings = await prisma.salonConfig.findUnique({
-    where: { id: "salon_config" },
+    where: { organizationId: org.id },
   })
 
-  // Create default settings if not exists
   if (!settings) {
     settings = await prisma.salonConfig.create({
-      data: {
-        id: "salon_config",
-        name: "Beauty Salon",
-      },
+      data: { organizationId: org.id, name: org.name },
     })
   }
 
@@ -26,25 +33,23 @@ export async function getSalonSettings() {
   }
 }
 
-// Update salon settings
+// Update salon settings (admin only, scoped to own organization)
 export async function updateSalonSettings(data: SalonSettingsInput) {
   try {
+    const { org } = await requireAdminOrg()
+
     const settings = await prisma.salonConfig.upsert({
-      where: { id: "salon_config" },
-      update: {
-        ...data,
-        bookingDeposit: data.bookingDeposit,
-      },
+      where: { organizationId: org.id },
+      update: { ...data },
       create: {
-        id: "salon_config",
-        name: data.name || "Beauty Salon",
+        organizationId: org.id,
+        name: data.name || org.name,
         ...data,
-        bookingDeposit: data.bookingDeposit,
       },
     })
 
     revalidatePath("/dashboard/settings")
-    revalidatePath("/")
+    revalidatePath("/", "layout")
 
     return {
       success: true,
@@ -54,27 +59,27 @@ export async function updateSalonSettings(data: SalonSettingsInput) {
       },
     }
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return { success: false, error: error.message }
+    }
     console.error("Error updating settings:", error)
     return { success: false, error: "Failed to update settings." }
   }
 }
 
-// Reset settings to defaults
+// Reset settings to defaults (keeps site content & theme)
 export async function resetSalonSettings() {
   try {
-    await prisma.salonConfig.delete({
-      where: { id: "salon_config" },
-    })
+    const { org } = await requireAdminOrg()
+
+    await prisma.salonConfig.deleteMany({ where: { organizationId: org.id } })
 
     const settings = await prisma.salonConfig.create({
-      data: {
-        id: "salon_config",
-        name: "Beauty Salon",
-      },
+      data: { organizationId: org.id, name: org.name },
     })
 
     revalidatePath("/dashboard/settings")
-    revalidatePath("/")
+    revalidatePath("/", "layout")
 
     return {
       success: true,
@@ -84,6 +89,9 @@ export async function resetSalonSettings() {
       },
     }
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return { success: false, error: error.message }
+    }
     console.error("Error resetting settings:", error)
     return { success: false, error: "Failed to reset settings." }
   }

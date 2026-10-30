@@ -156,33 +156,33 @@ async function main() {
   // ============================================
   console.log('\nCreating categories...')
   const hairCategory = await prisma.category.upsert({
-    where: { slug: 'hair' },
+    where: { id: 'seed-category-hair' },
     update: {},
-    create: { name: 'Hair Services', slug: 'hair' },
+    create: { id: 'seed-category-hair', name: 'Hair Services', slug: 'hair' },
   })
 
   const nailsCategory = await prisma.category.upsert({
-    where: { slug: 'nails' },
+    where: { id: 'seed-category-nails' },
     update: {},
-    create: { name: 'Nails', slug: 'nails' },
+    create: { id: 'seed-category-nails', name: 'Nails', slug: 'nails' },
   })
 
   const facialCategory = await prisma.category.upsert({
-    where: { slug: 'facial' },
+    where: { id: 'seed-category-facial' },
     update: {},
-    create: { name: 'Facial & Skin', slug: 'facial' },
+    create: { id: 'seed-category-facial', name: 'Facial & Skin', slug: 'facial' },
   })
 
   const massageCategory = await prisma.category.upsert({
-    where: { slug: 'massage' },
+    where: { id: 'seed-category-massage' },
     update: {},
-    create: { name: 'Massage & Spa', slug: 'massage' },
+    create: { id: 'seed-category-massage', name: 'Massage & Spa', slug: 'massage' },
   })
 
   const productsCategory = await prisma.category.upsert({
-    where: { slug: 'products' },
+    where: { id: 'seed-category-products' },
     update: {},
-    create: { name: 'Beauty Products', slug: 'products' },
+    create: { id: 'seed-category-products', name: 'Beauty Products', slug: 'products' },
   })
   console.log('✅ Categories: 5')
 

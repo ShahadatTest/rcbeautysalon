@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -12,11 +13,8 @@ import {
   UserIcon,
 } from "@/components/icons"
 import { cloudinaryPresets } from "@/lib/utils/cloudinary"
-import {
-  getServiceBySlug,
-  getAllServiceSlugs,
-  getRelatedServices,
-} from "@/app/actions/services"
+import { getPublicSiteData, getPublicServiceBySlug, getPublicRelatedServices } from "@/lib/public-site"
+import { orgPath } from "@/lib/org-path"
 import { ReviewsSection } from "@/components/reviews/reviews-section"
 import { GallerySection } from "@/components/services/gallery-section"
 import { FAQSection } from "@/components/services/faq-section"
@@ -26,34 +24,26 @@ import { ReviewForm } from "@/components/reviews/review-form"
 import { StaffCard } from "@/components/staff/staff-card"
 import { auth } from "@/lib/auth/auth"
 
-//type ServiceWithStaff = NonNullable<Awaited<ReturnType<typeof getServiceBySlug>>>
-
-export async function generateStaticParams() {
-  const slugs = await getAllServiceSlugs()
-
-  return slugs.map((slug) => ({
-    slug: slug,
-  }))
-}
-
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>
-}) {
+}): Promise<Metadata> {
   const { slug } = await params
-  const service = await getServiceBySlug(slug)
+  const site = await getPublicSiteData()
+  const orgName = site?.org.name ?? "Salon"
+  const service = site ? await getPublicServiceBySlug(site.org.id, slug) : null
 
   if (!service) {
     return {
-      title: "Service Not Found | RC Beauty Salon",
+      title: `Storitev ni najdena | ${orgName}`,
     }
   }
 
   return {
-    title: `${service.name} | RC Beauty Salon`,
+    title: `${service.name} | ${orgName}`,
     description:
-      service.description || `Book ${service.name} at RC Beauty Salon`,
+      service.description || `Rezervirajte ${service.name} pri ${orgName}.`,
   }
 }
 
@@ -62,18 +52,34 @@ export default async function ServiceDetailPage({
 }: {
   params: Promise<{ slug: string }>
 }) {
-  // Get the service by slug from the database
+  // Get the service by slug from the database (tenant-scoped)
   const { slug } = await params
-  const service = await getServiceBySlug(slug)
+  const site = await getPublicSiteData()
+  const service = site ? await getPublicServiceBySlug(site.org.id, slug) : null
 
   // If it doesn't exist, show 404
-  if (!service) {
+  if (!site || !service) {
     notFound()
+  }
+
+  const orgSlug = site.org.slug
+
+  // Org-aware server-side price formatter
+  const fmt = (amount: number | string | null | undefined): string => {
+    const n = Number(amount ?? 0)
+    try {
+      return new Intl.NumberFormat("sl-SI", {
+        style: "currency",
+        currency: site?.config?.currency || "EUR",
+      }).format(n)
+    } catch {
+      return `${n.toFixed(2)} €`
+    }
   }
 
   // Get related services by category and user session
   const [relatedServices, session] = await Promise.all([
-    getRelatedServices(service.categoryId, service.id),
+    getPublicRelatedServices(site.org.id, service.categoryId, service.id),
     auth(),
   ])
 
@@ -81,17 +87,18 @@ export default async function ServiceDetailPage({
     <div className="flex min-h-screen flex-col">
       {/* Back Button & Breadcrumbs */}
       <div className="container mx-auto px-4 pt-8">
-        <Link href="/services">
+        <Link href={orgPath(orgSlug, "/services")}>
           <Button variant="ghost" className="hover:bg-primary/10 mb-4">
             <ArrowLeftIcon size={16} className="mr-2" />
-            Back to Services
+            Nazaj na storitve
           </Button>
         </Link>
         <ServiceBreadcrumbs
+          homeHref={orgPath(orgSlug, "/")}
           items={[
-            { label: "Services", href: "/services" },
+            { label: "Storitve", href: orgPath(orgSlug, "/services") },
             ...(service.category
-              ? [{ label: service.category.name, href: "/services" }]
+              ? [{ label: service.category.name, href: orgPath(orgSlug, "/services") }]
               : []),
             { label: service.name },
           ]}
@@ -119,7 +126,7 @@ export default async function ServiceDetailPage({
               ) : (
                 <div className="bg-muted flex h-full w-full items-center justify-center">
                   <span className="text-muted-foreground text-lg">
-                    No image available
+                    Slika ni na voljo
                   </span>
                 </div>
               )}
@@ -154,13 +161,13 @@ export default async function ServiceDetailPage({
                     <div className="text-primary flex items-center gap-2">
                       <CurrencyDollarIcon size={20} />
                       <CardTitle className="text-sm font-medium">
-                        Price
+                        Cena
                       </CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <p className="text-2xl font-bold">
-                      ${service.price.toString()}
+                      {fmt(Number(service.price))}
                     </p>
                   </CardContent>
                 </Card>
@@ -170,7 +177,7 @@ export default async function ServiceDetailPage({
                     <div className="text-primary flex items-center gap-2">
                       <ClockIcon size={20} />
                       <CardTitle className="text-sm font-medium">
-                        Duration
+                        Trajanje
                       </CardTitle>
                     </div>
                   </CardHeader>
@@ -185,7 +192,7 @@ export default async function ServiceDetailPage({
                 <div className="mb-8">
                   <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold">
                     <UserIcon size={20} className="text-primary" />
-                    Available Staff
+                    Razpoložljivi člani ekipe
                   </h2>
                   <div className="grid gap-4 sm:grid-cols-2">
                     {service.staffServices.map((staffService) => (
@@ -201,7 +208,7 @@ export default async function ServiceDetailPage({
               {/* Book Button */}
               <div className="flex flex-col gap-4 sm:flex-row">
                 <Link
-                  href={`/booking?service=${service.slug}`}
+                  href={orgPath(orgSlug, `/booking?service=${service.slug}`)}
                   className="flex-1"
                 >
                   <Button
@@ -209,16 +216,16 @@ export default async function ServiceDetailPage({
                     className="from-primary to-accent w-full bg-linear-to-r hover:opacity-90"
                   >
                     <CalendarIcon size={20} className="mr-2" />
-                    Book This Service
+                    Rezerviraj to storitev
                   </Button>
                 </Link>
-                <Link href="/services">
+                <Link href={orgPath(orgSlug, "/services")}>
                   <Button
                     size="lg"
                     variant="outline"
                     className="border-primary/50 hover:bg-primary/5 dark:hover:text-accent w-full sm:w-auto"
                   >
-                    Browse More Services
+                    Prikaži več storitev
                   </Button>
                 </Link>
               </div>
@@ -232,9 +239,9 @@ export default async function ServiceDetailPage({
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl">
             <h2 className="mb-8 text-center text-3xl font-bold">
-              What to{" "}
+              Kaj lahko{" "}
               <span className="from-primary to-accent bg-linear-to-r bg-clip-text text-transparent">
-                Expect
+                pričakujete
               </span>
             </h2>
             <div className="grid gap-6 md:grid-cols-3">
@@ -243,12 +250,12 @@ export default async function ServiceDetailPage({
                   <div className="from-primary to-accent mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-linear-to-br">
                     <span className="text-2xl font-bold text-white">1</span>
                   </div>
-                  <CardTitle className="text-lg">Consultation</CardTitle>
+                  <CardTitle className="text-lg">Posvet</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground text-sm">
-                    We&apos;ll discuss your needs and preferences to ensure the
-                    perfect result.
+                    Skupaj razjasnimo vaše želje in potrebe, da zagotovimo
+                    popoln rezultat.
                   </p>
                 </CardContent>
               </Card>
@@ -258,11 +265,12 @@ export default async function ServiceDetailPage({
                   <div className="from-primary to-accent mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-linear-to-br">
                     <span className="text-2xl font-bold text-white">2</span>
                   </div>
-                  <CardTitle className="text-lg">Treatment</CardTitle>
+                  <CardTitle className="text-lg">Tretma</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground text-sm">
-                    Relax while our expert professionals work their magic.
+                    Sprostite se, medtem ko naši strokovnjaki poskrbijo za
+                    detajle.
                   </p>
                 </CardContent>
               </Card>
@@ -272,11 +280,11 @@ export default async function ServiceDetailPage({
                   <div className="from-primary to-accent mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-linear-to-br">
                     <span className="text-2xl font-bold text-white">3</span>
                   </div>
-                  <CardTitle className="text-lg">Results</CardTitle>
+                  <CardTitle className="text-lg">Rezultat</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground text-sm">
-                    Walk out feeling confident and looking your absolute best.
+                    Zapustite salon samozavestno in v najboljši obliki.
                   </p>
                 </CardContent>
               </Card>
@@ -295,9 +303,9 @@ export default async function ServiceDetailPage({
             {session?.user ? (
               <div>
                 <h2 className="mb-6 text-3xl font-bold">
-                  Leave a{" "}
+                  Pustite{" "}
                   <span className="from-primary to-accent bg-linear-to-r bg-clip-text text-transparent">
-                    Review
+                    mnenje
                   </span>
                 </h2>
                 <ReviewForm serviceId={service.id} serviceName={service.name} />
@@ -305,13 +313,13 @@ export default async function ServiceDetailPage({
             ) : (
               <div className="border-primary/20 bg-muted/30 rounded-lg border p-8 text-center">
                 <h3 className="mb-2 text-xl font-semibold">
-                  Share Your Experience
+                  Delite svojo izkušnjo
                 </h3>
                 <p className="text-muted-foreground mb-4">
-                  Please sign in to leave a review for this service
+                  Za objavo mnenja o tej storitvi se prijavite
                 </p>
                 <Link href="/login">
-                  <Button variant="default">Sign In to Review</Button>
+                  <Button variant="default">Prijava za objavo mnenja</Button>
                 </Link>
               </div>
             )}
@@ -329,6 +337,7 @@ export default async function ServiceDetailPage({
       <RelatedServicesSection
         services={relatedServices}
         currentServiceId={service.id}
+        orgSlug={orgSlug}
       />
     </div>
   )

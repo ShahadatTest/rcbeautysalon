@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { ReviewFormData } from "@/lib/interfaces"
+import { getPublicOrg } from "@/lib/tenant"
 
 // Create a new review for a service
 export async function createReview(data: ReviewFormData) {
@@ -34,11 +35,17 @@ export async function createReview(data: ReviewFormData) {
     }
   }
 
-  // Verify service exists and is active
-  const service = await prisma.service.findUnique({
-    where: { id: data.serviceId },
-    select: { id: true, slug: true, isActive: true },
-  })
+  // Verify service exists, is active, and belongs to the current organization
+  const org = await getPublicOrg()
+  const service = org
+    ? await prisma.service.findFirst({
+        where: {
+          id: data.serviceId,
+          organizationId: org.id,
+        },
+        select: { id: true, slug: true, isActive: true },
+      })
+    : null
 
   if (!service || !service.isActive) {
     return {
@@ -216,11 +223,20 @@ export async function updateReview(
   }
 }
 
-// Get all reviews for a specific service
+// Get all reviews for a specific service (scoped to the current organization)
 export async function getServiceReviews(serviceId: string) {
   try {
+    const org = await getPublicOrg()
+    if (!org) {
+      return { success: true, reviews: [] }
+    }
+
     const reviews = await prisma.review.findMany({
-      where: { serviceId, isActive: true },
+      where: {
+        serviceId,
+        isActive: true,
+        service: { organizationId: org.id },
+      },
       include: {
         user: {
           select: {

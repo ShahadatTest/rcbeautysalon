@@ -1,3 +1,4 @@
+import { useFormatPrice } from "@/lib/currency"
 import {
   Card,
   CardContent,
@@ -47,6 +48,7 @@ export function BookingSummaryCard({
   availableSlots,
   isEmployee = false,
 }: BookingSummaryCardProps) {
+  const fmt = useFormatPrice()
   const selectedSlot = availableSlots.find((s) => s.time === selectedTime)
 
   // Calculate employee discount (20%)
@@ -108,18 +110,18 @@ export function BookingSummaryCard({
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Service Price</span>
-              <span className="font-medium text-foreground">${originalPrice.toFixed(2)}</span>
+              <span className="font-medium text-foreground">{fmt(originalPrice)}</span>
             </div>
             {isEmployee && (
               <div className="flex justify-between text-sm font-medium text-emerald-600 dark:text-emerald-400">
                 <span>Employee Discount (20%)</span>
-                <span>-${discountAmount.toFixed(2)}</span>
+                <span>-{fmt(discountAmount)}</span>
               </div>
             )}
             {isEmployee && (
               <div className="flex justify-between text-sm font-semibold">
                 <span className="text-foreground">Final Price</span>
-                <span className="text-primary">${finalPrice.toFixed(2)}</span>
+                <span className="text-primary">{fmt(finalPrice)}</span>
               </div>
             )}
             <Separator className="my-2 bg-border/50" />
@@ -131,7 +133,7 @@ export function BookingSummaryCard({
                 </span>
               ) : (
                 <span className="text-primary">
-                  ${salonConfig.bookingDeposit.toFixed(2)}
+                  {fmt(salonConfig.bookingDeposit)}
                 </span>
               )}
             </div>
@@ -151,7 +153,7 @@ export function BookingSummaryCard({
                     Non-Refundable Deposit
                   </p>
                   <p className="text-sm text-amber-900 dark:text-amber-400">
-                    The ${salonConfig.bookingDeposit.toFixed(2)} deposit is
+                    The {fmt(salonConfig.bookingDeposit)} deposit is
                     required to secure your appointment and is{" "}
                     <strong className="font-bold">non-refundable</strong>.
                   </p>
@@ -208,7 +210,7 @@ export function BookingSummaryCard({
             ) : (
               <>
                 <CurrencyDollarIcon size={20} className="mr-2" weight="regular" />
-                Pay ${salonConfig.bookingDeposit.toFixed(2)} & Confirm Booking
+                Pay {fmt(salonConfig.bookingDeposit)} & Confirm Booking
               </>
             )}
           </Button>

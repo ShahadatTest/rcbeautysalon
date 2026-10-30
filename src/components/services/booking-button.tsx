@@ -9,19 +9,21 @@ interface BookingButtonProps {
   size?: "default" | "sm" | "lg" | "icon"
   variant?: "default" | "outline" | "secondary"
   className?: string
+  label?: string
 }
 
 export function BookingButton({
   href = "/booking",
   size = "lg",
   variant = "default",
-  className = "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
+  className = "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg",
+  label = "Rezerviraj zdaj",
 }: BookingButtonProps) {
   return (
     <Link href={href}>
       <Button size={size} variant={variant} className={className}>
         <CalendarIcon size={20} weight="regular" className="mr-2" />
-        Book Now
+        {label}
       </Button>
     </Link>
   )

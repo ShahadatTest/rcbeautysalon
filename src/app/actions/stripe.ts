@@ -1,18 +1,41 @@
 "use server"
 
-import { stripe } from "@/lib/stripe"
+import { stripe, isStripeConfigured } from "@/lib/stripe"
 import { auth } from "@/lib/auth/auth"
 import { prisma } from "@/lib/prisma"
 import { addMinutes, format } from "date-fns"
 import { after } from "next/server"
 import { getServicesForBooking, getSalonConfig } from "./appointments"
+import { getPublicOrg, getSessionOrg, getOrgById } from "@/lib/tenant"
 import { CreateCheckoutSessionData } from "@/lib/interfaces"
 import { sendAppointmentConfirmationEmail } from "@/lib/email/appointment-confirmation"
 
 export async function createCheckoutSession(data: CreateCheckoutSessionData) {
   try {
+    // Payments are an optional, salon-owned integration — degrade gracefully
+    if (!isStripeConfigured()) {
+      return {
+        success: false,
+        error:
+          "Online payments are not configured yet. Please contact the salon to complete your booking.",
+      }
+    }
+
     // Get current session
     const session = await auth()
+
+    // Resolve the tenant organization for this booking (employees act within
+    // their session org, everyone else within the public tenant org)
+    const org =
+      session?.user && ["ADMIN", "STAFF"].includes(session.user.role)
+        ? await getSessionOrg()
+        : await getPublicOrg()
+    if (!org) {
+      return {
+        success: false,
+        error: "Online booking is currently unavailable. Please try again later.",
+      }
+    }
 
     // Validate required fields
     if (!data.staffId || !data.serviceIds.length || !data.startTime) {
@@ -43,15 +66,21 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
     // Get base URL for redirects
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
 
+    // SECURITY: employee discount is derived server-side from the session role,
+    // never trusted from client arguments.
+    const isEmployeeBooking =
+      !!session?.user &&
+      ["STAFF", "ADMIN"].includes(session.user.role)
+
     // Calculate deposit with employee discount (20% off)
     const employeeDiscountRate = 0.20
     const originalDeposit = config.bookingDeposit
-    const depositAmount = data.isEmployee
+    const depositAmount = isEmployeeBooking
       ? originalDeposit * (1 - employeeDiscountRate)
       : originalDeposit
 
     // Build product description
-    const depositDescription = data.isEmployee
+    const depositDescription = isEmployeeBooking
       ? `Non-refundable deposit for your appointment (20% employee discount applied)`
       : `Non-refundable deposit for your appointment`
 
@@ -75,6 +104,7 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
       ],
       metadata: {
         // Store booking data in metadata for webhook
+        orgId: org.id,
         serviceIds: JSON.stringify(data.serviceIds),
         staffId: data.staffId,
         startTime: data.startTime,
@@ -84,7 +114,7 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
         notes: data.notes || "",
         userId: session?.user?.id || "",
         customerName,
-        isEmployee: data.isEmployee ? "true" : "false",
+        isEmployee: isEmployeeBooking ? "true" : "false",
       },
       success_url: `${baseUrl}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/booking/cancel`,
@@ -106,6 +136,13 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
 // Verify and create appointment from checkout session (fallback for webhook)
 export async function verifyAndCreateAppointment(sessionId: string) {
   try {
+    if (!isStripeConfigured()) {
+      return {
+        success: false,
+        error: "Payments are not configured.",
+      }
+    }
+
     // Retrieve the checkout session from Stripe
     const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ["payment_intent"],
@@ -140,6 +177,19 @@ export async function verifyAndCreateAppointment(sessionId: string) {
       }
     }
 
+    // Resolve the tenant organization: from checkout metadata, falling back
+    // to the first ACTIVE organization (getPublicOrg behavior)
+    const org = metadata.orgId
+      ? await getOrgById(metadata.orgId)
+      : await getPublicOrg()
+
+    if (!org) {
+      return {
+        success: false,
+        error: "No organization available",
+      }
+    }
+
     // Check if appointment already exists (webhook might have created it)
     const existingAppointment = await prisma.appointment.findFirst({
       where: { stripePaymentId: paymentIntentId },
@@ -166,11 +216,18 @@ export async function verifyAndCreateAppointment(sessionId: string) {
     const userId = metadata.userId || null
     const customerName = metadata.customerName || "Customer"
 
-    // Get services for duration calculation
+    // Get services for duration calculation (scoped to this organization)
     const services = await prisma.service.findMany({
-      where: { id: { in: serviceIds } },
+      where: { id: { in: serviceIds }, organizationId: org.id },
       select: { id: true, name: true, duration: true, price: true },
     })
+
+    if (services.length !== new Set(serviceIds).size) {
+      return {
+        success: false,
+        error: "Invalid booking data",
+      }
+    }
 
     const totalDuration = services.reduce((sum, s) => sum + s.duration, 0)
     const totalPrice = services.reduce(
@@ -179,8 +236,32 @@ export async function verifyAndCreateAppointment(sessionId: string) {
     )
     const endTime = addMinutes(startTime, totalDuration)
 
-    // Get salon config
-    const config = await getSalonConfig()
+    // SECURITY: re-check slot availability before creating the appointment.
+    // Prevents double-booking when the webhook and this fallback race,
+    // and blocks maliciously crafted checkout sessions for occupied slots.
+    const overlapping = await prisma.appointment.count({
+      where: {
+        staffId,
+        organizationId: org.id,
+        status: { in: ["PENDING", "CONFIRMED"] },
+        startTime: { lt: endTime },
+        endTime: { gt: startTime },
+      },
+    })
+
+    if (overlapping > 0) {
+      return {
+        success: false,
+        error:
+          "This time slot is no longer available. Please contact the salon to reschedule or request a refund.",
+      }
+    }
+
+    // Get salon config for this organization
+    const config = await prisma.salonConfig.findFirst({
+      where: { organizationId: org.id },
+    })
+    const bookingDeposit = config?.bookingDeposit.toNumber() ?? 50
 
     // Handle customer creation/retrieval
     let customerId: string | null = null
@@ -202,14 +283,15 @@ export async function verifyAndCreateAppointment(sessionId: string) {
             email: userWithCustomer.email,
             phone: guestPhone,
             userId: userId,
+            organizationId: org.id,
           },
         })
         customerId = customer.id
       }
     } else if (guestEmail) {
-      // Guest booking - check if customer exists
+      // Guest booking - check if customer exists (within this organization)
       const existingCustomer = await prisma.customer.findFirst({
-        where: { email: guestEmail },
+        where: { email: guestEmail, organizationId: org.id },
       })
 
       if (existingCustomer) {
@@ -221,21 +303,30 @@ export async function verifyAndCreateAppointment(sessionId: string) {
             name: guestName,
             email: guestEmail,
             phone: guestPhone,
+            organizationId: org.id,
           },
         })
         customerId = customer.id
       }
     }
 
-    // Get staff info
-    const staff = await prisma.staff.findUnique({
-      where: { id: staffId },
+    // Get staff info (must belong to this organization)
+    const staff = await prisma.staff.findFirst({
+      where: { id: staffId, organizationId: org.id },
       select: { name: true },
     })
+
+    if (!staff) {
+      return {
+        success: false,
+        error: "Invalid booking data",
+      }
+    }
 
     // Create the appointment
     const appointment = await prisma.appointment.create({
       data: {
+        organizationId: org.id,
         staffId,
         customerId,
         guestName: !customerId ? guestName : null,
@@ -246,7 +337,7 @@ export async function verifyAndCreateAppointment(sessionId: string) {
         status: "CONFIRMED",
         notes,
         totalPrice,
-        depositAmount: config.bookingDeposit,
+        depositAmount: bookingDeposit,
         depositPaid: true,
         stripePaymentId: paymentIntentId,
         services: {
@@ -272,7 +363,7 @@ export async function verifyAndCreateAppointment(sessionId: string) {
           appointmentTime: format(startTime, "h:mm a"),
           duration: totalDuration,
           totalPrice,
-          depositAmount: config.bookingDeposit,
+          depositAmount: bookingDeposit,
           appointmentId: appointment.id,
         })
       })
@@ -296,13 +387,23 @@ export async function verifyAndCreateAppointment(sessionId: string) {
 // Create checkout session for existing unpaid appointment
 export async function createDepositCheckoutForAppointment(appointmentId: string) {
   try {
+    if (!isStripeConfigured()) {
+      return {
+        success: false,
+        error:
+          "Online payments are not configured yet. Please contact the salon.",
+      }
+    }
+
     const session = await auth()
 
     if (!session?.user) {
       return { success: false, error: "Unauthorized" }
     }
 
-    // Fetch the appointment with services
+    // Fetch the appointment with services (scoped to the current organization)
+    const org = await getPublicOrg()
+
     const appointment = await prisma.appointment.findUnique({
       where: { id: appointmentId },
       include: {
@@ -313,6 +414,12 @@ export async function createDepositCheckoutForAppointment(appointmentId: string)
 
     // Validate appointment exists
     if (!appointment) {
+      return { success: false, error: "Appointment not found" }
+    }
+
+    // Tenant check: the appointment must belong to the current organization
+    // (legacy appointments without organizationId are still honored)
+    if (org && appointment.organizationId && appointment.organizationId !== org.id) {
       return { success: false, error: "Appointment not found" }
     }
 
@@ -351,6 +458,7 @@ export async function createDepositCheckoutForAppointment(appointmentId: string)
       metadata: {
         type: "existing_appointment",
         appointmentId: appointment.id,
+        orgId: appointment.organizationId || org?.id || "",
       },
       success_url: `${baseUrl}/my-appointments?paid=${appointment.id}`,
       cancel_url: `${baseUrl}/my-appointments`,

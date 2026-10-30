@@ -1,8 +1,25 @@
 import { auth } from "@/lib/auth/auth"
 import { NextResponse } from "next/server"
 
+const ORG_HEADER = "x-org-slug"
+
 export default auth((req) => {
   const { pathname } = req.nextUrl
+
+  // ---- TENANT RESOLUTION: /s/[slug]/* -> /* with x-org-slug header ----
+  // Must run BEFORE role guards so rewritten public pages resolve the org.
+  const orgMatch = pathname.match(/^\/s\/([^/]+)(\/.*)?$/)
+  if (orgMatch) {
+    const slug = orgMatch[1]
+    if (req.headers.get(ORG_HEADER) !== slug) {
+      const requestHeaders = new Headers(req.headers)
+      requestHeaders.set(ORG_HEADER, slug)
+      const url = req.nextUrl.clone()
+      url.pathname = orgMatch[2] || "/"
+      return NextResponse.rewrite(url, { request: { headers: requestHeaders } })
+    }
+  }
+
   const isLoggedIn = !!req.auth
   const userRole = req.auth?.user?.role
 

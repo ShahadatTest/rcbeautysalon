@@ -1,3 +1,4 @@
+import { useFormatPrice } from "@/lib/currency"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   CalendarCheckIcon,
@@ -16,6 +17,7 @@ interface StaffStatsCardsProps {
 }
 
 export function StaffStatsCards({ stats }: StaffStatsCardsProps) {
+  const fmt = useFormatPrice()
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {/* Today's Appointments */}
@@ -56,7 +58,7 @@ export function StaffStatsCards({ stats }: StaffStatsCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold">
-            ${stats.monthlyEarnings.toFixed(2)}
+            {fmt(stats.monthlyEarnings)}
           </div>
           <p className="text-muted-foreground text-xs">
             Based on completed services

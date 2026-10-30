@@ -1,4 +1,5 @@
 "use client"
+import { useFormatPrice } from "@/lib/currency"
 
 import { useState } from "react"
 import Image from "next/image"
@@ -14,6 +15,7 @@ interface CartItemProps {
 }
 
 export function CartItem({ item }: CartItemProps) {
+  const fmt = useFormatPrice()
   const { updateQuantity, removeItem } = useCartStore()
   const [showRemoveDialog, setShowRemoveDialog] = useState(false)
 
@@ -64,7 +66,7 @@ export function CartItem({ item }: CartItemProps) {
             {item.name}
           </h3>
           <p className="text-muted-foreground mt-1 text-sm">
-            ${item.price.toFixed(2)} each
+            {fmt(item.price)} each
           </p>
         </div>
 
@@ -96,11 +98,11 @@ export function CartItem({ item }: CartItemProps) {
       <div className="flex flex-col items-end justify-between py-1">
         <div className="text-right">
           <p className="text-foreground text-lg font-bold">
-            ${(item.price * item.quantity).toFixed(2)}
+            {fmt((item.price * item.quantity))}
           </p>
           {item.quantity > 1 && (
             <p className="text-muted-foreground text-xs">
-              {item.quantity} x ${item.price.toFixed(2)}
+              {item.quantity} x {fmt(item.price)}
             </p>
           )}
         </div>

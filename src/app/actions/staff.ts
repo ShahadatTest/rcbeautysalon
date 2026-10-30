@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma"
 import { CreateStaffInput } from "@/lib/interfaces"
 import { revalidatePath } from "next/cache"
 import { auth } from "@/lib/auth/auth"
+import { UnauthorizedError } from "@/lib/auth/guards"
+import { getPublicOrg, getSessionOrg, requireAdminOrg } from "@/lib/tenant"
 import {
   startOfDay,
   endOfDay,
@@ -26,10 +28,13 @@ export type UpdateStaffInput = Partial<CreateStaffInput> & {
   }[]
 }
 
-//Get All Active Services for Staff Form
+//Get All Active Services for Staff Form (admin)
 export const getActiveServicesForStaff = async () => {
+  const org = await getSessionOrg()
+  if (!org) return []
+
   const services = await prisma.service.findMany({
-    where: { isActive: true },
+    where: { isActive: true, organizationId: org.id },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   })
@@ -38,8 +43,11 @@ export const getActiveServicesForStaff = async () => {
 
 //Get Featured Staff for Homepage
 export const getFeaturedStaff = cache(async () => {
+  const org = await getPublicOrg()
+  if (!org) return []
+
   const staffMembers = await prisma.staff.findMany({
-    where: { isActive: true },
+    where: { isActive: true, organizationId: org.id },
     take: 4,
     orderBy: { name: "asc" },
   })
@@ -48,12 +56,19 @@ export const getFeaturedStaff = cache(async () => {
 
 //Get Staff Member
 export const getStaffMembers = cache(async () => {
+  const org = await getPublicOrg()
+  if (!org) return []
+
   const staffMembers = await prisma.staff.findMany({
     where: {
       isActive: true,
+      organizationId: org.id,
     },
     include: {
       services: {
+        where: {
+          service: { organizationId: org.id },
+        },
         include: {
           service: {
             select: {
@@ -84,13 +99,20 @@ export const getStaffMembers = cache(async () => {
 //Get Staff Member by Slug
 // Cached to avoid duplicate fetches in generateMetadata + page component
 export const getStaffMemberBySlug = cache(async (slug: string) => {
+  const org = await getPublicOrg()
+  if (!org) return null
+
   // Get all active staff and find by slug match
   const staffMembers = await prisma.staff.findMany({
     where: {
       isActive: true,
+      organizationId: org.id,
     },
     include: {
       services: {
+        where: {
+          service: { organizationId: org.id },
+        },
         include: {
           service: {
             select: {
@@ -136,16 +158,21 @@ export const getStaffMemberBySlug = cache(async (slug: string) => {
 
 //Get Admin Staff Members
 export const getAdminStaffMembers = async (search?: string) => {
+  const { org } = await requireAdminOrg()
+
   const staffMembers = await prisma.staff.findMany({
-    where: search
-      ? {
-          OR: [
-            { name: { contains: search, mode: "insensitive" } },
-            { email: { contains: search, mode: "insensitive" } },
-            { phone: { contains: search, mode: "insensitive" } },
-          ],
-        }
-      : undefined,
+    where: {
+      organizationId: org.id,
+      ...(search
+        ? {
+            OR: [
+              { name: { contains: search, mode: "insensitive" } },
+              { email: { contains: search, mode: "insensitive" } },
+              { phone: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
     include: {
       _count: {
         select: {
@@ -163,18 +190,22 @@ export const getAdminStaffMembers = async (search?: string) => {
 
 //Get Admin Staff Stats
 export const getAdminStaffStats = async () => {
+  const { org } = await requireAdminOrg()
+
   const [totalStaff, activeStaff, inactiveStaff] = await Promise.all([
-    prisma.staff.count(),
-    prisma.staff.count({ where: { isActive: true } }),
-    prisma.staff.count({ where: { isActive: false } }),
+    prisma.staff.count({ where: { organizationId: org.id } }),
+    prisma.staff.count({ where: { isActive: true, organizationId: org.id } }),
+    prisma.staff.count({ where: { isActive: false, organizationId: org.id } }),
   ])
   return { totalStaff, activeStaff, inactiveStaff }
 }
 
-//Get Staff Member by ID
+//Get Staff Member by ID (admin edit view)
 export const getStaffMemberById = async (id: string) => {
-  const staffMember = await prisma.staff.findUnique({
-    where: { id },
+  const { org } = await requireAdminOrg()
+
+  const staffMember = await prisma.staff.findFirst({
+    where: { id, organizationId: org.id },
     include: {
       services: {
         include: {
@@ -199,6 +230,8 @@ export const getStaffMemberById = async (id: string) => {
 //Create Staff Member
 export const createStaffMember = async (data: UpdateStaffInput) => {
   try {
+    const { org } = await requireAdminOrg()
+
     const { serviceIds, workingHours, email, ...staffData } = data
 
     if (!staffData.name || !email) {
@@ -233,6 +266,7 @@ export const createStaffMember = async (data: UpdateStaffInput) => {
         bio: staffData.bio,
         image: staffData.image,
         isActive: staffData.isActive ?? true,
+        organization: { connect: { id: org.id } },
         user: existingUser
           ? { connect: { id: existingUser.id } }
           : {
@@ -240,6 +274,7 @@ export const createStaffMember = async (data: UpdateStaffInput) => {
                 name: staffData.name,
                 email,
                 role: "STAFF",
+                organization: { connect: { id: org.id } },
               },
             },
       },
@@ -253,14 +288,20 @@ export const createStaffMember = async (data: UpdateStaffInput) => {
       })
     }
 
-    // Create service associations
+    // Create service associations (only with services in this organization)
     if (serviceIds?.length) {
-      await prisma.staffService.createMany({
-        data: serviceIds.map((serviceId) => ({
-          staffId: staff.id,
-          serviceId,
-        })),
+      const orgServices = await prisma.service.findMany({
+        where: { id: { in: serviceIds }, organizationId: org.id },
+        select: { id: true },
       })
+      if (orgServices.length) {
+        await prisma.staffService.createMany({
+          data: orgServices.map((service) => ({
+            staffId: staff.id,
+            serviceId: service.id,
+          })),
+        })
+      }
     }
 
     // Create working hours
@@ -280,6 +321,9 @@ export const createStaffMember = async (data: UpdateStaffInput) => {
 
     return { success: true, staff }
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return { success: false, error: error.message }
+    }
     console.error("Error creating staff member:", error)
     return { success: false, error: "Failed to create staff member" }
   }
@@ -288,25 +332,42 @@ export const createStaffMember = async (data: UpdateStaffInput) => {
 //Update Staff Member
 export const updateStaffMember = async (id: string, data: UpdateStaffInput) => {
   try {
+    const { org } = await requireAdminOrg()
+
     const { serviceIds, workingHours, ...staffData } = data
+
+    // Verify ownership before mutating
+    const existing = await prisma.staff.findFirst({
+      where: { id, organizationId: org.id },
+      select: { id: true },
+    })
+    if (!existing) {
+      return { success: false, error: "Staff member not found" }
+    }
 
     const updatedStaffMember = await prisma.staff.update({
       where: { id },
       data: staffData,
     })
 
-    // Update service associations
+    // Update service associations (only with services in this organization)
     if (serviceIds !== undefined) {
       await prisma.staffService.deleteMany({
         where: { staffId: id },
       })
       if (serviceIds.length) {
-        await prisma.staffService.createMany({
-          data: serviceIds.map((serviceId) => ({
-            staffId: id,
-            serviceId,
-          })),
+        const orgServices = await prisma.service.findMany({
+          where: { id: { in: serviceIds }, organizationId: org.id },
+          select: { id: true },
         })
+        if (orgServices.length) {
+          await prisma.staffService.createMany({
+            data: orgServices.map((service) => ({
+              staffId: id,
+              serviceId: service.id,
+            })),
+          })
+        }
       }
     }
 
@@ -332,6 +393,9 @@ export const updateStaffMember = async (id: string, data: UpdateStaffInput) => {
 
     return { success: true, staff: updatedStaffMember }
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return { success: false, error: error.message }
+    }
     console.error("Error updating staff member:", error)
     return { success: false, error: "Failed to update staff member." }
   }
@@ -340,9 +404,11 @@ export const updateStaffMember = async (id: string, data: UpdateStaffInput) => {
 //Delete Staff Member (deactivates and changes user role to CLIENTE)
 export const deleteStaffMember = async (id: string) => {
   try {
-    // Get staff with user info
-    const staff = await prisma.staff.findUnique({
-      where: { id },
+    const { org } = await requireAdminOrg()
+
+    // Get staff with user info (must belong to admin's organization)
+    const staff = await prisma.staff.findFirst({
+      where: { id, organizationId: org.id },
       include: { user: true },
     })
 
@@ -370,6 +436,9 @@ export const deleteStaffMember = async (id: string) => {
 
     return { success: true }
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return { success: false, error: error.message }
+    }
     console.error("Error removing staff member:", error)
     return { success: false, error: "Failed to remove staff member." }
   }
@@ -378,8 +447,10 @@ export const deleteStaffMember = async (id: string) => {
 //Toggle Staff Active Status
 export const toggleStaffActiveStatus = async (id: string) => {
   try {
-    const staffMember = await prisma.staff.findUnique({
-      where: { id },
+    const { org } = await requireAdminOrg()
+
+    const staffMember = await prisma.staff.findFirst({
+      where: { id, organizationId: org.id },
       select: { isActive: true },
     })
 
@@ -394,6 +465,9 @@ export const toggleStaffActiveStatus = async (id: string) => {
     revalidatePath("/dashboard/staff")
     return { success: true, staff: updatedStaffMember }
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return { success: false, error: error.message }
+    }
     console.error("Error toggling staff active status:", error)
     return { success: false, error: "Failed to toggle staff active status." }
   }
@@ -871,6 +945,27 @@ export const updateStaffSelfProfile = async (data: StaffSelfUpdateFormData) => {
   }
 
   try {
+    const org = await getSessionOrg()
+    if (!org) {
+      return {
+        success: false,
+        error: "Unauthorized",
+      }
+    }
+
+    // Verify the staff profile belongs to this organization before mutating
+    const existingStaff = await prisma.staff.findUnique({
+      where: { userId: session.user.id },
+      select: { id: true, organizationId: true },
+    })
+
+    if (!existingStaff || existingStaff.organizationId !== org.id) {
+      return {
+        success: false,
+        error: "Unauthorized",
+      }
+    }
+
     const updatedStaff = await prisma.staff.update({
       where: { userId: session.user.id },
       data: {

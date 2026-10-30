@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { ShoppingCartIcon } from "@/components/icons"
 import { useCartStore } from "@/store/cart-store"
+import { useOrgPrefix } from "@/lib/org-path-hooks"
 import { useRouter } from "next/navigation"
 
 interface CartButtonProps {
@@ -18,10 +19,11 @@ export function CartButton({
 }: CartButtonProps) {
   const itemCount = useCartStore((state) => state.getTotalItems())
   const router = useRouter()
+  const prefix = useOrgPrefix()
 
   return (
     <Button
-      onClick={() => router.push("/cart")}
+      onClick={() => router.push(`${prefix}/cart`)}
       size={size}
       className={`${mobile ? "rounded-full shadow-lg" : ""} ${className}`}
     >

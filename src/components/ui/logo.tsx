@@ -6,6 +6,10 @@ type LogoVariant = "navbar" | "sidebar" | "footer" | "auth" | "small"
 interface LogoProps {
   className?: string
   variant?: LogoVariant
+  /** Organization logo URL (falls back to the platform default logo). */
+  src?: string | null
+  /** Alt text — should be the organization name. */
+  alt?: string
 }
 
 // Preset sizes for different contexts
@@ -17,8 +21,32 @@ const variantSizes: Record<LogoVariant, { width: number; height: number }> = {
   small: { width: 80, height: 28 },
 }
 
-export function Logo({ className, variant = "navbar" }: LogoProps) {
+export function Logo({ className, variant = "navbar", src, alt }: LogoProps) {
   const { width, height } = variantSizes[variant]
+  const name = alt?.trim() || "Salon"
+
+  // No custom logo uploaded — render the salon's initials instead of a
+  // generic platform mark (avoids wrong branding for other tenants).
+  if (!src || src.trim().length === 0) {
+    const initials = name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]!.toUpperCase())
+      .join("")
+    return (
+      <div
+        className={cn(
+          "font-heading text-primary flex items-center justify-center rounded-full bg-primary/10",
+          className
+        )}
+        style={{ width, height, fontSize: Math.min(height * 0.42, 22) }}
+        aria-label={name}
+      >
+        {initials || name[0]?.toUpperCase()}
+      </div>
+    )
+  }
 
   return (
     <div
@@ -26,8 +54,8 @@ export function Logo({ className, variant = "navbar" }: LogoProps) {
       style={{ width, height }}
     >
       <Image
-        src="/images/logo/logo.svg"
-        alt="RC Beauty Salon"
+        src={src}
+        alt={name}
         width={width}
         height={height}
         className="h-auto w-auto object-contain dark:brightness-110 dark:contrast-90"

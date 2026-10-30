@@ -1,4 +1,5 @@
 "use client"
+import { useFormatPrice } from "@/lib/currency"
 
 import { useState, useTransition } from "react"
 import Image from "next/image"
@@ -10,14 +11,17 @@ import { filterServices } from "@/app/actions/services"
 import { ServiceFilters, ServicesListProps } from "@/lib/interfaces"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ServicesGridSkeleton } from "./services-grid-skeleton"
+import { useOrgPrefix } from "@/lib/org-path-hooks"
 
 export function ServicesList({
   initialServices,
   categories,
   staff,
 }: ServicesListProps) {
+  const fmt = useFormatPrice()
   const [services, setServices] = useState(initialServices)
   const [isPending, startTransition] = useTransition()
+  const prefix = useOrgPrefix()
 
   const handleFilterChange = async (filters: ServiceFilters) => {
     startTransition(async () => {
@@ -25,7 +29,7 @@ export function ServicesList({
         const filtered = await filterServices(filters)
         setServices(filtered)
       } catch (error) {
-        console.error("Error filtering services:", error)
+        console.error("Napaka pri filtriranju storitev:", error)
       }
     })
   }
@@ -68,7 +72,7 @@ export function ServicesList({
                   {services[category].map((service) => (
                     <Link
                       key={service.id}
-                      href={`/services/${service.slug}`}
+                      href={`${prefix}/services/${service.slug}`}
                       className="group border-primary/10 relative w-full overflow-hidden rounded-lg border shadow-sm transition-all duration-500 hover:shadow-xl sm:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1rem)] xl:w-[calc(25%-1.125rem)]"
                     >
                       {/* Background Image */}
@@ -121,7 +125,7 @@ export function ServicesList({
 
                             <div className="group-hover:text-accent/90 flex items-center justify-between text-sm text-white/90 transition-colors duration-300">
                               <span className="font-medium">
-                                ${service.price.toString()}
+                                {fmt(Number(service.price))}
                               </span>
                               {service.duration && (
                                 <span className="group-hover:text-accent/70 text-white/70">

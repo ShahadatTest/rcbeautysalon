@@ -134,6 +134,13 @@ export function LoginForm() {
               </Link>
             </div>
 
+            <div className="text-center text-sm text-muted-foreground">
+              Own a salon?{" "}
+              <Link href="/start" className="font-medium text-primary hover:underline">
+                Ustvari svoj salon
+              </Link>
+            </div>
+
             <div className="text-center">
               <Link href="/" className="text-sm text-muted-foreground hover:text-primary">
                 ← Back to home

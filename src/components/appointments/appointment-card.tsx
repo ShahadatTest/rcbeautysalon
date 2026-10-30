@@ -1,4 +1,5 @@
 "use client"
+import { useFormatPrice } from "@/lib/currency"
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
@@ -38,6 +39,7 @@ export function AppointmentCard({
   isPast = false,
   isNew = false,
 }: AppointmentCardProps) {
+  const fmt = useFormatPrice()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -171,7 +173,7 @@ export function AppointmentCard({
           </div>
           <div className="text-muted-foreground flex items-center text-sm">
             <CurrencyDollarIcon size={16} className="mr-2" weight="regular" />
-            <span>Total Price: ${appointment.totalPrice.toFixed(2)}</span>
+            <span>Total Price: {fmt(appointment.totalPrice)}</span>
           </div>
 
           {/* Deposit status */}
@@ -187,7 +189,7 @@ export function AppointmentCard({
                     />
                     <div className="text-sm">
                       <p className="font-semibold text-green-900 dark:text-green-100">
-                        Deposit Paid: ${appointment.depositAmount.toFixed(2)}
+                        Deposit Paid: {fmt(appointment.depositAmount)}
                       </p>
                       <p className="text-green-800 dark:text-green-200">
                         Non-refundable
@@ -205,7 +207,7 @@ export function AppointmentCard({
                     />
                     <div className="text-sm">
                       <p className="font-semibold text-amber-900 dark:text-amber-100">
-                        Payment Required: ${appointment.depositAmount.toFixed(2)}
+                        Payment Required: {fmt(appointment.depositAmount)}
                       </p>
                       <p className="text-amber-800 dark:text-amber-200">
                         Please complete payment to confirm your appointment

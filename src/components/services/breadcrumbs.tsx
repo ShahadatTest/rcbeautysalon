@@ -19,18 +19,20 @@ interface BreadcrumbItemData {
 
 interface ServiceBreadcrumbsProps {
   items: BreadcrumbItemData[]
+  /** Prefix for the home link, e.g. "/s/salon-luna" on tenant sites. */
+  homeHref?: string
 }
 
-export function ServiceBreadcrumbs({ items }: ServiceBreadcrumbsProps) {
+export function ServiceBreadcrumbs({ items, homeHref = "/" }: ServiceBreadcrumbsProps) {
   return (
     <Breadcrumb className="mb-6">
       <BreadcrumbList>
         {/* Home */}
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
-            <Link href="/" className="flex items-center gap-1">
+            <Link href={homeHref} className="flex items-center gap-1">
               <HouseIcon size={16} weight="regular" />
-              <span className="sr-only sm:not-sr-only">Home</span>
+              <span className="sr-only sm:not-sr-only">Domov</span>
             </Link>
           </BreadcrumbLink>
         </BreadcrumbItem>

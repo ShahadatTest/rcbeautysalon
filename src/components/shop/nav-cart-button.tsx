@@ -8,15 +8,17 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useCartStore } from "@/store/cart-store"
+import { useOrgPrefix } from "@/lib/org-path-hooks"
 import Link from "next/link"
 
 export function NavCartButton() {
   const itemCount = useCartStore((state) => state.getTotalItems())
+  const prefix = useOrgPrefix()
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Link href="/cart">
+        <Link href={`${prefix}/cart`}>
           <Button
             variant="ghost"
             size="icon"

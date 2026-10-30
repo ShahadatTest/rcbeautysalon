@@ -1,9 +1,10 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
+import { getPublicOrg } from "@/lib/tenant"
 import { CartItem } from "@/store/cart-store";
 
-export async function validateCartStock(items: CartItem[]) {
+export async function validateCartStock(items: CartItem[], orgId?: string) {
   const errors: {
     productId: string
     name: string
@@ -11,11 +12,27 @@ export async function validateCartStock(items: CartItem[]) {
     requested: number
   }[] = []
 
-  // Fetch all products in parallel (not sequentially)
+  // Resolve the tenant organization (public shop checkout)
+  const org = orgId ? { id: orgId } : await getPublicOrg()
+
+  if (!org) {
+    // No organization -> no products can be validated
+    return {
+      valid: false,
+      errors: items.map((item) => ({
+        productId: item.productId,
+        name: item.name,
+        available: 0,
+        requested: item.quantity,
+      })),
+    }
+  }
+
+  // Fetch all products in parallel (not sequentially), scoped to the organization
   const products = await Promise.all(
     items.map((item) =>
-      prisma.product.findUnique({
-        where: { id: item.productId },
+      prisma.product.findFirst({
+        where: { id: item.productId, organizationId: org.id },
       })
     )
   )

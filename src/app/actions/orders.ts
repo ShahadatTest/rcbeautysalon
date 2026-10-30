@@ -4,27 +4,27 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { OrderStatus } from "@prisma/client"
 import { auth } from "@/lib/auth/auth"
+import { requireAdminOrg } from "@/lib/tenant"
 
 // Admin: Get all orders with customer and items
 export async function getAdminOrders(search?: string) {
-  const session = await auth()
-
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized")
-  }
+  const { org } = await requireAdminOrg()
 
   const orders = await prisma.order.findMany({
-    where: search
-      ? {
-          OR: [
-            { id: { contains: search, mode: "insensitive" } },
-            { customer: { name: { contains: search, mode: "insensitive" } } },
-            { customer: { email: { contains: search, mode: "insensitive" } } },
-            { guestName: { contains: search, mode: "insensitive" } },
-            { guestEmail: { contains: search, mode: "insensitive" } },
-          ],
-        }
-      : undefined,
+    where: {
+      organizationId: org.id,
+      ...(search
+        ? {
+            OR: [
+              { id: { contains: search, mode: "insensitive" } },
+              { customer: { name: { contains: search, mode: "insensitive" } } },
+              { customer: { email: { contains: search, mode: "insensitive" } } },
+              { guestName: { contains: search, mode: "insensitive" } },
+              { guestEmail: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
     include: {
       customer: true,
       _count: {
@@ -46,11 +46,7 @@ export async function getAdminOrders(search?: string) {
 
 // Admin: Get order statistics
 export async function getOrderStats() {
-  const session = await auth()
-
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized")
-  }
+  const { org } = await requireAdminOrg()
 
   const now = new Date()
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -58,18 +54,23 @@ export async function getOrderStats() {
 
   const [totalOrders, pending, completedToday, revenueThisMonth] =
     await Promise.all([
-      prisma.order.count(),
+      prisma.order.count({ where: { organizationId: org.id } }),
       prisma.order.count({
-        where: { status: { in: ["PENDING", "PAID"] } },
+        where: {
+          organizationId: org.id,
+          status: { in: ["PENDING", "PAID"] },
+        },
       }),
       prisma.order.count({
         where: {
+          organizationId: org.id,
           status: "COMPLETED",
           updatedAt: { gte: startOfDay },
         },
       }),
       prisma.order.aggregate({
         where: {
+          organizationId: org.id,
           status: { in: ["PAID", "COMPLETED"] },
           createdAt: { gte: startOfMonth },
         },
@@ -89,14 +90,10 @@ export async function getOrderStats() {
 
 // Admin: Get order by ID with full details
 export async function getOrderById(id: string) {
-  const session = await auth()
+  const { org } = await requireAdminOrg()
 
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized")
-  }
-
-  const order = await prisma.order.findUnique({
-    where: { id },
+  const order = await prisma.order.findFirst({
+    where: { id, organizationId: org.id },
     include: {
       customer: true,
       items: {
@@ -123,13 +120,18 @@ export async function getOrderById(id: string) {
 
 // Update order status
 export async function updateOrderStatus(id: string, status: OrderStatus) {
-  const session = await auth()
-
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized")
-  }
+  const { org } = await requireAdminOrg()
 
   try {
+    // Verify ownership before mutating
+    const existing = await prisma.order.findFirst({
+      where: { id, organizationId: org.id },
+      select: { id: true },
+    })
+    if (!existing) {
+      return { success: false, error: "Order not found" }
+    }
+
     const order = await prisma.order.update({
       where: { id },
       data: { status },

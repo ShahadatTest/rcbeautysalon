@@ -315,7 +315,7 @@
 body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
-  font-family: var(--font-poppins), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--org-font-body, var(--font-poppins)), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-feature-settings: "rlig" 1, "calt" 1;
   line-height: 1.6;
 }
@@ -325,14 +325,14 @@ body {
 h1.font-heading,
 h2.font-heading,
 h3.font-heading {
-  font-family: var(--font-rouge-script), "Rouge Script", cursive;
+  font-family: var(--org-font-heading, var(--font-rouge-script)), "Rouge Script", cursive;
   font-weight: 400;
   letter-spacing: 0.02em;
   line-height: 1.2;
 }
 
 h1 {
-  font-family: var(--font-rouge-script), "Rouge Script", cursive;
+  font-family: var(--org-font-heading, var(--font-rouge-script)), "Rouge Script", cursive;
   font-size: clamp(2.5rem, 5vw, 4rem);
   font-weight: 400;
   letter-spacing: 0.02em;
@@ -340,7 +340,7 @@ h1 {
 }
 
 h2 {
-  font-family: var(--font-rouge-script), "Rouge Script", cursive;
+  font-family: var(--org-font-heading, var(--font-rouge-script)), "Rouge Script", cursive;
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 400;
   letter-spacing: 0.02em;
@@ -348,7 +348,7 @@ h2 {
 }
 
 h3 {
-  font-family: var(--font-rouge-script), "Rouge Script", cursive;
+  font-family: var(--org-font-heading, var(--font-rouge-script)), "Rouge Script", cursive;
   font-size: clamp(1.5rem, 3vw, 2rem);
   font-weight: 400;
   letter-spacing: 0.02em;

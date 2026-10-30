@@ -1,7 +1,9 @@
-import { getStaffMembers, getStaffMemberBySlug } from "@/app/actions/staff"
+import type { Metadata } from "next"
+import { getPublicSiteData, getPublicStaffBySlug } from "@/lib/public-site"
 import { notFound } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
+import { orgPath } from "@/lib/org-path"
 import { cloudinaryPresets } from "@/lib/utils/cloudinary"
 import {
   EnvelopeIcon,
@@ -15,34 +17,22 @@ interface StaffDetailPageProps {
   params: Promise<{ name: string }>
 }
 
-// Generate slug from name
-const generateSlug = (name: string) =>
-  name
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "")
-
-export async function generateStaticParams() {
-  const staffMembers = await getStaffMembers()
-  return staffMembers.map((staff) => ({
-    name: generateSlug(staff.name),
-  }))
-}
-
-export async function generateMetadata({ params }: StaffDetailPageProps) {
+export async function generateMetadata({ params }: StaffDetailPageProps): Promise<Metadata> {
   const { name } = await params
-  const staffMember = await getStaffMemberBySlug(name)
+  const site = await getPublicSiteData()
+  const orgName = site?.org.name ?? "Salon"
+  const staffMember = site ? await getPublicStaffBySlug(site.org.id, name) : null
 
   if (!staffMember) {
     return {
-      title: "Staff Member Not Found | RC Beauty Salon",
+      title: `Član ekipe ni najden | ${orgName}`,
     }
   }
 
   return {
-    title: `${staffMember.name} | RC Beauty Salon`,
+    title: `${staffMember.name} | ${orgName}`,
     description:
-      staffMember.bio || `Book an appointment with ${staffMember.name} at RC Beauty Salon`,
+      staffMember.bio || `Rezervirajte termin pri ${staffMember.name} — ${orgName}.`,
   }
 }
 
@@ -59,11 +49,14 @@ const dayNames = [
 
 const StaffDetailPage = async ({ params }: StaffDetailPageProps) => {
   const { name } = await params
-  const staffMember = await getStaffMemberBySlug(name)
+  const site = await getPublicSiteData()
+  const staffMember = site ? await getPublicStaffBySlug(site.org.id, name) : null
 
-  if (!staffMember) {
+  if (!site || !staffMember) {
     notFound()
   }
+
+  const orgSlug = site.org.slug
 
   // Convert Decimal to number for services
   const services = staffMember.services.map((s) => ({
@@ -161,11 +154,11 @@ const StaffDetailPage = async ({ params }: StaffDetailPageProps) => {
 
               {/* Book Button */}
               <Link
-                href={`/booking?staff=${staffMember.id}`}
+                href={orgPath(orgSlug, `/booking?staff=${staffMember.id}`)}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground shadow-lg transition-all hover:bg-primary/90 hover:shadow-xl font-body"
               >
                 <CalendarIcon size={22} />
-                Book with {staffMember.name.split(" ")[0]}
+                Rezerviraj pri {staffMember.name.split(" ")[0]}
               </Link>
             </div>
           </div>
@@ -176,7 +169,7 @@ const StaffDetailPage = async ({ params }: StaffDetailPageProps) => {
       <section className="py-16 md:py-24">
         <div className="container mx-auto px-4">
           <h2 className="font-heading mb-12 text-center text-4xl md:text-5xl lg:text-6xl">
-            Services by{" "}
+            Storitve —{" "}
             <span className="bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">
               {staffMember.name.split(" ")[0]}
             </span>
@@ -184,14 +177,14 @@ const StaffDetailPage = async ({ params }: StaffDetailPageProps) => {
 
           {services.length === 0 ? (
             <p className="text-center text-muted-foreground font-body">
-              No services available at the moment.
+              Trenutno ni razpoložljivih storitev.
             </p>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {services.map((service) => (
                 <Link
                   key={service.id}
-                  href={`/services/${service.slug}`}
+                  href={orgPath(orgSlug, `/services/${service.slug}`)}
                   className="group rounded-2xl border border-border bg-card p-6 transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:-translate-y-1"
                 >
                   <div className="mb-4 flex items-start justify-between">
@@ -223,9 +216,9 @@ const StaffDetailPage = async ({ params }: StaffDetailPageProps) => {
         <section className="border-t bg-muted/30 py-16 md:py-24">
           <div className="container mx-auto px-4">
             <h2 className="font-heading mb-12 text-center text-4xl md:text-5xl lg:text-6xl">
-              Working{" "}
+              Delovni{" "}
               <span className="bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">
-                Hours
+                čas
               </span>
             </h2>
 
@@ -247,7 +240,7 @@ const StaffDetailPage = async ({ params }: StaffDetailPageProps) => {
                         </span>
                       ) : (
                         <span className="text-sm text-destructive font-body">
-                          Closed
+                          Zaprto
                         </span>
                       )}
                     </div>
@@ -263,23 +256,24 @@ const StaffDetailPage = async ({ params }: StaffDetailPageProps) => {
       <section className="border-t bg-linear-to-br from-primary/5 to-accent/5 py-16">
         <div className="container mx-auto px-4 text-center">
           <h2 className="font-heading mb-4 text-4xl md:text-5xl lg:text-6xl">
-            Ready to Book?
+            Pripravljeni na rezervacijo?
           </h2>
           <p className="mb-8 text-muted-foreground font-body">
-            Schedule your appointment with {staffMember.name.split(" ")[0]} today
+            Rezervirajte svoj termin pri {staffMember.name.split(" ")[0]} še
+            danes
           </p>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Link
-              href={`/booking?staff=${staffMember.id}`}
+              href={orgPath(orgSlug, `/booking?staff=${staffMember.id}`)}
               className="inline-flex items-center justify-center rounded-full bg-primary px-8 py-3 font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-lg font-body"
             >
-              Book Now
+              Rezerviraj zdaj
             </Link>
             <Link
-              href="/staff"
+              href={orgPath(orgSlug, "/staff")}
               className="inline-flex items-center justify-center rounded-full border border-border px-8 py-3 font-semibold transition-colors hover:bg-muted font-body"
             >
-              View All Staff
+              Vsa ekipa
             </Link>
           </div>
         </div>

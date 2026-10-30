@@ -6,15 +6,33 @@ import { Prisma } from "@prisma/client"
 import { ServiceFilters } from "@/lib/interfaces"
 import { revalidatePath } from "next/cache"
 import { CreateServiceInput } from "@/lib/interfaces"
+import { UnauthorizedError } from "@/lib/auth/guards"
+import { auth } from "@/lib/auth/auth"
+import { getPublicOrg, getSessionOrg, requireAdminOrg, getResolvedOrg } from "@/lib/tenant"
 
 export type UpdateServiceInput = Partial<CreateServiceInput>
 
+/**
+ * Resolve the organization for functions used by BOTH the public site and the
+ * admin dashboard: admins/staff get their session org, everyone else gets the
+ * public (tenant) org.
+ */
+async function resolveRequestOrg() {
+  // Tenant header (/s/[slug]) always wins over the session to avoid
+  // cross-tenant leakage when a signed-in admin browses another salon.
+  return getResolvedOrg()
+}
+
 // Get featured services for homepage display
 export const getFeaturedServices = cache(async () => {
+  const org = await getPublicOrg()
+  if (!org) return []
+
   const featuredServices = await prisma.service.findMany({
     where: {
       isFeatured: true,
       isActive: true,
+      organizationId: org.id,
     },
     orderBy: {
       order: "asc",
@@ -45,8 +63,11 @@ export const getFeaturedServices = cache(async () => {
 
 // Get all active services grouped by category for /services page
 export async function getAllServicesGroupedByCategory() {
+  const org = await getPublicOrg()
+  if (!org) return {}
+
   const servicesGrouped = await prisma.service.findMany({
-    where: { isActive: true },
+    where: { isActive: true, organizationId: org.id },
     include: { category: true },
     orderBy: [{ category: { name: "asc" } }, { name: "asc" }],
   })
@@ -67,16 +88,20 @@ export async function getAllServicesGroupedByCategory() {
 // Get detailed service info by slug for /services/[slug] page
 // Cached to avoid duplicate fetches in generateMetadata + page component
 export const getServiceBySlug = cache(async (slug: string) => {
+  const org = await getPublicOrg()
+  if (!org) return null
+
   return await prisma.service.findFirst({
     where: {
       slug,
       isActive: true,
+      organizationId: org.id,
     },
     include: {
       category: true,
       staffServices: {
         where: {
-          staff: { isActive: true },
+          staff: { isActive: true, organizationId: org.id },
         },
         include: {
           staff: true,
@@ -113,8 +138,11 @@ export const getServiceBySlug = cache(async (slug: string) => {
 
 // Get all active service slugs for generateStaticParams
 export async function getAllServiceSlugs() {
+  const org = await getPublicOrg()
+  if (!org) return []
+
   const services = await prisma.service.findMany({
-    where: { isActive: true },
+    where: { isActive: true, organizationId: org.id },
     select: { slug: true },
   })
 
@@ -123,7 +151,11 @@ export async function getAllServiceSlugs() {
 
 // Get categories with count of active services for sidebar display
 export const getCategoriesWithCount = cache(async () => {
+  const org = await getPublicOrg()
+  if (!org) return []
+
   return await prisma.category.findMany({
+    where: { organizationId: org.id },
     orderBy: { name: "asc" },
     include: {
       _count: {
@@ -144,10 +176,14 @@ export async function getRelatedServices(
 ) {
   if (!categoryId) return []
 
+  const org = await getPublicOrg()
+  if (!org) return []
+
   const services = await prisma.service.findMany({
     where: {
       categoryId,
       isActive: true,
+      organizationId: org.id,
       id: { not: excludeServiceId }, // Exclude current service
     },
     select: {
@@ -185,9 +221,13 @@ export async function filterServices(filters: ServiceFilters) {
     sortBy = "name_asc",
   } = filters
 
+  const org = await getPublicOrg()
+  if (!org) return {}
+
   // Build where clause
   const where: Prisma.ServiceWhereInput = {
     isActive: true,
+    organizationId: org.id,
   }
 
   // Text search in name and description
@@ -222,7 +262,7 @@ export async function filterServices(filters: ServiceFilters) {
     where.staffServices = {
       some: {
         staffId,
-        staff: { isActive: true },
+        staff: { isActive: true, organizationId: org.id },
       },
     }
   }
@@ -334,10 +374,13 @@ export async function filterServices(filters: ServiceFilters) {
   return grouped
 }
 
-// Get all active staff for filter dropdown
+// Get all active staff for filter dropdown (public + admin)
 export const getAllActiveStaff = cache(async () => {
+  const org = await resolveRequestOrg()
+  if (!org) return []
+
   return await prisma.staff.findMany({
-    where: { isActive: true },
+    where: { isActive: true, organizationId: org.id },
     select: {
       id: true,
       name: true,
@@ -346,9 +389,13 @@ export const getAllActiveStaff = cache(async () => {
   })
 })
 
-// Get all categories for filter dropdown
+// Get all categories for filter dropdown (public + admin)
 export const getAllCategories = cache(async () => {
+  const org = await resolveRequestOrg()
+  if (!org) return []
+
   const categories = await prisma.category.findMany({
+    where: { organizationId: org.id },
     select: {
       id: true,
       name: true,
@@ -358,10 +405,13 @@ export const getAllCategories = cache(async () => {
   return categories
 })
 
-// Get Active Services for Booking
+// Get Active Services for Booking (public + admin)
 export async function getActiveServicesForBooking() {
+  const org = await resolveRequestOrg()
+  if (!org) return []
+
   const services = await prisma.service.findMany({
-    where: { isActive: true },
+    where: { isActive: true, organizationId: org.id },
     select: {
       id: true,
       name: true,
@@ -379,15 +429,20 @@ export async function getActiveServicesForBooking() {
 
 // Admin: Get all services with counts for management
 export async function getAdminServices(search?: string) {
+  const { org } = await requireAdminOrg()
+
   const services = await prisma.service.findMany({
-    where: search
-      ? {
-          OR: [
-            { name: { contains: search, mode: "insensitive" } },
-            { category: { name: { contains: search, mode: "insensitive" } } },
-          ],
-        }
-      : undefined,
+    where: {
+      organizationId: org.id,
+      ...(search
+        ? {
+            OR: [
+              { name: { contains: search, mode: "insensitive" } },
+              { category: { name: { contains: search, mode: "insensitive" } } },
+            ],
+          }
+        : {}),
+    },
     include: {
       category: {
         select: { name: true },
@@ -411,12 +466,14 @@ export async function getAdminServices(search?: string) {
 
 // Admin: Get service statistics
 export async function getServiceStats() {
+  const { org } = await requireAdminOrg()
+
   const [totalServices, activeServices, featuredServices, categoriesCount] =
     await Promise.all([
-      prisma.service.count(),
-      prisma.service.count({ where: { isActive: true } }),
-      prisma.service.count({ where: { isFeatured: true } }),
-      prisma.category.count(),
+      prisma.service.count({ where: { organizationId: org.id } }),
+      prisma.service.count({ where: { isActive: true, organizationId: org.id } }),
+      prisma.service.count({ where: { isFeatured: true, organizationId: org.id } }),
+      prisma.category.count({ where: { organizationId: org.id } }),
     ])
 
   return {
@@ -429,8 +486,10 @@ export async function getServiceStats() {
 
 // Admin: Get service by ID with detailed info
 export async function getServiceById(id: string) {
-  const service = await prisma.service.findUnique({
-    where: { id },
+  const { org } = await requireAdminOrg()
+
+  const service = await prisma.service.findFirst({
+    where: { id, organizationId: org.id },
     include: {
       category: true,
       staffServices: {
@@ -454,23 +513,44 @@ export async function getServiceById(id: string) {
 //Create Service
 export async function createService(data: CreateServiceInput) {
   try {
+    const { org } = await requireAdminOrg()
+
     // Extract staffIds and categoryId from data
     const { staffIds, categoryId, ...serviceData } = data
+
+    // Validate the category belongs to this organization
+    if (categoryId) {
+      const category = await prisma.category.findFirst({
+        where: { id: categoryId, organizationId: org.id },
+        select: { id: true },
+      })
+      if (!category) {
+        return { success: false, error: "Invalid category" }
+      }
+    }
 
     const service = await prisma.service.create({
       data: {
         ...serviceData,
+        organization: { connect: { id: org.id } },
         ...(categoryId && { category: { connect: { id: categoryId } } }),
       },
     })
 
     if (staffIds?.length) {
-      await prisma.staffService.createMany({
-        data: staffIds.map((staffId) => ({
-          staffId,
-          serviceId: service.id,
-        })),
+      // Only link staff members that belong to this organization
+      const orgStaff = await prisma.staff.findMany({
+        where: { id: { in: staffIds }, organizationId: org.id },
+        select: { id: true },
       })
+      if (orgStaff.length) {
+        await prisma.staffService.createMany({
+          data: orgStaff.map((staff) => ({
+            staffId: staff.id,
+            serviceId: service.id,
+          })),
+        })
+      }
     }
 
     revalidatePath("/dashboard/services")
@@ -484,6 +564,9 @@ export async function createService(data: CreateServiceInput) {
       },
     }
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return { success: false, error: error.message }
+    }
     console.error("Error creating service:", error)
     return { success: false, error: "Failed to create service." }
   }
@@ -492,8 +575,30 @@ export async function createService(data: CreateServiceInput) {
 // Update Service
 export async function updateService(id: string, data: UpdateServiceInput) {
   try {
+    const { org } = await requireAdminOrg()
+
     // Extract staffIds and categoryId from data
     const { staffIds, categoryId, ...serviceData } = data
+
+    // Verify ownership before mutating
+    const existing = await prisma.service.findFirst({
+      where: { id, organizationId: org.id },
+      select: { id: true },
+    })
+    if (!existing) {
+      return { success: false, error: "Service not found" }
+    }
+
+    // Validate the category belongs to this organization
+    if (categoryId) {
+      const category = await prisma.category.findFirst({
+        where: { id: categoryId, organizationId: org.id },
+        select: { id: true },
+      })
+      if (!category) {
+        return { success: false, error: "Invalid category" }
+      }
+    }
 
     const updatedService = await prisma.service.update({
       where: { id },
@@ -510,12 +615,19 @@ export async function updateService(id: string, data: UpdateServiceInput) {
         where: { serviceId: id },
       })
       if (staffIds.length) {
-        await prisma.staffService.createMany({
-          data: staffIds.map((staffId) => ({
-            staffId,
-            serviceId: id,
-          })),
+        // Only link staff members that belong to this organization
+        const orgStaff = await prisma.staff.findMany({
+          where: { id: { in: staffIds }, organizationId: org.id },
+          select: { id: true },
         })
+        if (orgStaff.length) {
+          await prisma.staffService.createMany({
+            data: orgStaff.map((staff) => ({
+              staffId: staff.id,
+              serviceId: id,
+            })),
+          })
+        }
       }
     }
 
@@ -530,6 +642,9 @@ export async function updateService(id: string, data: UpdateServiceInput) {
       },
     }
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return { success: false, error: error.message }
+    }
     console.error("Error updating service:", error)
     return { success: false, error: "Failed to update service." }
   }
@@ -538,6 +653,17 @@ export async function updateService(id: string, data: UpdateServiceInput) {
 // Delete Service
 export async function deleteService(id: string) {
   try {
+    const { org } = await requireAdminOrg()
+
+    // Verify ownership before mutating
+    const existing = await prisma.service.findFirst({
+      where: { id, organizationId: org.id },
+      select: { id: true },
+    })
+    if (!existing) {
+      return { success: false, error: "Service not found" }
+    }
+
     const appointmentCount = await prisma.appointmentService.count({
       where: { serviceId: id },
     })
@@ -558,6 +684,9 @@ export async function deleteService(id: string) {
 
     return { success: true }
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return { success: false, error: error.message }
+    }
     console.error("Error deleting service:", error)
     return { success: false, error: "Failed to delete service." }
   }
@@ -566,8 +695,10 @@ export async function deleteService(id: string) {
 // Toggle service active status
 export async function toggleServiceStatus(id: string) {
   try {
-    const service = await prisma.service.findUnique({
-      where: { id },
+    const { org } = await requireAdminOrg()
+
+    const service = await prisma.service.findFirst({
+      where: { id, organizationId: org.id },
       select: { isActive: true },
     })
 
@@ -585,6 +716,9 @@ export async function toggleServiceStatus(id: string) {
 
     return { success: true, isActive: updated.isActive }
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return { success: false, error: error.message }
+    }
     console.error("Error toggling service status:", error)
     return { success: false, error: "Failed to toggle service status." }
   }

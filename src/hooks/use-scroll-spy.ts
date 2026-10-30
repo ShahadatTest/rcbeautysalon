@@ -2,16 +2,23 @@
 
 import { useEffect } from "react"
 
-const sectionTitle: Record<string, string> = {
-  home: "Beauty Salon | Home",
-  services: "Beauty Salon | Services",
-  shop: "Beauty Salon | Shop",
-  about: "Beauty Salon | About",
-  contact: "Beauty Salon | Contact",
-}
-
-export function useScrollSpy(sectionIds: string[]) {
+/**
+ * Scroll-spy titles per section. Generic salon labels — pass an
+ * optional organization name to brand the document title.
+ */
+export function useScrollSpy(sectionIds: string[], orgName?: string) {
   useEffect(() => {
+    const brand = orgName?.trim() || "Salon"
+
+    const sectionTitle: Record<string, string> = {
+      home: `${brand} | Domov`,
+      services: `${brand} | Storitve`,
+      shop: `${brand} | Trgovina`,
+      about: `${brand} | O nas`,
+      team: `${brand} | Ekipa`,
+      contact: `${brand} | Kontakt`,
+    }
+
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -22,7 +29,7 @@ export function useScrollSpy(sectionIds: string[]) {
               history.replaceState(null, "", `#${id}`)
 
               // Dynamically change title
-              const newTitle = sectionTitle[id] || "Beauty Salon"
+              const newTitle = sectionTitle[id] || brand
               if (document.title !== newTitle) {
                 document.title = newTitle
               }
@@ -44,5 +51,5 @@ export function useScrollSpy(sectionIds: string[]) {
     elements.forEach((el) => observer.observe(el!))
 
     return () => observer.disconnect()
-  }, [sectionIds])
+  }, [sectionIds, orgName])
 }

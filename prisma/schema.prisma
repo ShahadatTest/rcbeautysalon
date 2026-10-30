@@ -37,25 +37,75 @@ model Session {
   @@index([userId])
 }
 
+// ============================================================
+// TENANT — each salon (hairdresser, nail studio, cosmetician, ...)
+// gets its own organization with own site at /s/[slug]
+// ============================================================
+model Organization {
+  id        String   @id @default(cuid())
+  slug      String   @unique // URL: /s/[slug] — validated against reserved routes
+  name      String
+  logo      String?
+  vertical  String   @default("beauty") // frizer | barber | nails | beauty | massage | epilation | generic
+  palette   String   @default("rose") // theme palette key (see src/lib/verticals.ts)
+  plan      String   @default("free")
+  status    String   @default("ACTIVE") // ACTIVE | SUSPENDED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users        User[]
+  salonConfig  SalonConfig?
+  categories   Category[]
+  services     Service[]
+  products     Product[]
+  staff        Staff[]
+  customers    Customer[]
+  appointments Appointment[]
+  orders       Order[]
+  media        Media[]
+
+  @@index([slug])
+  @@index([status])
+}
+
+// Binary media storage (DB fallback when Cloudinary is not configured)
+model Media {
+  id             String   @id @default(cuid())
+  organizationId String?
+  filename       String
+  mimeType       String
+  size           Int
+  data           String   @db.Text // base64
+  createdAt      DateTime @default(now())
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+}
+
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  role          UserRole  @default(CLIENTE)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  name             String?
+  email            String    @unique
+  emailVerified    DateTime?
+  image            String?
+  password         String?
+  role             UserRole  @default(CLIENTE)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
   resetToken       String?   @unique
   resetTokenExpiry DateTime?
+
+  // Tenant membership (salon owners/admins/staff belong to an Organization)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
   accounts Account[]
   sessions Session[]
   reviews  Review[]
 
   // One-to-one relationships with business profiles
-  staff    Staff?    // If role=STAFF, MUST exist
+  staff    Staff? // If role=STAFF, MUST exist
   customer Customer? // If role=CLIENTE, MUST exist
 
   // Notification preferences
@@ -66,12 +116,12 @@ model User {
 }
 
 model NotificationPreferences {
-  id                  String  @id @default(cuid())
-  userId              String  @unique
-  emailReminders      Boolean @default(true)
-  reminderTime        String  @default("24h") // "24h" | "48h" | "1week"
-  promotionalEmails   Boolean @default(false)
-  appointmentUpdates  Boolean @default(true)
+  id                 String  @id @default(cuid())
+  userId             String  @unique
+  emailReminders     Boolean @default(true)
+  reminderTime       String  @default("24h") // "24h" | "48h" | "1week"
+  promotionalEmails  Boolean @default(false)
+  appointmentUpdates Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -94,9 +144,18 @@ model VerificationToken {
 }
 
 model SalonConfig {
-  id   String @id @default("salon_config")
-  name String @default("Beauty Salon")
+  id   String  @id @default(cuid())
+  name String  @default("Beauty Salon")
   logo String?
+
+  // Tenant owner (one config per Organization)
+  organizationId String?       @unique
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Editable site content (hero, about, features, CTA, hours, social, SEO, sections)
+  siteContent Json?
+  // Theme overrides: { fontHeading?: string, fontBody?: string, radius?: string, colors?: {...} }
+  theme       Json?
 
   // Branding colors
   primaryColor   String @default("#000000")
@@ -110,7 +169,7 @@ model SalonConfig {
   city    String?
   state   String?
   zipCode String?
-  country String @default("US")
+  country String  @default("US")
 
   // Business hours
   timezone String @default("America/New_York")
@@ -131,7 +190,10 @@ model SalonConfig {
 model Category {
   id   String @id @default(cuid())
   name String
-  slug String @unique
+  slug String
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -139,6 +201,8 @@ model Category {
   services Service[]
   products Product[]
 
+  @@unique([organizationId, slug])
+  @@index([organizationId])
   @@index([slug])
 }
 
@@ -156,6 +220,9 @@ model Service {
 
   categoryId String?
 
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -166,6 +233,8 @@ model Service {
   gallery             ServiceGallery[]
   faqs                ServiceFAQ[]
 
+  @@unique([organizationId, slug])
+  @@index([organizationId])
   @@index([categoryId])
   @@index([isActive])
   @@index([isFeatured])
@@ -233,6 +302,9 @@ model Staff {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -241,6 +313,7 @@ model Staff {
   workingHours WorkingHours[]
 
   @@index([userId])
+  @@index([organizationId])
   @@index([isActive])
   @@index([email])
 }
@@ -283,6 +356,9 @@ model Customer {
   userId String? @unique
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -290,12 +366,13 @@ model Customer {
   orders       Order[]
 
   @@index([userId])
+  @@index([organizationId])
   @@index([email])
   @@index([phone])
 }
 
 model Appointment {
-  id         String            @id @default(cuid())
+  id         String  @id @default(cuid())
   staffId    String
   customerId String?
 
@@ -307,7 +384,7 @@ model Appointment {
   startTime DateTime
   endTime   DateTime
   status    AppointmentStatus @default(PENDING)
-  notes     String? @db.Text
+  notes     String?           @db.Text
 
   // Payment ($50 non-refundable deposit)
   totalPrice      Decimal @db.Decimal(10, 2)
@@ -319,6 +396,9 @@ model Appointment {
   reminderSentAt     DateTime?
   confirmationSentAt DateTime?
 
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -328,6 +408,7 @@ model Appointment {
 
   @@index([staffId])
   @@index([customerId])
+  @@index([organizationId])
   @@index([startTime])
   @@index([status])
   @@index([depositPaid])
@@ -375,12 +456,17 @@ model Product {
   isActive   Boolean @default(true)
   isFeatured Boolean @default(false)
 
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   category   Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   orderItems OrderItem[]
 
+  @@unique([organizationId, sku])
+  @@index([organizationId])
   @@index([categoryId])
   @@index([isActive])
   @@index([isFeatured])
@@ -411,10 +497,14 @@ model Order {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   customer Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
   items    OrderItem[]
 
   @@index([customerId])
+  @@index([organizationId])
   @@index([status])
   @@index([createdAt])
 }
@@ -436,7 +526,7 @@ model OrderItem {
 enum OrderStatus {
   PENDING
   PAID
-  COMPLETED  // Entregado en tienda
+  COMPLETED // Entregado en tienda
   CANCELLED
   REFUNDED
 }

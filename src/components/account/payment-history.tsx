@@ -1,4 +1,5 @@
 "use client"
+import { useFormatPrice } from "@/lib/currency"
 
 import { useState } from "react"
 import Link from "next/link"
@@ -41,6 +42,7 @@ const typeLabels: Record<PaymentType, string> = {
 }
 
 export function PaymentHistory({ payments, showAll = false }: PaymentHistoryProps) {
+  const fmt = useFormatPrice()
   const [expanded, setExpanded] = useState(showAll)
 
   const displayedPayments = expanded ? payments : payments.slice(0, 5)
@@ -89,7 +91,7 @@ export function PaymentHistory({ payments, showAll = false }: PaymentHistoryProp
           </div>
           <div className="text-right">
             <p className="text-sm text-muted-foreground">Total Spent</p>
-            <p className="text-xl font-bold text-primary">${totalSpent.toFixed(2)}</p>
+            <p className="text-xl font-bold text-primary">{fmt(totalSpent)}</p>
           </div>
         </div>
       </CardHeader>
@@ -129,7 +131,7 @@ export function PaymentHistory({ payments, showAll = false }: PaymentHistoryProp
                 <div className="flex items-center gap-4">
                   {/* Amount */}
                   <div className="text-right">
-                    <p className="font-semibold">${payment.amount.toFixed(2)}</p>
+                    <p className="font-semibold">{fmt(payment.amount)}</p>
                     <Badge variant={config.variant} className="text-xs">
                       <StatusIcon size={12} className="mr-1" />
                       {config.label}

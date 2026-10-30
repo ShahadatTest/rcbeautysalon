@@ -1,4 +1,5 @@
 "use client"
+import { useFormatPrice } from "@/lib/currency"
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
@@ -78,6 +79,7 @@ const statusVariants: Record<
 export function StaffAppointmentsList({
   appointments,
 }: StaffAppointmentsListProps) {
+  const fmt = useFormatPrice()
   const [isPending, startTransition] = useTransition()
   const [selectedAppointment, setSelectedAppointment] =
     useState<StaffAppointment | null>(null)
@@ -185,7 +187,7 @@ export function StaffAppointmentsList({
                     <TableCell>{totalDuration} min</TableCell>
 
                     {/* Price */}
-                    <TableCell>${appointment.totalPrice.toFixed(2)}</TableCell>
+                    <TableCell>{fmt(appointment.totalPrice)}</TableCell>
 
                     {/* Status */}
                     <TableCell>

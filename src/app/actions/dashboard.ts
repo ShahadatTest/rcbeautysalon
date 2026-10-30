@@ -1,7 +1,7 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
-import { auth } from "@/lib/auth/auth"
+import { requireAdminOrg } from "@/lib/tenant"
 import { endOfWeek } from "date-fns"
 import { startOfWeek } from "date-fns"
 import { subMonths } from "date-fns"
@@ -10,11 +10,7 @@ import { startOfMonth } from "date-fns"
 
 // Get dashboard statistics
 export async function getDashboardStats() {
-  const session = await auth()
-
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized")
-  }
+  const { org } = await requireAdminOrg()
 
   const now = new Date()
   const currentMonthStart = startOfMonth(now)
@@ -35,29 +31,34 @@ export async function getDashboardStats() {
     currentMonthRevenue,
     lastMonthRevenue,
   ] = await Promise.all([
-    prisma.customer.count(),
+    prisma.customer.count({ where: { organizationId: org.id } }),
     prisma.customer.count({
-      where: { createdAt: { gte: weekStart, lte: weekEnd } },
+      where: { organizationId: org.id, createdAt: { gte: weekStart, lte: weekEnd } },
     }),
-    prisma.appointment.count(),
+    prisma.appointment.count({ where: { organizationId: org.id } }),
     prisma.appointment.count({
-      where: { createdAt: { gte: currentMonthStart, lte: currentMonthEnd } },
+      where: { organizationId: org.id, createdAt: { gte: currentMonthStart, lte: currentMonthEnd } },
     }),
-    prisma.order.count({ where: { status: { in: ["PAID", "COMPLETED"] } } }),
+    prisma.order.count({
+      where: { organizationId: org.id, status: { in: ["PAID", "COMPLETED"] } },
+    }),
     prisma.order.count({
       where: {
+        organizationId: org.id,
         status: { in: ["PAID", "COMPLETED"] },
         createdAt: { gte: currentMonthStart, lte: currentMonthEnd },
       },
     }),
     prisma.order.count({
       where: {
+        organizationId: org.id,
         status: { in: ["PAID", "COMPLETED"] },
         createdAt: { gte: lastMonthStart, lte: lastMonthEnd },
       },
     }),
     prisma.order.aggregate({
       where: {
+        organizationId: org.id,
         status: "COMPLETED",
         createdAt: { gte: currentMonthStart, lte: currentMonthEnd },
       },
@@ -65,6 +66,7 @@ export async function getDashboardStats() {
     }),
     prisma.order.aggregate({
       where: {
+        organizationId: org.id,
         status: "COMPLETED",
         createdAt: { gte: lastMonthStart, lte: lastMonthEnd },
       },
@@ -91,11 +93,7 @@ export async function getDashboardStats() {
 
 //Get Today's Appointments
 export async function getTodaysAppointments() {
-  const session = await auth()
-
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized")
-  }
+  const { org } = await requireAdminOrg()
 
   const startOfToday = new Date()
   startOfToday.setHours(0, 0, 0, 0)
@@ -105,6 +103,7 @@ export async function getTodaysAppointments() {
 
   const appointments = await prisma.appointment.findMany({
     where: {
+      organizationId: org.id,
       startTime: {
         gte: startOfToday,
         lte: endOfToday,
@@ -129,17 +128,14 @@ export async function getTodaysAppointments() {
 
 //Get Recent Activity
 export async function getRecentActivities() {
-  const session = await auth()
-
-  if (!session?.user || session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized")
-  }
+  const { org } = await requireAdminOrg()
 
   const [recentAppointments, recentOrders, recentCustomers] = await Promise.all(
     [
       prisma.appointment.findMany({
         take: 3,
         orderBy: { createdAt: "desc" },
+        where: { organizationId: org.id },
         select: {
           id: true,
           createdAt: true,
@@ -150,7 +146,10 @@ export async function getRecentActivities() {
       prisma.order.findMany({
         take: 3,
         orderBy: { createdAt: "desc" },
-        where: { status: { in: ["PAID", "COMPLETED"] } },
+        where: {
+          organizationId: org.id,
+          status: { in: ["PAID", "COMPLETED"] },
+        },
         select: {
           id: true,
           createdAt: true,
@@ -161,6 +160,7 @@ export async function getRecentActivities() {
       prisma.customer.findMany({
         take: 3,
         orderBy: { createdAt: "desc" },
+        where: { organizationId: org.id },
         select: { id: true, name: true, createdAt: true },
       }),
     ]
