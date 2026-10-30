@@ -1,307 +1,179 @@
-# Beauty Salon Management System
+# RC Beauty Salon — večnajemniška platforma za salone lepote
 
-A modern, full-stack beauty salon management platform built with Next.js 16, React 19, TypeScript, and Tailwind CSS v4.
+Sodobna full-stack platforma za upravljanje frizerskih in kozmetičnih salonov, zgrajena z **Next.js 16**, **React 19**, **TypeScript** in **Tailwind CSS v4**.
 
-## 🌟 Features
+🌐 **V živo:** [https://rcbeautysalon-phi.vercel.app](https://rcbeautysalon-phi.vercel.app)
 
-- 📅 **Appointment Booking** - Online booking system with $50 non-refundable deposit
-- 🛍️ **E-commerce Shop** - Sell beauty products online
-- 👥 **Customer Management** - Track customer history and preferences
-- 💼 **Staff Management** - Manage stylists, schedules, and services
-- 📊 **Admin Dashboard** - Complete business overview and analytics
-- 🎨 **Fully Customizable** - Easy branding with logo, colors, and content
-- 💳 **Stripe Payments** - Secure payment processing
-- 📧 **Automated Notifications** - Email and SMS reminders
+Ena namestitev streže **več neodvisnim salonom** — vsak s svojo domeno (`/s/ime-salona`), temo, vsebino, storitvami, osebjem in plačili.
 
-## 🚀 Tech Stack
+## ✨ Zmožnosti
 
-- **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript 5
-- **Styling**: Tailwind CSS v4 + shadcn/ui
-- **Database**: PostgreSQL + Prisma ORM
-- **Authentication**: NextAuth.js v5
-- **Payments**: Stripe
-- **Email**: Resend + React Email
-- **Forms**: React Hook Form + Zod
-- **Package Manager**: pnpm
+### 🏢 Večnajemniškost (multi-tenant)
+- Vsak salon dobi svojo javno stran pod `/s/[slug]` (npr. `/s/salon-luna/rezervacija`)
+- **Vertikale** — vnaprej pripravljeni predloge po panogi: frizer, barber, nohti, lepota, masaža, depilacija, splošno
+- Vsaka vertikala prinese lastne kategorije, vzorčne storitve, barvno paleto, pisave in besedila
+- **Tema engine** — palete + pisave na nivoju organizacije, urejanje vsebine (hero, odprt čas, o nas …)
+- **Samostojno vključitev (onboarding)** — nov salon se registrira na `/start` in takoj dobi celotno stran
 
-## 📦 Installation
+### 📅 Rezervacije
+- Spletna rezervacija s pologom (znesek nastavi salon, privzeto **50 €**)
+- Koledar z **uvojitvijo `Europe/Ljubljana`** — termini so natančni na časovni pas (date-fns tz)
+- Preverjanje razpoložljivosti v realnem času, izbira storitve in osebja
+- Preklic / prestavitev rezervacije s strani stranke
+- Samodejna e-poštna potrdila in opomniki
 
-### 1. Install Dependencies
+### 🛍️ Trgovina (e-commerce)
+- Katalog izdelkov s slikami, košarica (Zustand), Stripe checkout
+- Upravljanje naročil in zalog v nadzorni plošči
+- Valuta salona (EUR) — brez trdo kodiranih USD
+
+### 💳 Stripe plačila — **admin vnese ključe sam**
+Ni treba urejati environment spremenljivk! Lastnik salona v **Nastavitve → Plačila** sam vnese:
+1. **Skrivni ključ** (`sk_live_…` / `sk_test_…`) — pred shranjevanjem se preveri prek Stripe API-ja
+2. **Webhook skrivnost** (`whsec_…`) — za zanesljive potrditve plačil
+
+Varnost:
+- Ključ je vezan na organizacijo (multi-tenant) in se shrani le strežniško
+- Ključ se **nikoli** ne vrne brskalniku — samo maskiran prikaz (`sk_live_••••1234`)
+- Webhook preverja podpis za vse najemnike (env skrivnost + skrivnosti vseh organizacij)
+- Fallback: če organizacija nima ključa, se uporabi `STRIPE_SECRET_KEY` iz okolja
+- Plačila se elegantno degradirajo, ko ključ ni nastavljen (prijazno sporočilo, brez sesutja)
+
+### 🈸 Dvojezičnost (i18n)
+- **Slovenščina (privzeto)** + angleščina, preklopnik v glavi
+- Preveden celoten vmesnik: javne strani, rezervacije, trgovina, košarica, nadzorna plošča, staff portal, avtentikacija
+
+### 👥 Vloge
+| Vloga | Dostop |
+|---|---|
+| `ADMIN` | Nadzorna plošča: analitika, termini, storitve, izdelki, stranke, osebje, nastavitve, plačila |
+| `STAFF` | Staff portal: lastni termini, urnik, stranke |
+| `CLIENTE` | Rezervacije, trgovina, moji termini / naročila / ocene |
+
+### 📧 E-pošta
+React Email predloge: potrdilo rezervacije, opomnik 24 h, prestavitev, zaključen termin, no-show, aktivacija računa, ponastavitev gesla, potrdilo naročila.
+
+## 🚀 Tehnologije
+
+- **Framework:** Next.js 16 (App Router, Turbopack)
+- **Jezik:** TypeScript 5
+- **Styling:** Tailwind CSS v4 + shadcn/ui + Phosphor/Lucide ikone
+- **Baza:** PostgreSQL (Neon) + Prisma ORM
+- **Avtentikacija:** NextAuth.js v5 (Prisma adapter)
+- **Plačila:** Stripe (ključi na nivoju organizacije)
+- **E-pošta:** React Email
+- **Obrazci:** React Hook Form + Zod
+- **Paketni upravitelj:** pnpm
+
+## 📦 Lokalna namestitev
 
 ```bash
+# 1. Namesti odvisnosti
 pnpm install
+
+# 2. Nastavi okolje
+cp .env.example .env   # izpolni spodnje spremenljivke
+
+# 3. Baza
+pnpm prisma generate
+pnpm db:push           # ali: pnpm db:migrate
+pnpm db:seed           # (neobvezno) vzorčni podatki
+
+# 4. Zaženi
+pnpm dev               # http://localhost:3000
 ```
 
-### 2. Set Up Environment Variables
+### Okoljske spremenljivke
 
-Copy `.env.example` to `.env` and fill in your credentials:
-
-```bash
-cp .env.example .env
-```
-
-Required variables:
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/beauty_salon"
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="" # Generate with: openssl rand -base64 32
-STRIPE_SECRET_KEY=""
-STRIPE_PUBLISHABLE_KEY=""
-STRIPE_WEBHOOK_SECRET=""
-RESEND_API_KEY=""
-RESEND_FROM_EMAIL="noreply@yourdomain.com"
+AUTH_SECRET=""              # openssl rand -base64 32
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
+# Stripe — NEOBVEZNO: admin lahko ključe vnese v Nastavitve → Plačila
+STRIPE_SECRET_KEY=""
+STRIPE_WEBHOOK_SECRET=""
 ```
 
-### 3. Set Up Database
+> 💡 Stripe ključi v okolju so le platformni fallback. Priporočeno je, da vsak salon vnese svoje ključe prek nadzorne plošče — brez ponovnega deploya.
 
-```bash
-# Generate Prisma Client
-pnpm prisma generate
+## 💳 Nastavitev Stripe (za lastnika salona)
 
-# Run migrations
-pnpm prisma migrate dev --name init
+1. Prijavi se kot admin → **Nastavitve → Plačila**
+2. V [Stripe Dashboard → Developers → API keys](https://dashboard.stripe.com/apikeys) kopiraj **Secret key** (`sk_test_…` za testiranje, `sk_live_…` za produkcijo)
+3. Prilepi v aplikacijo → **»Shrani in preveri ključ«** — aplikacija takoj preveri veljavnost ključa prek Stripe API-ja
+4. (Priporočeno) V Stripe: **Developers → Webhooks → Add endpoint**:
+   - Naslov: `https://tvoja-domena.si/api/webhooks/stripe`
+   - Dogodek: `checkout.session.completed`
+   - Skrivnost (`whsec_…`) prilepi v **Nastavitve → Plačila**
+5. Status se spremeni v »Testni način« / »Živi način« — plačila so aktivna ✅
 
-# (Optional) Seed database with sample data
-pnpm prisma db seed
-```
-
-### 4. Run Development Server
-
-```bash
-pnpm dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## 🎨 Customization Guide
-
-### Logo & Branding
-
-#### 1. Add Your Logo
-- Place your logo in `public/logo.png`
-- Update references in:
-  - `src/app/page.tsx` (Homepage)
-  - `src/app/(admin)/layout.tsx` (Admin panel)
-
-#### 2. Update Brand Colors
-Edit `src/app/globals.css`:
-
-```css
-:root {
-  --primary: YOUR_PRIMARY_COLOR;
-  --secondary: YOUR_SECONDARY_COLOR;
-  --accent: YOUR_ACCENT_COLOR;
-}
-```
-
-#### 3. Business Information
-Update these files:
-- **Salon Name**: Search for "Beauty Salon" across the project
-- **Contact Info**: `src/app/page.tsx` (footer section)
-- **Address**: Footer and contact sections
-
-### Content Customization
-
-#### Homepage (`src/app/page.tsx`)
-- Hero section headline and description
-- Services preview section
-- Call-to-action text
-- Footer content
-
-#### Service Images
-- Add images to `public/services/`
-- Update in database or hardcode in components
-
-#### Product Images
-- Upload via admin dashboard
-- Or add to `public/products/`
-
-## 📁 Project Structure
+## 🗂️ Struktura projekta
 
 ```
 src/
 ├── app/
-│   ├── (auth)/              # Authentication pages
-│   │   ├── login/
-│   │   └── register/
-│   ├── (cliente)/           # Client-facing pages
-│   │   ├── booking/         # Appointment booking ($50 deposit)
-│   │   ├── tienda/          # Shop
-│   │   └── mis-citas/       # My appointments
-│   ├── (admin)/             # Admin dashboard
-│   │   ├── dashboard/       # Overview
-│   │   ├── citas/           # Appointments management
-│   │   ├── productos/       # Products management
-│   │   ├── servicios/       # Services management
-│   │   ├── usuarios/        # Customers management
-│   │   ├── staff/           # Staff management
-│   │   └── configuracion/   # Settings
-│   ├── api/                 # API routes
-│   │   ├── auth/
-│   │   └── webhooks/
-│   └── page.tsx             # Homepage
-├── components/
-│   ├── ui/                  # shadcn/ui components
-│   ├── booking/             # Booking components
-│   ├── shop/                # Shop components
-│   └── layouts/             # Shared layouts
+│   ├── (public)/            # Javne strani (na /s/slug preko proxyja)
+│   │   ├── page.tsx         # Domov
+│   │   ├── booking/         # Rezervacija (+ uspeh / preklic)
+│   │   ├── services/        # Storitve
+│   │   └── staff/           # Osebje
+│   ├── (customer)/          # Strankov portal
+│   │   ├── shop/            # Trgovina
+│   │   ├── cart/ checkout/  # Košarica + blagajna
+│   │   └── my-appointments/ my-orders/ my-reviews/ my-account/
+│   ├── (staff)/             # Staff portal
+│   ├── (admin)/dashboard/   # Nadzorna plošča
+│   │   ├── analytics/ appointments/ orders/
+│   │   ├── products/ services/ users/ staff/
+│   │   └── settings/        # Nastavitve (vklj. zavihek Plačila)
+│   ├── (auth)/              # Prijava, registracija, /start (onboarding) …
+│   ├── actions/             # Server Actions (appointments, payments, …)
+│   └── api/webhooks/stripe/ # Stripe webhook (večnajemniška verifikacija)
+├── components/              # UI + dashboard + booking + shop komponente
 ├── lib/
-│   ├── db/                  # Database utilities
-│   ├── auth/                # NextAuth configuration
-│   ├── stripe/              # Stripe integration
-│   ├── email/               # Email templates
-│   ├── utils/               # Utilities (cn, formatters)
-│   └── validations/         # Zod schemas
-├── server/
-│   ├── actions/             # Server Actions
-│   └── queries/             # Data fetching
-├── hooks/                   # Custom React hooks
-├── store/                   # Zustand stores
-└── types/                   # TypeScript types
+│   ├── i18n/                # SL/EN slovarji + provider
+│   ├── verticals.ts         # Panoge: palete, pisave, vzorčne vsebine
+│   ├── stripe.ts            # Stripe na nivoju organizacije + validacija ključev
+│   ├── booking-time.ts      # Časovni pasi (Europe/Ljubljana)
+│   ├── org-path.ts          # orgPath() — /s/slug predpone
+│   ├── auth/                # NextAuth + guards (requireRole …)
+│   └── email/               # React Email predloge
+└── proxy.ts                 # Middleware: /s/[slug]/* → /* + x-org-slug + role guards
 ```
 
-## 💡 Key Features
+## 🏗️ Kako deluje večnajemniškost
 
-### Booking System
-- **$50 Non-Refundable Deposit** clearly displayed
-- Real-time availability checking
-- Service and staff selection
-- Stripe payment integration
-- Automated email confirmations
-
-### E-Commerce Shop
-- Product catalog with images
-- Shopping cart (Zustand)
-- Stripe checkout
-- Order management
-- Inventory tracking
-
-### Admin Dashboard
-- Revenue metrics
-- Appointment calendar
-- Customer database
-- Product management
-- Staff scheduling
-- Settings and configuration
-
-## 🗄️ Database Schema
-
-Key models in `prisma/schema.prisma`:
-
-- `User` - Authentication
-- `SalonConfig` - Branding & settings
-- `Customer` - Client profiles
-- `Staff` - Team members
-- `Service` - Beauty services
-- `Appointment` - Bookings ($50 deposit)
-- `Product` - Shop inventory
-- `Order` - E-commerce orders
+1. Zahteva na `/s/salon-luna/booking` → middleware (`src/proxy.ts`) prepiše na `/booking` in nastavi glavo `x-org-slug: salon-luna`
+2. Vse poizvedbe v bazi se filtrirajo po organizaciji (`src/lib/tenant.ts`)
+3. Vsaka organizacija ima svoje: temo, vsebino, storitve, osebje, stranke, izdelke, Stripe ključe, valuta in časovni pas
+4. Nov salon: registracija na `/start` → izbira panoge (vertikale) → samodejno ustvarjanje kategorij, storitev in teme
 
 ## 🚢 Deployment
 
-### Vercel (Recommended)
+### Vercel + Neon (trenutna nastavitev)
+1. Repo povezan z Vercelom — vsak push na `main` se samodejno deploya
+2. Baza: [Neon](https://neon.tech) PostgreSQL
+3. Webhook endpoint: `https://rcbeautysalon-phi.vercel.app/api/webhooks/stripe`
 
-1. Push code to GitHub
-2. Import project in Vercel
-3. Add environment variables
-4. Deploy
+### Drugi ponudniki baz
+Neon ✅ · Supabase · Railway — katerikoli PostgreSQL
 
-### Database Options
-- **Supabase** (recommended)
-- **Neon**
-- **Railway**
-- **PlanetScale**
-
-### Stripe Webhooks
-Set webhook endpoint to: `https://yourdomain.com/api/webhooks/stripe`
-
-Events to listen for:
-- `checkout.session.completed`
-- `payment_intent.succeeded`
-
-## 🔐 Authentication
-
-Uses NextAuth.js v5 with:
-- Email/Password (credentials)
-- Social providers (optional)
-- Role-based access (ADMIN, STAFF, CLIENTE)
-
-## 💳 Payment Flow
-
-1. Customer books appointment
-2. Selects service, staff, date/time
-3. Pays $50 non-refundable deposit via Stripe
-4. Receives confirmation email
-5. Appointment created in database
-
-## 📧 Notifications
-
-- **Email**: Resend + React Email templates
-- **SMS**: Twilio (optional)
-- **Triggers**:
-  - Booking confirmation
-  - 24h appointment reminder
-  - Order confirmation
-
-## 🛠️ Development
+## 🛠️ Razvoj
 
 ```bash
-# Run dev server
-pnpm dev
-
-# Build for production
-pnpm build
-
-# Start production server
-pnpm start
-
-# Run linter
-pnpm lint
-
-# Format code
-pnpm format
-
-# Prisma Studio (database GUI)
-pnpm prisma studio
+pnpm dev          # dev strežnik (Turbopack)
+pnpm build        # produkcijski build
+pnpm lint         # ESLint
+pnpm format       # Prettier
+pnpm db:studio    # Prisma Studio (GUI za bazo)
+pnpm db:seed      # vzorčni podatki
 ```
 
-## 📝 Todo (Implementation)
+## 📄 Licenca
 
-UI is complete. You need to implement:
-
-1. **Server Actions** (`src/server/actions/`)
-   - Authentication logic
-   - Booking creation
-   - Payment processing
-   - CRUD operations
-
-2. **API Routes** (`src/app/api/`)
-   - Stripe webhook handler
-   - NextAuth configuration
-
-3. **Database Queries** (`src/server/queries/`)
-   - Data fetching functions
-   - Availability checking
-
-4. **Zustand Stores** (`src/store/`)
-   - Shopping cart
-   - UI state
-
-5. **Email Templates** (`src/lib/email/templates/`)
-   - Booking confirmation
-   - Reminders
-   - Order receipts
-
-## 🤝 Support
-
-For questions: [your-email@example.com]
-
-## 📄 License
-
-Proprietary - All rights reserved
+Proprietary — vse pravice pridržane.
 
 ---
 
-Built with ❤️ using Next.js 16, React 19, and Tailwind CSS v4
+Zgrajeno z ❤️ — Next.js 16, React 19, Tailwind CSS v4 · 🇸🇮 po slovensko
