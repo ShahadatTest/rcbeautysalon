@@ -1,6 +1,6 @@
 "use server"
 
-import { stripe, isStripeConfigured } from "@/lib/stripe"
+import { stripe, getStripeForOrg } from "@/lib/stripe"
 import { auth } from "@/lib/auth/auth"
 import { prisma } from "@/lib/prisma"
 import { addMinutes } from "date-fns"
@@ -10,18 +10,10 @@ import { instantFromParts, formatSalonTime } from "@/lib/booking-time"
 import { getPublicOrg, getSessionOrg, getOrgById } from "@/lib/tenant"
 import { CreateCheckoutSessionData } from "@/lib/interfaces"
 import { sendAppointmentConfirmationEmail } from "@/lib/email/appointment-confirmation"
+import Stripe from "stripe"
 
 export async function createCheckoutSession(data: CreateCheckoutSessionData) {
   try {
-    // Payments are an optional, salon-owned integration — degrade gracefully
-    if (!isStripeConfigured()) {
-      return {
-        success: false,
-        error:
-          "Spletna plačila še niso nastavljena. Za dokončanje rezervacije kontaktirajte salon.",
-      }
-    }
-
     // Get current session
     const session = await auth()
 
@@ -35,6 +27,17 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
       return {
         success: false,
         error: "Spletna rezervacija trenutno ni na voljo. Poskusite znova kasneje.",
+      }
+    }
+
+    // Payments are an optional, salon-owned integration — the key comes
+    // from the organization (Settings → Plačila) or the platform env.
+    const stripeClient = getStripeForOrg(org)
+    if (!stripeClient) {
+      return {
+        success: false,
+        error:
+          "Spletna plačila še niso nastavljena. Za dokončanje rezervacije kontaktirajte salon.",
       }
     }
 
@@ -104,7 +107,7 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
       : `Nepovratni polog za vaš termin`
 
     // Create Stripe Checkout session
-    const checkoutSession = await stripe.checkout.sessions.create({
+    const checkoutSession = await stripeClient.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
       customer_email: customerEmail,
@@ -155,17 +158,53 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
 // Verify and create appointment from checkout session (fallback for webhook)
 export async function verifyAndCreateAppointment(sessionId: string) {
   try {
-    if (!isStripeConfigured()) {
-      return {
-        success: false,
-        error: "Plačila niso nastavljena.",
+    // The checkout session can only be retrieved from the Stripe account that
+    // created it. Try candidates in order: default org key, session org key,
+    // every org with its own key, then the platform env key.
+    const [publicOrg, sessionOrg, keyedOrgs] = await Promise.all([
+      getPublicOrg(),
+      getSessionOrg(),
+      prisma.organization.findMany({
+        where: { stripeSecretKey: { not: null } },
+      }),
+    ])
+
+    const candidates = [
+      publicOrg,
+      sessionOrg,
+      ...keyedOrgs,
+      null, // null → env key via global client
+    ]
+
+    const seen = new Set<string>()
+    let checkoutSession: Stripe.Checkout.Session | null = null
+
+    for (const candidate of candidates) {
+      const key = candidate?.stripeSecretKey || (candidate === null ? process.env.STRIPE_SECRET_KEY : null)
+      if (!key) continue
+      const dedupeKey = candidate?.id ?? "__env__"
+      if (seen.has(dedupeKey)) continue
+      seen.add(dedupeKey)
+
+      try {
+        const client = candidate ? getStripeForOrg(candidate) : stripe
+        if (!client) continue
+        checkoutSession = await client.checkout.sessions.retrieve(sessionId, {
+          expand: ["payment_intent"],
+        })
+        break
+      } catch {
+        // Wrong account or unreachable — try the next candidate.
+        continue
       }
     }
 
-    // Retrieve the checkout session from Stripe
-    const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ["payment_intent"],
-    })
+    if (!checkoutSession) {
+      return {
+        success: false,
+        error: "Plačila niso nastavljena ali plačila ni mogoče preveriti.",
+      }
+    }
 
     // Verify payment was successful
     if (checkoutSession.payment_status !== "paid") {
@@ -407,14 +446,6 @@ export async function verifyAndCreateAppointment(sessionId: string) {
 // Create checkout session for existing unpaid appointment
 export async function createDepositCheckoutForAppointment(appointmentId: string) {
   try {
-    if (!isStripeConfigured()) {
-      return {
-        success: false,
-        error:
-          "Spletna plačila še niso nastavljena. Kontaktirajte salon.",
-      }
-    }
-
     const session = await auth()
 
     if (!session?.user) {
@@ -453,6 +484,19 @@ export async function createDepositCheckoutForAppointment(appointmentId: string)
       return { success: false, error: "Polog je že plačan" }
     }
 
+    // Payments are optional — the key comes from the appointment's org or env.
+    const orgForPayments = appointment.organizationId
+      ? await getOrgById(appointment.organizationId)
+      : org
+    const stripeClient = getStripeForOrg(orgForPayments)
+    if (!stripeClient) {
+      return {
+        success: false,
+        error:
+          "Spletna plačila še niso nastavljena. Kontaktirajte salon.",
+      }
+    }
+
     // Get service names for description
     const serviceNames = appointment.services.map((s) => s.service.name).join(", ")
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
@@ -464,7 +508,7 @@ export async function createDepositCheckoutForAppointment(appointmentId: string)
     })
 
     // Create Stripe checkout session
-    const checkoutSession = await stripe.checkout.sessions.create({
+    const checkoutSession = await stripeClient.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
       customer_email: session.user.email || undefined,

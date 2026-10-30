@@ -51,6 +51,7 @@ export { MinusIcon } from "./minus-icon"
 export { PencilIcon } from "./pencil-icon"
 export { TrashIcon } from "./trash-icon"
 export { EyeIcon } from "./eye-icon"
+export { EyeOffIcon } from "./eye-off-icon"
 export { CameraIcon } from "./camera-icon"
 export { ImageIcon } from "./image-icon"
 

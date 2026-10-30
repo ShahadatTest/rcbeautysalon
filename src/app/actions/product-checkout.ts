@@ -1,6 +1,6 @@
 "use server"
 
-import { stripe, isStripeConfigured } from "@/lib/stripe"
+import { stripe, getStripeForOrg } from "@/lib/stripe"
 import { auth } from "@/lib/auth/auth"
 import { prisma } from "@/lib/prisma"
 import { validateCartStock } from "./cart"
@@ -27,15 +27,6 @@ export async function createProductCheckoutSession(
   items: CartItem[]
 ): Promise<CheckoutResult> {
   try {
-    // Payments are an optional, salon-owned integration — degrade gracefully
-    if (!isStripeConfigured()) {
-      return {
-        success: false,
-        error:
-          "Spletna plačila še niso nastavljena. Za oddajo naročila kontaktirajte salon.",
-      }
-    }
-
     // Get current session
     const session = await auth()
 
@@ -52,6 +43,17 @@ export async function createProductCheckoutSession(
       return {
         success: false,
         error: "Trgovina trenutno ni na voljo. Poskusite znova kasneje.",
+      }
+    }
+
+    // Payments are an optional, salon-owned integration — the key comes
+    // from the organization (Settings → Plačila) or the platform env.
+    const stripeClient = getStripeForOrg(org)
+    if (!stripeClient) {
+      return {
+        success: false,
+        error:
+          "Spletna plačila še niso nastavljena. Za oddajo naročila kontaktirajte salon.",
       }
     }
 
@@ -158,10 +160,17 @@ export async function createProductCheckoutSession(
     // Get base URL for redirects
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
 
+    // Salon currency — charges follow the salon's configured currency
+    const shopConfig = await prisma.salonConfig.findFirst({
+      where: { organizationId: org.id },
+      select: { currency: true },
+    })
+    const currency = (shopConfig?.currency || "EUR").toLowerCase()
+
     // Create Stripe line items from trusted prices
     const lineItems = pricedItems.map((item) => ({
       price_data: {
-        currency: "usd",
+        currency,
         product_data: {
           name: item.name,
           images: item.image ? [item.image] : [],
@@ -175,7 +184,7 @@ export async function createProductCheckoutSession(
     if (shipping > 0) {
       lineItems.push({
         price_data: {
-          currency: "usd",
+          currency,
           product_data: {
             name: "Dostava",
             images: [],
@@ -187,7 +196,7 @@ export async function createProductCheckoutSession(
     }
 
     // Create Stripe Checkout session
-    const checkoutSession = await stripe.checkout.sessions.create({
+    const checkoutSession = await stripeClient.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
       customer_email: session.user.email || undefined,
@@ -229,10 +238,48 @@ export async function verifyProductOrder(sessionId: string) {
       }
     }
 
-    // Retrieve the checkout session from Stripe
-    const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ["payment_intent"],
-    })
+    // The checkout session can only be retrieved from the Stripe account that
+    // created it. Try candidates: default org key, then every org with its own
+    // key, then the platform env key.
+    const [publicOrg, keyedOrgs] = await Promise.all([
+      getPublicOrg(),
+      prisma.organization.findMany({
+        where: { stripeSecretKey: { not: null } },
+      }),
+    ])
+
+    const candidates = [publicOrg, ...keyedOrgs, null]
+    const seen = new Set<string>()
+    let checkoutSession: import("stripe").Stripe.Checkout.Session | null = null
+
+    for (const candidate of candidates) {
+      const key =
+        candidate?.stripeSecretKey ||
+        (candidate === null ? process.env.STRIPE_SECRET_KEY : null)
+      if (!key) continue
+      const dedupeKey = candidate?.id ?? "__env__"
+      if (seen.has(dedupeKey)) continue
+      seen.add(dedupeKey)
+
+      try {
+        const client = candidate ? getStripeForOrg(candidate) : stripe
+        if (!client) continue
+        checkoutSession = await client.checkout.sessions.retrieve(sessionId, {
+          expand: ["payment_intent"],
+        })
+        break
+      } catch {
+        // Wrong account or unreachable — try the next candidate.
+        continue
+      }
+    }
+
+    if (!checkoutSession) {
+      return {
+        success: false,
+        error: "Plačila niso nastavljena ali plačila ni mogoče preveriti",
+      }
+    }
 
     // Verify payment was successful
     if (checkoutSession.payment_status !== "paid") {

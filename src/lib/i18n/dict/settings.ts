@@ -7,6 +7,64 @@ export const settingsSl = {
   tabs: {
     basic: "Osnovne nastavitve",
     branding: "Izgled in vsebina",
+    payments: "Plačila",
+  },
+  payments: {
+    title: "Plačila (Stripe)",
+    subtitle:
+      "Povežite svoj Stripe račun, da stranke lahko plačajo polog ali naročilo na spletu.",
+    statusSection: "Stanje",
+    statusEnabled: "Plačila so omogočena",
+    statusDisabled: "Plačila niso nastavljena",
+    statusDisabledHint:
+      "Vnesite svoj skrivni ključ spodaj, da omogočite spletne plačile.",
+    statusEnvHint:
+      "Plačila trenutno delujejo s ključem platforme. Vnesite svoj ključ, da bodo plačila šla neposredno na vaš Stripe račun.",
+    modeTest: "Testni način",
+    modeLive: "Živi način",
+    modeRestricted: "Omejen ključ",
+    modeUnknown: "Neznan način",
+    configuredAt: "Nastavljeno",
+    activeKey: "Aktivni ključ",
+    yourKey: "Vaš ključ",
+    platformKey: "Ključ platforme",
+    formSection: "Vnesite svoj Stripe ključ",
+    secretKey: "Skrivni ključ (Secret key)",
+    secretKeyPlaceholder: "sk_live_… ali sk_test_…",
+    secretKeyHint:
+      "Stripe Dashboard → Developers → API keys → Secret key. Ključ se shrani varno in se nikoli več ne prikaže v celoti.",
+    webhookSecret: "Webhook skrivnost (neobvezno)",
+    webhookSecretPlaceholder: "whsec_…",
+    webhookSecretHint:
+      "Priporočeno: potrditve plačil so zanesljivejše. Ustvarite webhook spodaj in prilepite njegovo skrivnost (whsec_…).",
+    webhookSection: "Webhook",
+    webhookUrl: "Naslov webhooka za vaš Stripe račun",
+    webhookUrlHint:
+      "Stripe Dashboard → Developers → Webhooks → Add endpoint → dodajte dogodek checkout.session.completed, nato prilepite skrivnost (whsec_…) zgoraj.",
+    copyUrl: "Kopiraj naslov",
+    urlCopied: "Naslov kopiran",
+    showKey: "Prikaži ključ",
+    hideKey: "Skrij ključ",
+    save: "Shrani in preveri ključ",
+    saving: "Preverjam ključ …",
+    remove: "Odstrani shranjen ključ",
+    removeConfirm:
+      "Ali res želite odstraniti shranjen Stripe ključ? Spletne plačile ne bodo več delovale (razen če platforma ima svoj ključ).",
+    removed: "Stripe ključ je odstranjen",
+    saved: "Stripe ključ je preverjen in shranjen — plačila so omogočena",
+    errInvalidFormat:
+      "Napačna oblika ključa. Skrivni ključ se začne s sk_live_ ali sk_test_.",
+    errInvalidWebhookFormat:
+      "Napačna oblika webhook skrivnosti — se začne z whsec_.",
+    errInvalidKey:
+      "Stripe je zavrnil ključ. Preverite, ali ste prilepili skrivni ključ (ne objavljivega pk_…).",
+    errVerificationFailed:
+      "Ključa ni bilo mogoče preveriti. Preverite povezavo in poskusite znova.",
+    errSaveFailed: "Shranjevanje ni uspelo. Poskusite znova.",
+    errUnexpected: "Prišlo je do nepričakovane napake",
+    errLoadFailed: "Nastavitev plačil ni bilo mogoče naložiti.",
+    securityNote:
+      "Varnost: ključ je viden samo lastniku salona, na strežniku se uporablja izključno za plačila in se nikoli ne pošlje v brskalnik.",
   },
   form: {
     saveAll: "Shrani vse spremembe",
@@ -39,6 +97,7 @@ export const settingsSl = {
     timezone: "Časovni pas",
     selectTimezone: "Izberite časovni pas",
     timezones: {
+      "Europe/Ljubljana": "Srednjeevropski čas (Slovenija)",
       "America/New_York": "Vzhodni čas (ET)",
       "America/Chicago": "Osrednji čas (CT)",
       "America/Denver": "Gorski čas (MT)",
@@ -244,6 +303,64 @@ export const settingsEn: SettingsDict = {
   tabs: {
     basic: "Basic Settings",
     branding: "Branding",
+    payments: "Payments",
+  },
+  payments: {
+    title: "Payments (Stripe)",
+    subtitle:
+      "Connect your own Stripe account so customers can pay deposits and orders online.",
+    statusSection: "Status",
+    statusEnabled: "Payments are enabled",
+    statusDisabled: "Payments are not set up",
+    statusDisabledHint:
+      "Enter your secret key below to enable online payments.",
+    statusEnvHint:
+      "Payments currently run on a platform key. Enter your own key so payments go directly to your Stripe account.",
+    modeTest: "Test mode",
+    modeLive: "Live mode",
+    modeRestricted: "Restricted key",
+    modeUnknown: "Unknown mode",
+    configuredAt: "Configured",
+    activeKey: "Active key",
+    yourKey: "Your key",
+    platformKey: "Platform key",
+    formSection: "Enter your Stripe key",
+    secretKey: "Secret key",
+    secretKeyPlaceholder: "sk_live_… or sk_test_…",
+    secretKeyHint:
+      "Stripe Dashboard → Developers → API keys → Secret key. The key is stored securely and never shown in full again.",
+    webhookSecret: "Webhook signing secret (optional)",
+    webhookSecretPlaceholder: "whsec_…",
+    webhookSecretHint:
+      "Recommended: makes payment confirmations more reliable. Create the webhook below and paste its secret (whsec_…).",
+    webhookSection: "Webhook",
+    webhookUrl: "Webhook URL for your Stripe account",
+    webhookUrlHint:
+      "Stripe Dashboard → Developers → Webhooks → Add endpoint → add the checkout.session.completed event, then paste the secret (whsec_…) above.",
+    copyUrl: "Copy URL",
+    urlCopied: "URL copied",
+    showKey: "Show key",
+    hideKey: "Hide key",
+    save: "Save & verify key",
+    saving: "Verifying key …",
+    remove: "Remove stored key",
+    removeConfirm:
+      "Remove the stored Stripe key? Online payments will stop working (unless the platform has its own key).",
+    removed: "Stripe key removed",
+    saved: "Stripe key verified and saved — payments are enabled",
+    errInvalidFormat:
+      "Invalid key format. A secret key starts with sk_live_ or sk_test_.",
+    errInvalidWebhookFormat:
+      "Invalid webhook secret format — it starts with whsec_.",
+    errInvalidKey:
+      "Stripe rejected the key. Make sure you pasted the secret key (not the publishable pk_… key).",
+    errVerificationFailed:
+      "The key could not be verified. Check your connection and try again.",
+    errSaveFailed: "Saving failed. Please try again.",
+    errUnexpected: "An unexpected error occurred",
+    errLoadFailed: "Payment settings could not be loaded.",
+    securityNote:
+      "Security: the key is visible only to the salon owner, used server-side for payments only, and never sent to the browser.",
   },
   form: {
     saveAll: "Save All Changes",
@@ -276,6 +393,7 @@ export const settingsEn: SettingsDict = {
     timezone: "Timezone",
     selectTimezone: "Select timezone",
     timezones: {
+      "Europe/Ljubljana": "Central European Time (Slovenia)",
       "America/New_York": "Eastern Time (ET)",
       "America/Chicago": "Central Time (CT)",
       "America/Denver": "Mountain Time (MT)",

@@ -53,6 +53,13 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Owner-supplied Stripe integration (entered by the admin in Settings →
+  // Plačila). Optional: when absent, payments fall back to env keys and
+  // gracefully degrade when neither exists.
+  stripeSecretKey     String?   @db.Text
+  stripeWebhookSecret String?   @db.Text
+  stripeConfiguredAt  DateTime?
+
   users        User[]
   salonConfig  SalonConfig?
   categories   Category[]

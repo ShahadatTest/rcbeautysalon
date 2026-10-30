@@ -50,6 +50,7 @@ interface SettingsFormProps {
 const COUNTRIES = ["US", "CA", "MX", "GB", "ES"] as const
 
 const TIMEZONES = [
+  "Europe/Ljubljana",
   "America/New_York",
   "America/Chicago",
   "America/Denver",

@@ -9,7 +9,40 @@ import { getOrgById, getPublicOrg } from "@/lib/tenant"
 import { formatSalonTime, safeTimezone } from "@/lib/booking-time"
 import Stripe from "stripe"
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+/**
+ * Multi-tenant webhook signature verification. Each salon registers the SAME
+ * endpoint URL in its own Stripe account, so every organization can have its
+ * own signing secret. We try, in order:
+ *   1. the platform env secret (legacy),
+ *   2. every organization's stored webhook secret.
+ * constructEvent never calls the API, so trying candidates is cheap.
+ */
+async function verifyStripeEvent(
+  body: string,
+  signature: string
+): Promise<Stripe.Event | null> {
+  const candidates: string[] = []
+  if (process.env.STRIPE_WEBHOOK_SECRET) {
+    candidates.push(process.env.STRIPE_WEBHOOK_SECRET)
+  }
+
+  const orgsWithWebhook = await prisma.organization.findMany({
+    where: { stripeWebhookSecret: { not: null } },
+    select: { stripeWebhookSecret: true },
+  })
+  for (const org of orgsWithWebhook) {
+    if (org.stripeWebhookSecret) candidates.push(org.stripeWebhookSecret)
+  }
+
+  for (const secret of candidates) {
+    try {
+      return stripe.webhooks.constructEvent(body, signature, secret)
+    } catch {
+      continue
+    }
+  }
+  return null
+}
 
 export async function POST(req: Request) {
   const body = await req.text()
@@ -23,7 +56,15 @@ export async function POST(req: Request) {
   let event: Stripe.Event
 
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+    const verified = await verifyStripeEvent(body, signature)
+    if (!verified) {
+      console.error("Webhook signature verification failed")
+      return NextResponse.json(
+        { error: "Webhook signature verification failed" },
+        { status: 400 }
+      )
+    }
+    event = verified
   } catch (err) {
     console.error("Webhook signature verification failed:", err)
     return NextResponse.json(
