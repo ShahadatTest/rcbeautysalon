@@ -54,13 +54,13 @@ export const FONT_LABELS: Record<FontKey, string> = {
 }
 
 export const PALETTES: Record<string, Palette> = {
-  rose: { id: "rose", label: "Rose & Gold", primaryHue: 340, primarySat: 45, primaryL: 50, accentHue: 38, accentSat: 70, accentL: 55, radius: "0.75rem", fontHeading: "rouge", fontBody: "poppins" },
+  rose: { id: "rose", label: "Rožnata & Zlata", primaryHue: 340, primarySat: 45, primaryL: 50, accentHue: 38, accentSat: 70, accentL: 55, radius: "0.75rem", fontHeading: "rouge", fontBody: "poppins" },
   burgundy: { id: "burgundy", label: "Bordó & Terakota", primaryHue: 350, primarySat: 48, primaryL: 38, accentHue: 18, accentSat: 62, accentL: 55, radius: "0.5rem", fontHeading: "playfair", fontBody: "montserrat" },
-  amber: { id: "amber", label: "Amber & Med", primaryHue: 28, primarySat: 62, primaryL: 46, accentHue: 45, accentSat: 72, accentL: 52, radius: "0.5rem", fontHeading: "playfair", fontBody: "poppins" },
-  charcoal: { id: "charcoal", label: "Charcoal & Gold", primaryHue: 220, primarySat: 12, primaryL: 24, accentHue: 43, accentSat: 65, accentL: 52, radius: "0.125rem", fontHeading: "oswald", fontBody: "inter" },
+  amber: { id: "amber", label: "Jantar & Med", primaryHue: 28, primarySat: 62, primaryL: 46, accentHue: 45, accentSat: 72, accentL: 52, radius: "0.5rem", fontHeading: "playfair", fontBody: "poppins" },
+  charcoal: { id: "charcoal", label: "Antracit & Zlata", primaryHue: 220, primarySat: 12, primaryL: 24, accentHue: 43, accentSat: 65, accentL: 52, radius: "0.125rem", fontHeading: "oswald", fontBody: "inter" },
   violet: { id: "violet", label: "Vijolična & Pastel", primaryHue: 282, primarySat: 42, primaryL: 50, accentHue: 330, accentSat: 58, accentL: 62, radius: "1rem", fontHeading: "cormorant", fontBody: "poppins" },
   emerald: { id: "emerald", label: "Smaragdna", primaryHue: 160, primarySat: 45, primaryL: 40, accentHue: 95, accentSat: 42, accentL: 50, radius: "0.75rem", fontHeading: "lora", fontBody: "montserrat" },
-  teal: { id: "teal", label: "Teal & Mint", primaryHue: 190, primarySat: 52, primaryL: 40, accentHue: 165, accentSat: 45, accentL: 50, radius: "0.75rem", fontHeading: "montserrat", fontBody: "inter" },
+  teal: { id: "teal", label: "Modrozelena & Mint", primaryHue: 190, primarySat: 52, primaryL: 40, accentHue: 165, accentSat: 45, accentL: 50, radius: "0.75rem", fontHeading: "montserrat", fontBody: "inter" },
   coral: { id: "coral", label: "Koralna", primaryHue: 12, primarySat: 65, primaryL: 55, accentHue: 35, accentSat: 65, accentL: 55, radius: "0.75rem", fontHeading: "poppins", fontBody: "inter" },
 }
 

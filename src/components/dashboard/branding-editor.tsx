@@ -274,7 +274,7 @@ function FeatureRow({
           <SelectContent>
             {ICON_OPTIONS.map((icon) => (
               <SelectItem key={icon} value={icon}>
-                {icon}
+                {t.settings.branding.iconLabels[icon]}
               </SelectItem>
             ))}
           </SelectContent>
