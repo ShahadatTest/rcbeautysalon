@@ -45,10 +45,10 @@ export const useCartStore = create<CartState>(
                 : item
             ),
           })
-          toast.success(`Increased quantity of ${product.name} in your cart.`)
+          toast.success(`Količina izdelka ${product.name} v košarici je povečana.`)
         } else {
           set({ items: [...items, { ...product, quantity: 1 }] })
-          toast.success(`Added ${product.name} to your cart.`)
+          toast.success(`${product.name} je bil dodan v košarico.`)
         }
       },
 

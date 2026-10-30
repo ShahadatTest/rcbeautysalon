@@ -7,7 +7,7 @@ export function BookingCalendar() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Select Date</CardTitle>
+        <CardTitle>Izberite datum</CardTitle>
       </CardHeader>
       <CardContent>
         <Calendar mode="single" className="rounded-md border" />

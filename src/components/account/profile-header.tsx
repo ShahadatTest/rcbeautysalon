@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
+import { sl } from "date-fns/locale"
 import { toast } from "sonner"
 import { updateProfileImage } from "@/app/actions/account"
 import { CameraIcon } from "@/components/icons/camera-icon"
@@ -33,13 +34,13 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file")
+      toast.error("Izberite slikovno datoteko")
       return
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be less than 5MB")
+      toast.error("Slika mora biti manjša od 5 MB")
       return
     }
 
@@ -61,21 +62,21 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Upload failed")
+        throw new Error(data.error || "Nalaganje ni uspelo")
       }
 
       // Update database
       const result = await updateProfileImage(data.url)
 
       if (result.success) {
-        toast.success("Profile photo updated")
+        toast.success("Profilna fotografija posodobljena")
       } else {
         throw new Error(result.error)
       }
     } catch (error) {
       console.error("Upload error:", error)
       toast.error(
-        error instanceof Error ? error.message : "Failed to upload image"
+        error instanceof Error ? error.message : "Nalaganje slike ni uspelo"
       )
       setPreviewUrl(null)
     } finally {
@@ -96,7 +97,7 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
             <Avatar className="border-primary/20 h-24 w-24 border-4">
               <AvatarImage
                 src={displayImage || undefined}
-                alt={profile.name || "User"}
+                alt={profile.name || "Uporabnik"}
               />
               <AvatarFallback className="bg-primary/10 text-primary text-2xl font-semibold">
                 {initials}
@@ -130,10 +131,10 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
 
           {/* Info */}
           <div className="flex-1 text-center sm:text-left">
-            <h2 className="text-2xl font-bold">{profile.name || "User"}</h2>
+            <h2 className="text-2xl font-bold">{profile.name || "Uporabnik"}</h2>
             <p className="text-muted-foreground">{profile.email}</p>
             <p className="text-muted-foreground mt-2 text-sm">
-              Member since {format(new Date(profile.createdAt), "MMMM yyyy")}
+              Član od {format(new Date(profile.createdAt), "MMMM yyyy", { locale: sl })}
             </p>
           </div>
         </div>

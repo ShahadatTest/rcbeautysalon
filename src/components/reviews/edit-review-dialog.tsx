@@ -74,11 +74,11 @@ export function EditReviewDialog({
   // Rating labels
   const getRatingLabel = (value: number) => {
     const labels: Record<number, string> = {
-      1: "Poor",
-      2: "Fair",
-      3: "Good",
-      4: "Very Good",
-      5: "Excellent",
+      1: "Slabo",
+      2: "Zadostno",
+      3: "Dobro",
+      4: "Zelo dobro",
+      5: "Odlično",
     }
     return labels[value] || ""
   }
@@ -87,9 +87,9 @@ export function EditReviewDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Review</DialogTitle>
+          <DialogTitle>Uredi oceno</DialogTitle>
           <DialogDescription>
-            Update your review for{" "}
+            Posodobite svojo oceno za{" "}
             <span className="font-medium">{serviceName}</span>
           </DialogDescription>
         </DialogHeader>
@@ -97,7 +97,7 @@ export function EditReviewDialog({
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
           {/* Rating Stars */}
           <div className="space-y-2">
-            <Label className="text-base font-semibold">Rating</Label>
+            <Label className="text-base font-semibold">Ocena</Label>
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
@@ -134,19 +134,19 @@ export function EditReviewDialog({
           {/* Comment Textarea */}
           <div className="space-y-2">
             <Label htmlFor="edit-comment" className="text-base font-semibold">
-              Comment
+              Komentar
             </Label>
             <Textarea
               id="edit-comment"
               {...register("comment")}
-              placeholder="Share your experience..."
+              placeholder="Delite svojo izkušnjo..."
               rows={4}
               disabled={isPending}
               className="resize-none"
               maxLength={1000}
             />
             <p className="text-xs text-muted-foreground">
-              {comment?.length || 0}/1000 characters (minimum 10)
+              {comment?.length || 0}/1000 znakov (najmanj 10)
             </p>
             {errors.comment && (
               <p className="text-sm text-destructive">{errors.comment.message}</p>
@@ -160,13 +160,13 @@ export function EditReviewDialog({
               onClick={() => onOpenChange(false)}
               disabled={isPending}
             >
-              Cancel
+              Prekliči
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending && (
                 <SpinnerIcon size={16} className="mr-2 animate-spin" />
               )}
-              Save Changes
+              Shrani spremembe
             </Button>
           </DialogFooter>
         </form>

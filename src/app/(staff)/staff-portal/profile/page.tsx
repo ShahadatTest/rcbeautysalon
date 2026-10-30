@@ -5,8 +5,8 @@ import { StaffProfileForm } from "@/components/staff/staff-profile-form"
 import { StaffServicesAssigned } from "@/components/staff/staff-services-assigned"
 
 export const metadata: Metadata = {
-  title: "My Profile | Staff Portal",
-  description: "View and edit your profile information",
+  title: "Moj profil | Portal za osebje",
+  description: "Pregledajte in uredite svoje profilne podatke",
 }
 
 export default async function StaffProfilePage() {
@@ -23,9 +23,9 @@ export default async function StaffProfilePage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Moj profil</h1>
         <p className="text-muted-foreground mt-1">
-          View and update your profile information
+          Pregledajte in posodobite svoje profilne podatke
         </p>
       </div>
 

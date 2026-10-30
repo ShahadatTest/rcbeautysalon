@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { CalendarIcon, ClockIcon, CurrencyDollarIcon } from "@/components/icons"
 import { cloudinaryPresets } from "@/lib/utils/cloudinary"
 import { orgPath } from "@/lib/org-path"
+import { formatCurrency } from "@/lib/utils/format"
 
 interface RelatedService {
   id: string
@@ -45,13 +46,13 @@ export function RelatedServicesSection({
           {/* Section Header */}
           <div className="mb-12 text-center">
             <h2 className="font-heading mb-4 text-4xl md:text-5xl">
-              You Might Also{" "}
+              Morda vam bo{" "}
               <span className="from-primary to-accent bg-linear-to-r bg-clip-text text-transparent">
-                Like
+                všeč
               </span>
             </h2>
             <p className="text-muted-foreground text-lg">
-              Explore similar services to complete your beauty routine
+              Raziščite podobne storitve in dopolnite svojo lepotno rutino
             </p>
           </div>
 
@@ -98,7 +99,7 @@ export function RelatedServicesSection({
                     <div className="flex items-center gap-1 group-hover:text-accent transition-colors">
                       <CurrencyDollarIcon size={16} weight="regular" />
                       <span className="font-semibold">
-                        €{service.price}
+                        {formatCurrency(service.price)}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
@@ -113,7 +114,7 @@ export function RelatedServicesSection({
                       variant="outline"
                       className="border-primary/50 hover:bg-primary/5 w-full"
                     >
-                      View Details
+                      Podrobnosti
                     </Button>
                   </Link>
                 </CardContent>

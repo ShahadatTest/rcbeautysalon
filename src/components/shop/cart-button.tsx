@@ -28,7 +28,7 @@ export function CartButton({
       className={`${mobile ? "rounded-full shadow-lg" : ""} ${className}`}
     >
       <ShoppingCartIcon size={20} weight="regular" className="mr-2" />
-      Cart {itemCount > 0 && `(${itemCount})`}
+      Košarica {itemCount > 0 && `(${itemCount})`}
     </Button>
   )
 }

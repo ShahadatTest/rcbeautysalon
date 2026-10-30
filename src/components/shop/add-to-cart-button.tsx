@@ -28,7 +28,7 @@ export function AddToCartButton({ product, inStock = true }: AddToCartButtonProp
   return (
     <Button onClick={handleAddToCart} variant={inStock ? "default" : "secondary"}  disabled={!inStock} className="w-full">
       <ShoppingCartIcon className="mr-2 h-4 w-4" />
-      {inStock ? "Add to Cart" : "Out of Stock"}
+      {inStock ? "Dodaj v košarico" : "Ni na zalogi"}
     </Button>
   )
 }

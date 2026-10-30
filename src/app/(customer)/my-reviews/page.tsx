@@ -5,8 +5,8 @@ import { MyReviewsList } from "@/components/reviews/my-reviews-list"
 import { getUserReviews } from "@/app/actions/reviews"
 
 export const metadata: Metadata = {
-  title: "My Reviews | RC Beauty Salon",
-  description: "View and manage your service reviews.",
+  title: "Moje ocene | RC Beauty Salon",
+  description: "Pregledajte in upravljajte svoje ocene storitev.",
 }
 
 export default async function MyReviewsPage() {
@@ -24,10 +24,10 @@ export default async function MyReviewsPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="from-primary to-accent mb-2 bg-linear-to-r bg-clip-text text-4xl font-bold text-transparent">
-            My Reviews
+            Moje ocene
           </h1>
           <p className="text-muted-foreground text-lg">
-            View and manage your service reviews
+            Pregledajte in upravljajte svoje ocene storitev
           </p>
         </div>
 

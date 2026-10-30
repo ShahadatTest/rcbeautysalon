@@ -4,11 +4,11 @@ import { z } from "zod"
 export const updateProfileSchema = z.object({
   name: z
     .string()
-    .min(2, "Name must be at least 2 characters")
-    .max(100, "Name must be less than 100 characters"),
+    .min(2, "Ime mora imeti vsaj 2 znaka")
+    .max(100, "Ime ne sme presegati 100 znakov"),
   phone: z
     .string()
-    .regex(/^[\d\s\-+()]*$/, "Invalid phone number format")
+    .regex(/^[\d\s\-+()]*$/, "Neveljavna oblika telefonske številke")
     .optional()
     .or(z.literal("")),
 })
@@ -16,18 +16,18 @@ export const updateProfileSchema = z.object({
 // Change password schema
 export const changePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, "Current password is required"),
+    currentPassword: z.string().min(1, "Vnesite trenutno geslo"),
     newPassword: z
       .string()
-      .min(8, "Password must be at least 8 characters")
+      .min(8, "Geslo mora imeti vsaj 8 znakov")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Password must contain uppercase, lowercase, and number"
+        "Geslo mora vsebovati veliko črko, malo črko in številko"
       ),
     confirmPassword: z.string(),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Passwords do not match",
+    message: "Gesli se ne ujemata",
     path: ["confirmPassword"],
   })
 

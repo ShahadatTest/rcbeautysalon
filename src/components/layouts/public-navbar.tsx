@@ -14,11 +14,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import { MenuIcon, CloseIcon, UserIcon, LogoutIcon, CalendarCheckIcon, SettingsIcon, ReceiptIcon, UserCogIcon, StarIcon, SpinnerGapIcon } from "@/components/icons"
 import { useNavigationStore } from "@/store/navigation-store"
 import { NavCartButton } from "@/components/shop/nav-cart-button"
@@ -37,7 +32,6 @@ interface PublicNavbarProps {
 export function PublicNavbar({ org }: PublicNavbarProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const { data: session, status } = useSession()
   const { activeSection } = useNavigationStore()
 
@@ -103,20 +97,13 @@ export function PublicNavbar({ org }: PublicNavbarProps) {
                 <SpinnerGapIcon size={18} className="animate-spin" />
               </Button>
             ) : isAuthenticated ? (
-              <DropdownMenu open={userMenuOpen} onOpenChange={setUserMenuOpen}>
-                <Tooltip open={userMenuOpen ? false : undefined}>
-                  <TooltipTrigger asChild>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="text-foreground/80 hover:bg-secondary hover:text-primary gap-1.5">
-                        <UserIcon size={18} />
-                        <span className="hidden 2xl:inline max-w-20 truncate">{session.user.name || "Account"}</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Račun</p>
-                  </TooltipContent>
-                </Tooltip>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-foreground/80 hover:bg-secondary hover:text-primary gap-1.5">
+                    <UserIcon size={18} />
+                    <span className="hidden 2xl:inline max-w-20 truncate">{session.user.name || "Račun"}</span>
+                  </Button>
+                </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   {session.user.role === "ADMIN" && (
                     <DropdownMenuItem asChild>
@@ -130,7 +117,7 @@ export function PublicNavbar({ org }: PublicNavbarProps) {
                     <DropdownMenuItem asChild>
                       <Link href="/staff-portal" className="flex items-center gap-2 cursor-pointer">
                         <SettingsIcon size={16} />
-                        Staff Portal
+                        Portal za osebje
                       </Link>
                     </DropdownMenuItem>
                   )}
@@ -254,7 +241,7 @@ export function PublicNavbar({ org }: PublicNavbarProps) {
                   <Link href="/staff-portal" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full h-11 text-foreground/80 hover:bg-secondary hover:text-primary gap-2 justify-start">
                       <SettingsIcon size={18} />
-                      Staff Portal
+                      Portal za osebje
                     </Button>
                   </Link>
                 )}

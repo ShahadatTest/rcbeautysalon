@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ClockIcon, CurrencyDollarIcon, ScissorsIcon } from "@/components/icons"
+import { useFormatPrice } from "@/lib/currency"
 
 interface AssignedService {
   id: string
@@ -26,11 +27,20 @@ interface StaffServicesAssignedProps {
   services: AssignedService[]
 }
 
+/** Slovenska množina: 1 storitev, 2 storitvi, 3–4 storitve, 5+ storitev. */
+function storitveCount(n: number): string {
+  if (n === 1) return "1 storitev"
+  if (n === 2) return `${n} storitvi`
+  if (n === 3 || n === 4) return `${n} storitve`
+  return `${n} storitev`
+}
+
 export function StaffServicesAssigned({ services }: StaffServicesAssignedProps) {
+  const fmt = useFormatPrice()
   // Group services by category
   const groupedServices = services.reduce(
     (acc, service) => {
-      const categoryName = service.category?.name || "Other"
+      const categoryName = service.category?.name || "Drugo"
       if (!acc[categoryName]) {
         acc[categoryName] = []
       }
@@ -48,22 +58,22 @@ export function StaffServicesAssigned({ services }: StaffServicesAssignedProps) 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ScissorsIcon size={20} className="text-primary" />
-            <CardTitle className="text-lg">Assigned Services</CardTitle>
+            <CardTitle className="text-lg">Dodeljene storitve</CardTitle>
           </div>
           <Badge variant="secondary" className="text-xs">
-            {services.length} service{services.length !== 1 ? "s" : ""}
+            {storitveCount(services.length)}
           </Badge>
         </div>
         <CardDescription>
-          Services you&apos;re qualified to provide
+          Storitve, ki jih lahko izvajate
         </CardDescription>
       </CardHeader>
       <CardContent>
         {services.length === 0 ? (
           <div className="text-muted-foreground flex flex-col items-center justify-center py-8 text-center">
             <ScissorsIcon size={40} className="mb-3 opacity-30" />
-            <p className="text-sm">No services assigned yet</p>
-            <p className="mt-1 text-xs">Contact admin to assign services</p>
+            <p className="text-sm">Ni še dodeljenih storitev</p>
+            <p className="mt-1 text-xs">Za dodelitev storitev se obrnite na skrbnika</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -94,8 +104,8 @@ export function StaffServicesAssigned({ services }: StaffServicesAssignedProps) 
                             {service.duration} min
                           </span>
                           <span className="flex items-center gap-1">
-                            <CurrencyDollarIcon size={14} />€
-                            {service.price.toFixed(2)}
+                            <CurrencyDollarIcon size={14} />
+                            {fmt(service.price)}
                           </span>
                         </div>
                       </div>
@@ -112,16 +122,16 @@ export function StaffServicesAssigned({ services }: StaffServicesAssignedProps) 
             {/* Summary */}
             <div className="bg-primary/5 border-primary/20 mt-4 rounded-xl border p-4">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Total Services</span>
+                <span className="text-muted-foreground">Skupno število storitev</span>
                 <span className="font-semibold">{services.length}</span>
               </div>
               <div className="mt-2 flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Categories</span>
+                <span className="text-muted-foreground">Kategorije</span>
                 <span className="font-semibold">{categories.length}</span>
               </div>
               <Separator className="bg-primary/20 my-3" />
               <p className="text-muted-foreground text-xs">
-                Contact admin to update your service assignments
+                Za posodobitev dodeljenih storitev se obrnite na skrbnika
               </p>
             </div>
           </div>

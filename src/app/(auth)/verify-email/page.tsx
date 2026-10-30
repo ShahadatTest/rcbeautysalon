@@ -19,8 +19,8 @@ import { CheckCircleIcon } from "@/components/icons/check-circle-icon"
 import { XCircleIcon } from "@/components/icons/x-circle-icon"
 
 export const metadata: Metadata = {
-  title: "Verify Email | RC Beauty Salon",
-  description: "Verify your RC Beauty Salon account email address.",
+  title: "Potrditev e-pošte | RC Beauty Salon",
+  description: "Potrdite e-poštni naslov svojega računa RC Beauty Salon.",
 }
 
 interface VerifyEmailPageProps {

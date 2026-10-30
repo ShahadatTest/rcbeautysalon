@@ -32,7 +32,7 @@ export async function createProductCheckoutSession(
       return {
         success: false,
         error:
-          "Online payments are not configured yet. Please contact the salon to place your order.",
+          "Spletna plačila še niso nastavljena. Za oddajo naročila kontaktirajte salon.",
       }
     }
 
@@ -42,7 +42,7 @@ export async function createProductCheckoutSession(
     if (!session?.user) {
       return {
         success: false,
-        error: "You must be logged in to checkout",
+        error: "Za zaključek nakupa morate biti prijavljeni",
       }
     }
 
@@ -51,14 +51,14 @@ export async function createProductCheckoutSession(
     if (!org) {
       return {
         success: false,
-        error: "The shop is currently unavailable. Please try again later.",
+        error: "Trgovina trenutno ni na voljo. Poskusite znova kasneje.",
       }
     }
 
     if (items.length === 0) {
       return {
         success: false,
-        error: "Your cart is empty",
+        error: "Vaša košarica je prazna",
       }
     }
 
@@ -67,7 +67,7 @@ export async function createProductCheckoutSession(
     if (!stockValidation.valid) {
       return {
         success: false,
-        error: "Some items are out of stock",
+        error: "Nekateri izdelki niso na zalogi",
         stockErrors: stockValidation.errors,
       }
     }
@@ -91,7 +91,7 @@ export async function createProductCheckoutSession(
     if (dbProducts.length !== new Set(productIds).size) {
       return {
         success: false,
-        error: "Some items in your cart are no longer available",
+        error: "Nekateri izdelki v košarici niso več na voljo",
       }
     }
 
@@ -177,7 +177,7 @@ export async function createProductCheckoutSession(
         price_data: {
           currency: "usd",
           product_data: {
-            name: "Shipping",
+            name: "Dostava",
             images: [],
           },
           unit_amount: Math.round(shipping * 100),
@@ -211,7 +211,7 @@ export async function createProductCheckoutSession(
     console.error("Error creating product checkout session:", error)
     return {
       success: false,
-      error: "Failed to create payment session. Please try again.",
+      error: "Ustvarjanje plačilne seje ni uspelo. Poskusite znova.",
     }
   }
 }
@@ -225,7 +225,7 @@ export async function verifyProductOrder(sessionId: string) {
     if (!session?.user) {
       return {
         success: false,
-        error: "You must be logged in to verify your order",
+        error: "Za preverjanje naročila morate biti prijavljeni",
       }
     }
 
@@ -238,7 +238,7 @@ export async function verifyProductOrder(sessionId: string) {
     if (checkoutSession.payment_status !== "paid") {
       return {
         success: false,
-        error: "Payment not completed",
+        error: "Plačilo ni bilo zaključeno",
       }
     }
 
@@ -246,7 +246,7 @@ export async function verifyProductOrder(sessionId: string) {
     if (!orderId) {
       return {
         success: false,
-        error: "Order not found",
+        error: "Naročila ni mogoče najti",
       }
     }
 
@@ -265,7 +265,7 @@ export async function verifyProductOrder(sessionId: string) {
     if (!existingOrder) {
       return {
         success: false,
-        error: "Order not found",
+        error: "Naročila ni mogoče najti",
       }
     }
 
@@ -275,7 +275,7 @@ export async function verifyProductOrder(sessionId: string) {
     if (existingOrder.organizationId && org && existingOrder.organizationId !== org.id) {
       return {
         success: false,
-        error: "Order not found",
+        error: "Naročila ni mogoče najti",
       }
     }
 
@@ -291,7 +291,7 @@ export async function verifyProductOrder(sessionId: string) {
     ) {
       return {
         success: false,
-        error: "You do not have permission to view this order",
+        error: "Nimate dovoljenja za ogled tega naročila",
       }
     }
 
@@ -339,7 +339,7 @@ export async function verifyProductOrder(sessionId: string) {
     console.error("Error verifying product order:", error)
     return {
       success: false,
-      error: "Failed to verify order",
+      error: "Preverjanje naročila ni uspelo",
     }
   }
 }

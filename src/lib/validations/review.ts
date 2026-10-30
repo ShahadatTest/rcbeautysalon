@@ -3,14 +3,14 @@ import { z } from "zod"
 export const reviewSchema = z.object({
   rating: z
     .number()
-    .min(1, "Please select a rating")
-    .max(5, "Rating must be between 1 and 5"),
+    .min(1, "Izberite oceno")
+    .max(5, "Ocena mora biti med 1 in 5"),
   comment: z
     .string()
-    .min(10, "Comment must be at least 10 characters")
-    .max(1000, "Comment must not exceed 1000 characters")
+    .min(10, "Komentar mora imeti vsaj 10 znakov")
+    .max(1000, "Komentar ne sme presegati 1000 znakov")
     .trim(),
-  serviceId: z.string().min(1, "Service ID is required"),
+  serviceId: z.string().min(1, "ID storitve je obvezen"),
 })
 
 export type ReviewInput = z.infer<typeof reviewSchema>
@@ -19,12 +19,12 @@ export type ReviewInput = z.infer<typeof reviewSchema>
 export const editReviewSchema = z.object({
   rating: z
     .number()
-    .min(1, "Please select a rating")
-    .max(5, "Rating must be between 1 and 5"),
+    .min(1, "Izberite oceno")
+    .max(5, "Ocena mora biti med 1 in 5"),
   comment: z
     .string()
-    .min(10, "Comment must be at least 10 characters")
-    .max(1000, "Comment must not exceed 1000 characters")
+    .min(10, "Komentar mora imeti vsaj 10 znakov")
+    .max(1000, "Komentar ne sme presegati 1000 znakov")
     .trim(),
 })
 

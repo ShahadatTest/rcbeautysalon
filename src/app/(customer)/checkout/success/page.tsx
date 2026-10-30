@@ -28,7 +28,7 @@ export default function CheckoutSuccessPage() {
     async function verifyOrder() {
       if (!sessionId) {
         setStatus("error")
-        setError("No session ID provided")
+        setError("Manjka ID plačilne seje")
         return
       }
 
@@ -41,7 +41,7 @@ export default function CheckoutSuccessPage() {
         clearCart()
       } else {
         setStatus("error")
-        setError(result.error || "Failed to verify order")
+        setError(result.error || "Preverjanje naročila ni uspelo")
       }
     }
 
@@ -56,11 +56,11 @@ export default function CheckoutSuccessPage() {
             <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
               <SpinnerIcon size={40} className="text-primary animate-spin" />
             </div>
-            <CardTitle className="text-2xl">Verifying Your Order</CardTitle>
+            <CardTitle className="text-2xl">Preverjamo vaše naročilo</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">
-              Please wait while we confirm your payment.
+              Prosimo, počakajte, da potrdimo vaše plačilo.
             </p>
           </CardContent>
         </Card>
@@ -76,16 +76,16 @@ export default function CheckoutSuccessPage() {
             <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-destructive/10">
               <span className="text-4xl">!</span>
             </div>
-            <CardTitle className="text-2xl">Something went wrong</CardTitle>
+            <CardTitle className="text-2xl">Prišlo je do napake</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">
-              {error || "We couldn't verify your order. Please contact support."}
+              {error || "Vašega naročila nismo mogli preveriti. Kontaktirajte podporo."}
             </p>
           </CardContent>
           <CardFooter className="flex flex-col gap-3">
             <Button asChild className="w-full">
-              <Link href="/cart">Return to Cart</Link>
+              <Link href="/cart">Nazaj v košarico</Link>
             </Button>
           </CardFooter>
         </Card>
@@ -100,20 +100,20 @@ export default function CheckoutSuccessPage() {
           <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
             <CheckCircleIcon size={48} weight="fill" className="text-green-600" />
           </div>
-          <CardTitle className="text-2xl">Order Confirmed!</CardTitle>
+          <CardTitle className="text-2xl">Naročilo potrjeno!</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-muted-foreground">
-            Thank you for your purchase! Your order has been successfully placed.
+            Hvala za vaš nakup! Vaše naročilo je bilo uspešno oddano.
           </p>
           {orderId && (
             <div className="rounded-lg bg-muted p-4">
-              <p className="text-sm text-muted-foreground">Order ID</p>
+              <p className="text-sm text-muted-foreground">Številka naročila</p>
               <p className="font-mono font-semibold">{orderId}</p>
             </div>
           )}
           <p className="text-sm text-muted-foreground">
-            You will receive an email confirmation shortly with your order details.
+            V kratkem boste prejeli e-poštno potrditev s podrobnostmi naročila.
           </p>
         </CardContent>
         <CardFooter className="flex flex-col gap-3">
@@ -121,20 +121,20 @@ export default function CheckoutSuccessPage() {
             <Button asChild className="w-full">
               <Link href={`/my-orders/${orderId}`}>
                 <ReceiptIcon className="mr-2 h-4 w-4" />
-                View Order Details
+                Podrobnosti naročila
               </Link>
             </Button>
           )}
           <Button variant={orderId ? "outline" : "default"} asChild className="w-full">
             <Link href="/shop">
               <ShoppingBagIcon className="mr-2 h-4 w-4" />
-              Continue Shopping
+              Nadaljuj z nakupovanjem
             </Link>
           </Button>
           <Button variant="ghost" asChild className="w-full">
             <Link href="/">
               <HouseIcon className="mr-2 h-4 w-4" />
-              Back to Home
+              Nazaj domov
             </Link>
           </Button>
         </CardFooter>

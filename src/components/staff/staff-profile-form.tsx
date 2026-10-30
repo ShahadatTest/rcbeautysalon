@@ -60,7 +60,7 @@ export function StaffProfileForm({ profile }: StaffProfileFormProps) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
-          <p className="text-muted-foreground">Profile not found</p>
+          <p className="text-muted-foreground">Profil ni bil najden</p>
         </CardContent>
       </Card>
     )
@@ -76,7 +76,7 @@ export function StaffProfileForm({ profile }: StaffProfileFormProps) {
     //   toast.error(result.error || "Failed to update profile")
     // }
     console.log("Form data:", data)
-    toast.success("Profile updated successfully")
+    toast.success("Profil posodobljen")
     setIsEditing(false)
   }
 
@@ -91,7 +91,7 @@ export function StaffProfileForm({ profile }: StaffProfileFormProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <UserIcon size={20} className="text-primary" />
-            <CardTitle className="text-lg">Personal Information</CardTitle>
+            <CardTitle className="text-lg">Osebni podatki</CardTitle>
           </div>
           {!isEditing && (
             <Button
@@ -101,12 +101,12 @@ export function StaffProfileForm({ profile }: StaffProfileFormProps) {
               className="text-muted-foreground hover:text-foreground"
             >
               <PencilIcon size={16} className="mr-1" />
-              Edit
+              Uredi
             </Button>
           )}
         </div>
         <CardDescription>
-          {isEditing ? "Update your profile details" : "Your profile details"}
+          {isEditing ? "Posodobite svoje profilne podatke" : "Vaši profilni podatki"}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -116,7 +116,7 @@ export function StaffProfileForm({ profile }: StaffProfileFormProps) {
             <div className="space-y-2">
               <Label htmlFor="name" className="flex items-center gap-2">
                 <UserIcon size={14} className="text-muted-foreground" />
-                Full Name
+                Ime in priimek
               </Label>
               <Input
                 id="name"
@@ -133,7 +133,7 @@ export function StaffProfileForm({ profile }: StaffProfileFormProps) {
             <div className="space-y-2">
               <Label htmlFor="email" className="flex items-center gap-2">
                 <EnvelopeIcon size={14} className="text-muted-foreground" />
-                Email
+                E-pošta
               </Label>
               <Input
                 id="email"
@@ -142,7 +142,7 @@ export function StaffProfileForm({ profile }: StaffProfileFormProps) {
                 className="bg-muted/50 h-11"
               />
               <p className="text-muted-foreground text-xs">
-                Contact admin to change your email address
+                Za spremembo e-poštnega naslova se obrnite na skrbnika
               </p>
             </div>
 
@@ -150,12 +150,12 @@ export function StaffProfileForm({ profile }: StaffProfileFormProps) {
             <div className="space-y-2">
               <Label htmlFor="phone" className="flex items-center gap-2">
                 <PhoneIcon size={14} className="text-muted-foreground" />
-                Phone Number
+                Telefon
               </Label>
               <Input
                 id="phone"
                 {...register("phone")}
-                placeholder="+1 (555) 123-4567"
+                placeholder="041 234 567"
                 disabled={isSubmitting}
                 className="h-11"
               />
@@ -168,11 +168,11 @@ export function StaffProfileForm({ profile }: StaffProfileFormProps) {
 
             {/* Bio */}
             <div className="space-y-2">
-              <Label htmlFor="bio">Bio</Label>
+              <Label htmlFor="bio">Predstavitev</Label>
               <Textarea
                 id="bio"
                 {...register("bio")}
-                placeholder="Tell clients about yourself, your experience, and specialties..."
+                placeholder="Predstavite se strankam: vaše izkušnje in specializacije …"
                 rows={4}
                 disabled={isSubmitting}
                 className="resize-none"
@@ -181,7 +181,7 @@ export function StaffProfileForm({ profile }: StaffProfileFormProps) {
                 <p className="text-destructive text-sm">{errors.bio.message}</p>
               )}
               <p className="text-muted-foreground text-xs">
-                This will be shown on your public profile page
+                To bo prikazano na vaši javni profilni strani
               </p>
             </div>
 
@@ -195,7 +195,7 @@ export function StaffProfileForm({ profile }: StaffProfileFormProps) {
                 {isSubmitting && (
                   <SpinnerIcon size={16} className="mr-2 animate-spin" />
                 )}
-                Save Changes
+                Shrani spremembe
               </Button>
               <Button
                 type="button"
@@ -204,7 +204,7 @@ export function StaffProfileForm({ profile }: StaffProfileFormProps) {
                 disabled={isSubmitting}
                 className="h-11"
               >
-                Cancel
+                Prekliči
               </Button>
             </div>
           </form>
@@ -213,7 +213,7 @@ export function StaffProfileForm({ profile }: StaffProfileFormProps) {
             <div className="bg-muted/30 rounded-lg p-4">
               <dt className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
                 <UserIcon size={14} />
-                Full Name
+                Ime in priimek
               </dt>
               <dd className="mt-1 font-medium">{profile.name}</dd>
             </div>
@@ -221,23 +221,23 @@ export function StaffProfileForm({ profile }: StaffProfileFormProps) {
             <div className="bg-muted/30 rounded-lg p-4">
               <dt className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
                 <EnvelopeIcon size={14} />
-                Email
+                E-pošta
               </dt>
-              <dd className="mt-1">{profile.email || "Not set"}</dd>
+              <dd className="mt-1">{profile.email || "Ni nastavljeno"}</dd>
             </div>
 
             <div className="bg-muted/30 rounded-lg p-4">
               <dt className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
                 <PhoneIcon size={14} />
-                Phone
+                Telefon
               </dt>
-              <dd className="mt-1">{profile.phone || "Not set"}</dd>
+              <dd className="mt-1">{profile.phone || "Ni nastavljeno"}</dd>
             </div>
 
             <div className="bg-muted/30 rounded-lg p-4">
-              <dt className="text-muted-foreground text-sm font-medium">Bio</dt>
+              <dt className="text-muted-foreground text-sm font-medium">Predstavitev</dt>
               <dd className="text-muted-foreground mt-1 text-sm leading-relaxed">
-                {profile.bio || "No bio added yet"}
+                {profile.bio || "Predstavitev še ni dodana"}
               </dd>
             </div>
           </dl>

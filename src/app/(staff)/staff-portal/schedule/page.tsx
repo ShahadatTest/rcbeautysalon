@@ -3,8 +3,8 @@ import { getStaffWorkingHours } from "@/app/actions/staff"
 import { StaffWeeklySchedule } from "@/components/staff/staff-weekly-schedule"
 
 export const metadata: Metadata = {
-  title: "My Schedule | Staff Portal",
-  description: "View your working hours",
+  title: "Moj urnik | Portal za osebje",
+  description: "Pregledajte svoj delovni čas",
 }
 
 export default async function StaffSchedulePage() {
@@ -15,9 +15,9 @@ export default async function StaffSchedulePage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">My Schedule</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Moj urnik</h1>
         <p className="text-muted-foreground mt-1">
-          View your working hours
+          Pregledajte svoj delovni čas
         </p>
       </div>
 

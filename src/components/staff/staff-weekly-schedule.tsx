@@ -21,21 +21,18 @@ interface StaffWeeklyScheduleProps {
 }
 
 const dayNames = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
+  "Nedelja",
+  "Ponedeljek",
+  "Torek",
+  "Sreda",
+  "Četrtek",
+  "Petek",
+  "Sobota",
 ]
 
 function formatTime(time: string): string {
   const [hours, minutes] = time.split(":")
-  const hour = parseInt(hours)
-  const ampm = hour >= 12 ? "PM" : "AM"
-  const hour12 = hour % 12 || 12
-  return `${hour12}:${minutes} ${ampm}`
+  return `${hours}:${minutes}`
 }
 
 export function StaffWeeklySchedule({ workingHours }: StaffWeeklyScheduleProps) {
@@ -72,17 +69,17 @@ export function StaffWeeklySchedule({ workingHours }: StaffWeeklyScheduleProps) 
       <CardHeader>
         <div className="flex items-center gap-2">
           <ClockIcon size={20} className="text-primary" />
-          <CardTitle>Weekly Schedule</CardTitle>
+          <CardTitle>Tedenski urnik</CardTitle>
         </div>
-        <CardDescription>Your regular working hours</CardDescription>
+        <CardDescription>Vaš običajni delovni čas</CardDescription>
       </CardHeader>
       <CardContent>
         {workingHours.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <ClockIcon size={40} className="mb-3 text-muted-foreground opacity-30" />
-            <p className="text-sm text-muted-foreground">No schedule configured</p>
+            <p className="text-sm text-muted-foreground">Urnik ni nastavljen</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Contact admin to set up your working hours
+              Za nastavitev delovnega časa se obrnite na skrbnika
             </p>
           </div>
         ) : (
@@ -102,12 +99,12 @@ export function StaffWeeklySchedule({ workingHours }: StaffWeeklyScheduleProps) 
                         {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
                       </p>
                     ) : (
-                      <p className="text-sm text-muted-foreground">Day off</p>
+                      <p className="text-sm text-muted-foreground">Prost dan</p>
                     )}
                   </div>
 
                   <Badge variant={schedule.isActive ? "default" : "secondary"}>
-                    {schedule.isActive ? "Working" : "Off"}
+                    {schedule.isActive ? "Delovni dan" : "Prost dan"}
                   </Badge>
                 </div>
               ))}
@@ -117,15 +114,15 @@ export function StaffWeeklySchedule({ workingHours }: StaffWeeklyScheduleProps) 
             <div className="mt-6 rounded-lg bg-primary/5 border border-primary/20 p-4">
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Working Days</p>
+                  <p className="text-sm text-muted-foreground">Delovni dnevi</p>
                   <p className="text-2xl font-bold">{workingDays}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Hours per Week</p>
+                  <p className="text-sm text-muted-foreground">Ur na teden</p>
                   <p className="text-2xl font-bold">{totalHours}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Days Off</p>
+                  <p className="text-sm text-muted-foreground">Prosti dnevi</p>
                   <p className="text-2xl font-bold">{daysOff}</p>
                 </div>
               </div>

@@ -27,15 +27,15 @@ export function SecuritySection({ email }: SecuritySectionProps) {
 
       if (result.success) {
         setEmailSent(true)
-        toast.success("Password reset email sent", {
+        toast.success("E-poštno sporočilo za ponastavitev gesla poslano", {
           description:
-            "Check your inbox for instructions to reset your password.",
+            "Preverite svojo mapo »Prejeto« za navodila za ponastavitev gesla.",
         })
       } else {
-        toast.error(result.error || "Failed to send reset email")
+        toast.error(result.error || "Pošiljanje e-poštnega sporočila za ponastavitev ni uspelo")
       }
     } catch {
-      toast.error("Something went wrong")
+      toast.error("Prišlo je do napake")
     } finally {
       setIsSending(false)
     }
@@ -46,10 +46,10 @@ export function SecuritySection({ email }: SecuritySectionProps) {
       <CardHeader>
         <div className="flex items-center gap-2">
           <LockIcon size={20} className="text-primary" />
-          <CardTitle className="text-lg">Security</CardTitle>
+          <CardTitle className="text-lg">Varnost</CardTitle>
         </div>
         <CardDescription>
-          Manage your password and security settings
+          Upravljajte svoje geslo in varnostne nastavitve
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -61,12 +61,12 @@ export function SecuritySection({ email }: SecuritySectionProps) {
                 className="text-green-600 dark:text-green-400"
               />
               <p className="font-semibold text-green-900 dark:text-green-100">
-                Email Sent!
+                E-poštno sporočilo poslano!
               </p>
             </div>
             <p className="mt-2 text-sm text-green-800 dark:text-green-200">
-              We&apos;ve sent a password reset link to <strong>{email}</strong>.
-              Check your inbox and follow the instructions.
+              Povezavo za ponastavitev gesla smo poslali na <strong>{email}</strong>.
+              Preverite svojo mapo »Prejeto« in sledite navodilom.
             </p>
             <Button
               variant="outline"
@@ -74,16 +74,16 @@ export function SecuritySection({ email }: SecuritySectionProps) {
               className="mt-3"
               onClick={() => setEmailSent(false)}
             >
-              Send Again
+              Pošlji znova
             </Button>
           </div>
         ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Password</p>
+                <p className="font-medium">Geslo</p>
                 <p className="text-muted-foreground text-sm">
-                  Secure your account with a strong password
+                  Zaščitite svoj račun z močnim geslom
                 </p>
               </div>
               <Button
@@ -94,12 +94,12 @@ export function SecuritySection({ email }: SecuritySectionProps) {
                 {isSending && (
                   <SpinnerIcon size={16} className="mr-2 animate-spin" />
                 )}
-                Change Password
+                Spremeni geslo
               </Button>
             </div>
             <p className="text-muted-foreground text-xs">
-              We&apos;ll send a secure link to your email ({email}) to reset
-              your password.
+              Varno povezavo za ponastavitev gesla bomo poslali na vaš
+              e-poštni naslov ({email}).
             </p>
           </div>
         )}

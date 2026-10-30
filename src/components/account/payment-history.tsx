@@ -22,6 +22,7 @@ import {
   XCircleIcon,
 } from "@/components/icons"
 import { format } from "date-fns"
+import { sl } from "date-fns/locale"
 import type { Payment, PaymentStatus, PaymentType } from "@/lib/interfaces"
 
 interface PaymentHistoryProps {
@@ -30,15 +31,15 @@ interface PaymentHistoryProps {
 }
 
 const statusConfig: Record<PaymentStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof CheckCircleIcon }> = {
-  COMPLETED: { label: "Completed", variant: "default", icon: CheckCircleIcon },
-  PENDING: { label: "Pending", variant: "secondary", icon: ClockIcon },
-  REFUNDED: { label: "Refunded", variant: "outline", icon: ReceiptIcon },
-  FAILED: { label: "Failed", variant: "destructive", icon: XCircleIcon },
+  COMPLETED: { label: "Zaključeno", variant: "default", icon: CheckCircleIcon },
+  PENDING: { label: "V obdelavi", variant: "secondary", icon: ClockIcon },
+  REFUNDED: { label: "Povrnjeno", variant: "outline", icon: ReceiptIcon },
+  FAILED: { label: "Neuspešno", variant: "destructive", icon: XCircleIcon },
 }
 
 const typeLabels: Record<PaymentType, string> = {
-  APPOINTMENT_DEPOSIT: "Appointment Deposit",
-  PRODUCT_ORDER: "Product Order",
+  APPOINTMENT_DEPOSIT: "Polog za termin",
+  PRODUCT_ORDER: "Naročilo izdelkov",
 }
 
 export function PaymentHistory({ payments, showAll = false }: PaymentHistoryProps) {
@@ -54,18 +55,18 @@ export function PaymentHistory({ payments, showAll = false }: PaymentHistoryProp
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CreditCardIcon size={20} className="text-primary" />
-            Payment History
+            Zgodovina plačil
           </CardTitle>
-          <CardDescription>View your past transactions</CardDescription>
+          <CardDescription>Pregled vaših preteklih transakcij</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
               <ReceiptIcon size={32} className="text-muted-foreground" />
             </div>
-            <h3 className="mb-2 font-semibold">No payments yet</h3>
+            <h3 className="mb-2 font-semibold">Še ni plačil</h3>
             <p className="text-sm text-muted-foreground">
-              Your payment history will appear here after your first transaction.
+              Vaša zgodovina plačil se bo prikazala po vaši prvi transakciji.
             </p>
           </div>
         </CardContent>
@@ -85,12 +86,12 @@ export function PaymentHistory({ payments, showAll = false }: PaymentHistoryProp
           <div>
             <CardTitle className="flex items-center gap-2">
               <CreditCardIcon size={20} className="text-primary" />
-              Payment History
+              Zgodovina plačil
             </CardTitle>
-            <CardDescription>View your past transactions</CardDescription>
+            <CardDescription>Pregled vaših preteklih transakcij</CardDescription>
           </div>
           <div className="text-right">
-            <p className="text-sm text-muted-foreground">Total Spent</p>
+            <p className="text-sm text-muted-foreground">Skupaj porabljeno</p>
             <p className="text-xl font-bold text-primary">{fmt(totalSpent)}</p>
           </div>
         </div>
@@ -123,7 +124,7 @@ export function PaymentHistory({ payments, showAll = false }: PaymentHistoryProp
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span>{typeLabels[payment.type]}</span>
                       <span>•</span>
-                      <span>{format(new Date(payment.createdAt), "MMM d, yyyy")}</span>
+                      <span>{format(new Date(payment.createdAt), "d. MMM yyyy", { locale: sl })}</span>
                     </div>
                   </div>
                 </div>
@@ -164,7 +165,7 @@ export function PaymentHistory({ payments, showAll = false }: PaymentHistoryProp
               onClick={() => setExpanded(!expanded)}
               className="text-muted-foreground hover:text-foreground"
             >
-              {expanded ? "Show Less" : `Show All (${payments.length})`}
+              {expanded ? "Prikaži manj" : `Prikaži vse (${payments.length})`}
             </Button>
           </div>
         )}
@@ -173,7 +174,7 @@ export function PaymentHistory({ payments, showAll = false }: PaymentHistoryProp
         {showAll && (
           <div className="border-t pt-4">
             <p className="text-center text-sm text-muted-foreground">
-              Showing all {payments.length} transactions
+              Prikazanih vseh {payments.length} transakcij
             </p>
           </div>
         )}

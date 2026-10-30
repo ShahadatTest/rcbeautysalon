@@ -32,10 +32,10 @@ interface StaffHeaderProps {
 }
 
 const mobileNavItems = [
-  { label: "Dashboard", href: "/staff-portal", icon: HouseIcon },
-  { label: "My Appointments", href: "/staff-portal/appointments", icon: CalendarIcon },
-  { label: "My Schedule", href: "/staff-portal/schedule", icon: ClockIcon },
-  { label: "My Profile", href: "/staff-portal/profile", icon: UserIcon },
+  { label: "Nadzorna plošča", href: "/staff-portal", icon: HouseIcon },
+  { label: "Moji termini", href: "/staff-portal/appointments", icon: CalendarIcon },
+  { label: "Moj urnik", href: "/staff-portal/schedule", icon: ClockIcon },
+  { label: "Moj profil", href: "/staff-portal/profile", icon: UserIcon },
 ]
 
 export function StaffHeader({ user }: StaffHeaderProps) {
@@ -70,7 +70,7 @@ export function StaffHeader({ user }: StaffHeaderProps) {
 
             {/* Portal Label */}
             <span className="hidden rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary sm:inline-block">
-              Staff Portal
+              Portal za osebje
             </span>
           </div>
 
@@ -79,7 +79,7 @@ export function StaffHeader({ user }: StaffHeaderProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={user.image || undefined} alt={user.name || "Staff"} />
+                  <AvatarImage src={user.image || undefined} alt={user.name || "Osebje"} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
                     {initials}
                   </AvatarFallback>
@@ -97,14 +97,14 @@ export function StaffHeader({ user }: StaffHeaderProps) {
               <DropdownMenuItem asChild>
                 <Link href="/staff-portal/profile" className="cursor-pointer">
                   <UserIcon size={16} className="mr-2" />
-                  My Profile
+                  Moj profil
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/api/auth/signout" className="cursor-pointer text-destructive">
                   <LogoutIcon size={16} className="mr-2" />
-                  Sign Out
+                  Odjava
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>

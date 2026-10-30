@@ -41,10 +41,10 @@ export function MyReviewCard({ review }: MyReviewCardProps) {
     startTransition(async () => {
       const result = await deleteReview(review.id)
       if (result.success) {
-        toast.success("Review deleted successfully")
+        toast.success("Ocena uspešno izbrisana")
         router.refresh()
       } else {
-        toast.error(result.error || "Failed to delete review")
+        toast.error(result.error || "Brisanje ocene ni uspelo")
       }
       setShowDeleteDialog(false)
     })
@@ -54,11 +54,11 @@ export function MyReviewCard({ review }: MyReviewCardProps) {
     startTransition(async () => {
       const result = await updateReview(review.id, data)
       if (result.success) {
-        toast.success("Review updated successfully")
+        toast.success("Ocena uspešno posodobljena")
         setShowEditDialog(false)
         router.refresh()
       } else {
-        toast.error(result.error || "Failed to update review")
+        toast.error(result.error || "Posodabljanje ocene ni uspelo")
       }
     })
   }
@@ -78,7 +78,7 @@ export function MyReviewCard({ review }: MyReviewCardProps) {
               />
             ) : (
               <div className="bg-muted flex h-full w-full items-center justify-center">
-                <span className="text-muted-foreground text-xs">No image</span>
+                <span className="text-muted-foreground text-xs">Ni slike</span>
               </div>
             )}
           </div>
@@ -148,9 +148,9 @@ export function MyReviewCard({ review }: MyReviewCardProps) {
       <ConfirmDialog
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
-        title="Delete Review"
-        description={`Are you sure you want to delete your review for "${review.service.name}"?`}
-        confirmLabel="Delete"
+        title="Izbriši oceno"
+        description={`Ste prepričani, da želite izbrisati svojo oceno za storitev "${review.service.name}"?`}
+        confirmLabel="Izbriši"
         onConfirm={handleConfirmDelete}
         variant="destructive"
       />

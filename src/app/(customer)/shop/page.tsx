@@ -16,6 +16,7 @@ import { PackageIcon } from "@/components/icons"
 import { AddToCartButton } from "@/components/shop/add-to-cart-button"
 import { getPublicSiteData, getPublicShopProducts } from "@/lib/public-site"
 import { orgPath } from "@/lib/org-path"
+import { formatCurrency } from "@/lib/utils/format"
 
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getPublicSiteData()
@@ -150,11 +151,11 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
                   )}
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl font-bold">
-                      €{product.price.toFixed(2)}
+                      {formatCurrency(product.price)}
                     </span>
                     {product.compareAtPrice && (
                       <span className="text-muted-foreground text-sm line-through">
-                        €{product.compareAtPrice.toFixed(2)}
+                        {formatCurrency(product.compareAtPrice)}
                       </span>
                     )}
                   </div>

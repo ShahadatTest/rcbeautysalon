@@ -52,13 +52,13 @@ export function NotificationPreferences({ preferences }: NotificationPreferences
     try {
       const result = await updateNotificationPreferences(formData)
       if (result.success) {
-        toast.success("Preferences saved successfully")
+        toast.success("Nastavitve uspešno shranjene")
         setHasChanges(false)
       } else {
-        toast.error(result.error || "Failed to save preferences")
+        toast.error(result.error || "Shranjevanje nastavitev ni uspelo")
       }
     } catch {
-      toast.error("An error occurred while saving")
+      toast.error("Med shranjevanjem je prišlo do napake")
     } finally {
       setIsSaving(false)
     }
@@ -69,26 +69,26 @@ export function NotificationPreferences({ preferences }: NotificationPreferences
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <BellIcon size={20} className="text-primary" />
-          Notification Preferences
+          Nastavitve obveščanja
         </CardTitle>
         <CardDescription>
-          Manage how and when you receive notifications
+          Upravljajte, kako in kdaj prejemate obvestila
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Appointment Reminders */}
         <div className="space-y-4">
           <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            Appointment Reminders
+            Opomniki za termine
           </h4>
 
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
               <Label htmlFor="email-reminders" className="text-base font-medium">
-                Email Reminders
+                E-poštni opomniki
               </Label>
               <p className="text-sm text-muted-foreground">
-                Receive email reminders before your appointments
+                Prejemajte e-poštne opomnike pred svojimi termini
               </p>
             </div>
             <Switch
@@ -101,7 +101,7 @@ export function NotificationPreferences({ preferences }: NotificationPreferences
           {formData.emailReminders && (
             <div className="ml-4 space-y-2 border-l-2 border-primary/20 pl-4">
               <Label htmlFor="reminder-time" className="text-sm font-medium">
-                Send reminder
+                Pošlji opomnik
               </Label>
               <Select
                 value={formData.reminderTime}
@@ -111,9 +111,9 @@ export function NotificationPreferences({ preferences }: NotificationPreferences
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="24h">24 hours before</SelectItem>
-                  <SelectItem value="48h">48 hours before</SelectItem>
-                  <SelectItem value="1week">1 week before</SelectItem>
+                  <SelectItem value="24h">24 ur pred terminom</SelectItem>
+                  <SelectItem value="48h">48 ur pred terminom</SelectItem>
+                  <SelectItem value="1week">1 teden pred terminom</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -123,16 +123,16 @@ export function NotificationPreferences({ preferences }: NotificationPreferences
         {/* Other Notifications */}
         <div className="space-y-4">
           <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            Other Notifications
+            Druga obvestila
           </h4>
 
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
               <Label htmlFor="appointment-updates" className="text-base font-medium">
-                Appointment Updates
+                Spremembe terminov
               </Label>
               <p className="text-sm text-muted-foreground">
-                Get notified when appointments are confirmed, rescheduled, or cancelled
+                Prejmite obvestilo, ko je termin potrjen, prestavljen ali odpovedan
               </p>
             </div>
             <Switch
@@ -145,10 +145,10 @@ export function NotificationPreferences({ preferences }: NotificationPreferences
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
               <Label htmlFor="promotional-emails" className="text-base font-medium">
-                Promotional Emails
+                Promocijska e-pošta
               </Label>
               <p className="text-sm text-muted-foreground">
-                Receive special offers, discounts, and news
+                Prejemajte posebne ponudbe, popuste in novosti
               </p>
             </div>
             <Switch
@@ -165,8 +165,8 @@ export function NotificationPreferences({ preferences }: NotificationPreferences
             <EnvelopeIcon size={20} className="text-muted-foreground mt-0.5" />
             <div className="text-sm text-muted-foreground">
               <p>
-                Notifications will be sent to your registered email address.
-                You can update your email in the Personal Information section.
+                Obvestila bomo poslali na vaš registrirani e-poštni naslov.
+                Svojo e-pošto lahko posodobite v razdelku Osebni podatki.
               </p>
             </div>
           </div>
@@ -179,7 +179,7 @@ export function NotificationPreferences({ preferences }: NotificationPreferences
               {isSaving && (
                 <SpinnerGapIcon size={16} className="mr-2 animate-spin" />
               )}
-              Save Preferences
+              Shrani nastavitve
             </Button>
           </div>
         )}

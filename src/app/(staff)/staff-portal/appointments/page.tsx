@@ -4,8 +4,8 @@ import { StaffAppointmentsList } from "@/components/staff/staff-appointments-lis
 import { getStaffAppointments } from "@/app/actions/staff"
 
 export const metadata: Metadata = {
-  title: "My Appointments | Staff Portal",
-  description: "View and manage your appointments",
+  title: "Moji termini | Portal za osebje",
+  description: "Pregledajte in upravljajte svoje termine",
 }
 
 interface StaffAppointmentsProps {
@@ -44,9 +44,9 @@ export default async function StaffAppointmentsPage({
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">My Appointments</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Moji termini</h1>
         <p className="text-muted-foreground mt-1">
-          View and manage your scheduled appointments
+          Pregledajte in upravljajte svoje razporejene termine
         </p>
       </div>
 

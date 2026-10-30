@@ -44,10 +44,10 @@ export function PersonalInfoSection({ profile }: PersonalInfoSectionProps) {
     const result = await updateProfile(data)
 
     if (result.success) {
-      toast.success("Profile updated successfully")
+      toast.success("Profil uspešno posodobljen")
       setIsEditing(false)
     } else {
-      toast.error(result.error || "Failed to update profile")
+      toast.error(result.error || "Posodabljanje profila ni uspelo")
     }
   }
 
@@ -62,7 +62,7 @@ export function PersonalInfoSection({ profile }: PersonalInfoSectionProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <UserIcon size={20} className="text-primary" />
-            <CardTitle className="text-lg">Personal Information</CardTitle>
+            <CardTitle className="text-lg">Osebni podatki</CardTitle>
           </div>
           {!isEditing && (
             <Button
@@ -72,17 +72,17 @@ export function PersonalInfoSection({ profile }: PersonalInfoSectionProps) {
               className="text-muted-foreground hover:text-black"
             >
               <PencilIcon size={16} className="mr-1" />
-              Edit
+              Uredi
             </Button>
           )}
         </div>
-        <CardDescription>Your personal details</CardDescription>
+        <CardDescription>Vaši osebni podatki</CardDescription>
       </CardHeader>
       <CardContent>
         {isEditing ? (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">Ime in priimek</Label>
               <Input id="name" {...register("name")} disabled={isSubmitting} />
               {errors.name && (
                 <p className="text-destructive text-sm">
@@ -92,7 +92,7 @@ export function PersonalInfoSection({ profile }: PersonalInfoSectionProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">E-pošta</Label>
               <Input
                 id="email"
                 value={profile.email}
@@ -100,16 +100,16 @@ export function PersonalInfoSection({ profile }: PersonalInfoSectionProps) {
                 className="bg-muted"
               />
               <p className="text-muted-foreground text-xs">
-                Email cannot be changed
+                E-pošte ni mogoče spremeniti
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">Telefon</Label>
               <Input
                 id="phone"
                 {...register("phone")}
-                placeholder="(555) 123-4567"
+                placeholder="040 123 456"
                 disabled={isSubmitting}
               />
               {errors.phone && (
@@ -124,7 +124,7 @@ export function PersonalInfoSection({ profile }: PersonalInfoSectionProps) {
                 {isSubmitting && (
                   <SpinnerIcon size={16} className="mr-2 animate-spin" />
                 )}
-                Save Changes
+                Shrani spremembe
               </Button>
               <Button
                 type="button"
@@ -132,7 +132,7 @@ export function PersonalInfoSection({ profile }: PersonalInfoSectionProps) {
                 onClick={handleCancel}
                 disabled={isSubmitting}
               >
-                Cancel
+                Prekliči
               </Button>
             </div>
           </form>
@@ -140,21 +140,21 @@ export function PersonalInfoSection({ profile }: PersonalInfoSectionProps) {
           <dl className="space-y-4">
             <div>
               <dt className="text-muted-foreground text-sm font-medium">
-                Full Name
+                Ime in priimek
               </dt>
-              <dd className="mt-1">{profile.name || "Not set"}</dd>
+              <dd className="mt-1">{profile.name || "Ni nastavljeno"}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground text-sm font-medium">
-                Email
+                E-pošta
               </dt>
               <dd className="mt-1">{profile.email}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground text-sm font-medium">
-                Phone
+                Telefon
               </dt>
-              <dd className="mt-1">{profile.customer?.phone || "Not set"}</dd>
+              <dd className="mt-1">{profile.customer?.phone || "Ni nastavljeno"}</dd>
             </div>
           </dl>
         )}

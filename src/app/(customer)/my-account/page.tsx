@@ -3,8 +3,8 @@ import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth/auth"
 
 export const metadata: Metadata = {
-  title: "My Account | RC Beauty Salon",
-  description: "Manage your profile, view appointments, and update your account settings.",
+  title: "Moj račun | RC Beauty Salon",
+  description: "Upravljajte svoj profil, si oglejte termine in posodobite nastavitve računa.",
 }
 import {
   getUserProfile,
@@ -45,10 +45,10 @@ export default async function MyAccountPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="from-primary to-accent mb-2 bg-linear-to-r bg-clip-text text-4xl font-bold text-transparent">
-            My Account
+            Moj račun
           </h1>
           <p className="text-muted-foreground text-lg">
-            Manage your profile and preferences
+            Upravljajte svoj profil in nastavitve
           </p>
         </div>
 

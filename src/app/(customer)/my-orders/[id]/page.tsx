@@ -18,10 +18,11 @@ import {
 import { auth } from "@/lib/auth/auth"
 import { redirect } from "next/navigation"
 import { getOrderByIdForCustomer } from "@/app/actions/orders"
+import { formatCurrency } from "@/lib/utils/format"
 
 export const metadata: Metadata = {
-  title: "Order Details | RC Beauty Salon",
-  description: "View your order details.",
+  title: "Podrobnosti naročila | RC Beauty Salon",
+  description: "Pregledajte podrobnosti svojega naročila.",
 }
 
 const statusColors: Record<string, string> = {
@@ -33,11 +34,11 @@ const statusColors: Record<string, string> = {
 }
 
 const statusLabels: Record<string, string> = {
-  PENDING: "Pending",
-  PAID: "Paid",
-  COMPLETED: "Completed",
-  CANCELLED: "Cancelled",
-  REFUNDED: "Refunded",
+  PENDING: "V obdelavi",
+  PAID: "Plačano",
+  COMPLETED: "Zaključeno",
+  CANCELLED: "Odpovedano",
+  REFUNDED: "Povrnjeno",
 }
 
 interface OrderDetailPageProps {
@@ -68,14 +69,14 @@ export default async function OrderDetailPage({
         <Button variant="ghost" className="mb-6 -ml-2" asChild>
           <Link href="/my-orders">
             <ArrowLeftIcon size={18} className="mr-2" />
-            Back to Orders
+            Nazaj na naročila
           </Link>
         </Button>
 
         {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Order Details</h1>
+            <h1 className="text-3xl font-bold">Podrobnosti naročila</h1>
             <div className="text-muted-foreground mt-1 flex items-center gap-2">
               <ReceiptIcon size={18} />
               <span>{order.id}</span>
@@ -93,7 +94,7 @@ export default async function OrderDetailPage({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <PackageIcon size={20} />
-                  Items ({order.items.length})
+                  Izdelki ({order.items.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -118,13 +119,13 @@ export default async function OrderDetailPage({
                     <div className="min-w-0 flex-1">
                       <p className="font-medium">{item.product.name}</p>
                       <p className="text-muted-foreground text-sm">
-                        Qty: {item.quantity} × €{item.price.toFixed(2)}
+                        Količina: {item.quantity} × {formatCurrency(item.price)}
                       </p>
                     </div>
 
                     {/* Item Total */}
                     <p className="text-lg font-semibold">
-                      ${(item.quantity * item.price).toFixed(2)}
+                      {formatCurrency(item.quantity * item.price)}
                     </p>
                   </div>
                 ))}
@@ -134,17 +135,17 @@ export default async function OrderDetailPage({
                 {/* Order Summary */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span>€{order.subtotal.toFixed(2)}</span>
+                    <span className="text-muted-foreground">Vmesna vsota</span>
+                    <span>{formatCurrency(order.subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tax</span>
-                    <span>€{order.tax.toFixed(2)}</span>
+                    <span className="text-muted-foreground">Davek</span>
+                    <span>{formatCurrency(order.tax)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between text-lg font-bold">
-                    <span>Total</span>
-                    <span>€{order.total.toFixed(2)}</span>
+                    <span>Skupaj</span>
+                    <span>{formatCurrency(order.total)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -158,14 +159,14 @@ export default async function OrderDetailPage({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <CalendarIcon size={20} />
-                  Order Info
+                  Podatki o naročilu
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div>
-                  <p className="text-muted-foreground">Order Date</p>
+                  <p className="text-muted-foreground">Datum naročila</p>
                   <p className="font-medium">
-                    {order.createdAt.toLocaleDateString("en-US", {
+                    {order.createdAt.toLocaleDateString("sl-SI", {
                       year: "numeric",
                       month: "long",
                       day: "numeric",
@@ -173,7 +174,7 @@ export default async function OrderDetailPage({
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Order ID</p>
+                  <p className="text-muted-foreground">Številka naročila</p>
                   <p className="font-mono text-xs font-medium">{order.id}</p>
                 </div>
               </CardContent>
@@ -184,7 +185,7 @@ export default async function OrderDetailPage({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <UserIcon size={20} />
-                  Customer
+                  Stranka
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1 text-sm">
@@ -203,7 +204,7 @@ export default async function OrderDetailPage({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <StorefrontIcon size={20} />
-                  Pickup Location
+                  Lokacija prevzema
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-sm">
@@ -215,15 +216,15 @@ export default async function OrderDetailPage({
                   {order.status === "COMPLETED" ? (
                     <>
                       <CheckCircleIcon size={16} className="text-green-500" />
-                      <span className="text-green-600 font-medium">Picked up</span>
+                      <span className="text-green-600 font-medium">Prevzeto</span>
                     </>
                   ) : order.status === "PAID" ? (
                     <>
                       <CheckCircleIcon size={16} className="text-blue-500" />
-                      <span className="text-blue-600 font-medium">Ready for pickup</span>
+                      <span className="text-blue-600 font-medium">Pripravljeno za prevzem</span>
                     </>
                   ) : (
-                    <span className="text-muted-foreground">Awaiting payment</span>
+                    <span className="text-muted-foreground">Čakanje na plačilo</span>
                   )}
                 </div>
               </CardContent>
@@ -234,17 +235,17 @@ export default async function OrderDetailPage({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <CreditCardIcon size={20} />
-                  Payment
+                  Plačilo
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-sm">
                 {order.stripePaymentIntentId ? (
                   <div className="flex items-center gap-2">
                     <CheckCircleIcon size={16} className="text-green-500" />
-                    <span className="font-medium text-green-600">Paid via card</span>
+                    <span className="font-medium text-green-600">Plačano s kartico</span>
                   </div>
                 ) : (
-                  <span className="text-muted-foreground">Pending payment</span>
+                  <span className="text-muted-foreground">Plačilo v obdelavi</span>
                 )}
               </CardContent>
             </Card>
@@ -253,10 +254,10 @@ export default async function OrderDetailPage({
             <Card className="border-dashed">
               <CardContent className="p-4 text-center">
                 <p className="text-muted-foreground mb-2 text-sm">
-                  Need help with your order?
+                  Potrebujete pomoč z naročilom?
                 </p>
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/#contact">Contact Support</Link>
+                  <Link href="/#contact">Kontaktirajte podporo</Link>
                 </Button>
               </CardContent>
             </Card>

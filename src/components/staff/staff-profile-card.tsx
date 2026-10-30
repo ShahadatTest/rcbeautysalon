@@ -27,7 +27,7 @@ export function StaffProfileCard({ profile }: StaffProfileCardProps) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
-          <p className="text-muted-foreground">Profile not found</p>
+          <p className="text-muted-foreground">Profil ni bil najden</p>
         </CardContent>
       </Card>
     )
@@ -45,10 +45,10 @@ export function StaffProfileCard({ profile }: StaffProfileCardProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <UserIcon size={20} className="text-primary" />
-            <CardTitle className="text-lg">My Profile</CardTitle>
+            <CardTitle className="text-lg">Moj profil</CardTitle>
           </div>
           <Badge variant={profile.isActive ? "default" : "secondary"}>
-            {profile.isActive ? "Active" : "Inactive"}
+            {profile.isActive ? "Aktiven" : "Neaktiven"}
           </Badge>
         </div>
       </CardHeader>
@@ -87,7 +87,7 @@ export function StaffProfileCard({ profile }: StaffProfileCardProps) {
           )}
           {!profile.email && !profile.phone && (
             <p className="text-sm text-muted-foreground">
-              No contact info added
+              Ni dodanih kontaktnih podatkov
             </p>
           )}
         </div>
@@ -95,7 +95,7 @@ export function StaffProfileCard({ profile }: StaffProfileCardProps) {
         {/* View Profile Link */}
         <Link href="/staff-portal/profile">
           <Button variant="outline" className="w-full">
-            View Full Profile
+            Poglej celoten profil
             <ArrowRightIcon size={16} className="ml-2" />
           </Button>
         </Link>

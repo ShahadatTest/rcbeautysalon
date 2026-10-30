@@ -4,9 +4,9 @@ import { LoginForm } from "@/components/auth/login-form"
 import { LoginSkeleton } from "@/components/auth/login-skeleton"
 
 export const metadata: Metadata = {
-  title: "Sign In | RC Beauty Salon",
+  title: "Prijava | RC Beauty Salon",
   description:
-    "Sign in to your RC Beauty Salon account to manage appointments, view services, and access exclusive features.",
+    "Prijavite se v svoj račun RC Beauty Salon za upravljanje terminov, ogled storitev in dostop do posebnih funkcij.",
 }
 
 export default function LoginPage() {

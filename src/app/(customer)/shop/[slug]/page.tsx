@@ -18,6 +18,7 @@ import {
   X,
 } from "@phosphor-icons/react/dist/ssr"
 import { AddToCartButton } from "@/components/shop/add-to-cart-button"
+import { formatCurrency } from "@/lib/utils/format"
 
 interface ProductDetailsProps {
   params: Promise<{ slug: string }>
@@ -170,16 +171,16 @@ const ProductDetails = async ({ params }: ProductDetailsProps) => {
             {/* Price */}
             <div className="mb-6 flex items-baseline gap-3">
               <span className="text-4xl font-bold text-primary">
-                €{product.price.toFixed(2)}
+                {formatCurrency(product.price)}
               </span>
               {product.compareAtPrice && (
                 <span className="text-xl text-muted-foreground line-through">
-                  €{product.compareAtPrice.toFixed(2)}
+                  {formatCurrency(product.compareAtPrice)}
                 </span>
               )}
               {product.compareAtPrice && (
                 <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                  Prihranite ${(product.compareAtPrice - product.price).toFixed(2)}
+                  Prihranite {formatCurrency(product.compareAtPrice - product.price)}
                 </Badge>
               )}
             </div>

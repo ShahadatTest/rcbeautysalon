@@ -5,8 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { CreateProductInput } from "@/lib/interfaces"
 import { requireAdminOrg, getResolvedOrg } from "@/lib/tenant"
-import { auth } from "@/lib/auth/auth"
-import { getPublicOrg, getSessionOrg } from "@/lib/tenant"
+import { getPublicOrg } from "@/lib/tenant"
 import { UnauthorizedError } from "@/lib/auth/guards"
 
 export type UpdateProductInput = Partial<CreateProductInput>

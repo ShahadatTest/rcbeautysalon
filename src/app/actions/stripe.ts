@@ -18,7 +18,7 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
       return {
         success: false,
         error:
-          "Online payments are not configured yet. Please contact the salon to complete your booking.",
+          "Spletna plačila še niso nastavljena. Za dokončanje rezervacije kontaktirajte salon.",
       }
     }
 
@@ -34,7 +34,7 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
     if (!org) {
       return {
         success: false,
-        error: "Online booking is currently unavailable. Please try again later.",
+        error: "Spletna rezervacija trenutno ni na voljo. Poskusite znova kasneje.",
       }
     }
 
@@ -69,7 +69,7 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
     // Fetch services to get names and calculate totals
     const services = await getServicesForBooking(data.serviceIds)
     if (services.length === 0) {
-      return { success: false, error: "Invalid service selection" }
+      return { success: false, error: "Neveljavna izbira storitev" }
     }
 
     // Get salon config for deposit amount
@@ -100,8 +100,8 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
 
     // Build product description
     const depositDescription = isEmployeeBooking
-      ? `Non-refundable deposit for your appointment (20% employee discount applied)`
-      : `Non-refundable deposit for your appointment`
+      ? `Nepovratni polog za vaš termin (20 % popust za zaposlene)`
+      : `Nepovratni polog za vaš termin`
 
     // Create Stripe Checkout session
     const checkoutSession = await stripe.checkout.sessions.create({
@@ -113,7 +113,7 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
           price_data: {
             currency: (config.currency || "EUR").toLowerCase(),
             product_data: {
-              name: `Appointment Deposit - ${serviceNames}`,
+              name: `Polog za termin - ${serviceNames}`,
               description: depositDescription,
             },
             unit_amount: Math.round(depositAmount * 100), // Convert to cents
@@ -147,7 +147,7 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
     console.error("Error creating checkout session:", error)
     return {
       success: false,
-      error: "Failed to create payment session. Please try again.",
+      error: "Ustvarjanje plačilne seje ni uspelo. Poskusite znova.",
     }
   }
 }
@@ -158,7 +158,7 @@ export async function verifyAndCreateAppointment(sessionId: string) {
     if (!isStripeConfigured()) {
       return {
         success: false,
-        error: "Payments are not configured.",
+        error: "Plačila niso nastavljena.",
       }
     }
 
@@ -171,7 +171,7 @@ export async function verifyAndCreateAppointment(sessionId: string) {
     if (checkoutSession.payment_status !== "paid") {
       return {
         success: false,
-        error: "Payment not completed",
+        error: "Plačilo ni bilo zaključeno",
       }
     }
 
@@ -183,7 +183,7 @@ export async function verifyAndCreateAppointment(sessionId: string) {
     if (!paymentIntentId) {
       return {
         success: false,
-        error: "No payment intent found",
+        error: "Ni mogoče najti podatkov o plačilu",
       }
     }
 
@@ -192,7 +192,7 @@ export async function verifyAndCreateAppointment(sessionId: string) {
     if (!metadata) {
       return {
         success: false,
-        error: "No booking data found",
+        error: "Ni mogoče najti podatkov o rezervaciji",
       }
     }
 
@@ -205,7 +205,7 @@ export async function verifyAndCreateAppointment(sessionId: string) {
     if (!org) {
       return {
         success: false,
-        error: "No organization available",
+        error: "Salon ni na voljo",
       }
     }
 
@@ -244,7 +244,7 @@ export async function verifyAndCreateAppointment(sessionId: string) {
     if (services.length !== new Set(serviceIds).size) {
       return {
         success: false,
-        error: "Invalid booking data",
+        error: "Neveljavni podatki za rezervacijo",
       }
     }
 
@@ -338,7 +338,7 @@ export async function verifyAndCreateAppointment(sessionId: string) {
     if (!staff) {
       return {
         success: false,
-        error: "Invalid booking data",
+        error: "Neveljavni podatki za rezervacijo",
       }
     }
 
@@ -399,7 +399,7 @@ export async function verifyAndCreateAppointment(sessionId: string) {
     console.error("Error creating appointment from checkout:", error)
     return {
       success: false,
-      error: "Failed to create appointment",
+      error: "Ustvarjanje termina ni uspelo",
     }
   }
 }
@@ -411,14 +411,14 @@ export async function createDepositCheckoutForAppointment(appointmentId: string)
       return {
         success: false,
         error:
-          "Online payments are not configured yet. Please contact the salon.",
+          "Spletna plačila še niso nastavljena. Kontaktirajte salon.",
       }
     }
 
     const session = await auth()
 
     if (!session?.user) {
-      return { success: false, error: "Unauthorized" }
+      return { success: false, error: "Nepooblaščen dostop" }
     }
 
     // Fetch the appointment with services (scoped to the current organization)
@@ -434,23 +434,23 @@ export async function createDepositCheckoutForAppointment(appointmentId: string)
 
     // Validate appointment exists
     if (!appointment) {
-      return { success: false, error: "Appointment not found" }
+      return { success: false, error: "Termina ni mogoče najti" }
     }
 
     // Tenant check: the appointment must belong to the current organization
     // (legacy appointments without organizationId are still honored)
     if (org && appointment.organizationId && appointment.organizationId !== org.id) {
-      return { success: false, error: "Appointment not found" }
+      return { success: false, error: "Termina ni mogoče najti" }
     }
 
     // Validate appointment belongs to current user
     if (appointment.customer?.userId !== session.user.id) {
-      return { success: false, error: "Unauthorized" }
+      return { success: false, error: "Nepooblaščen dostop" }
     }
 
     // Validate deposit not already paid
     if (appointment.depositPaid) {
-      return { success: false, error: "Deposit already paid" }
+      return { success: false, error: "Polog je že plačan" }
     }
 
     // Get service names for description
@@ -473,8 +473,8 @@ export async function createDepositCheckoutForAppointment(appointmentId: string)
           price_data: {
             currency: (depositConfig?.currency || "EUR").toLowerCase(),
             product_data: {
-              name: `Appointment Deposit - ${serviceNames}`,
-              description: "Non-refundable deposit for your appointment",
+              name: `Polog za termin - ${serviceNames}`,
+              description: "Nepovratni polog za vaš termin",
             },
             unit_amount: Math.round(appointment.depositAmount.toNumber() * 100),
           },
@@ -498,7 +498,7 @@ export async function createDepositCheckoutForAppointment(appointmentId: string)
     console.error("Error creating checkout for existing appointment:", error)
     return {
       success: false,
-      error: "Failed to create payment session",
+      error: "Ustvarjanje plačilne seje ni uspelo",
     }
   }
 }

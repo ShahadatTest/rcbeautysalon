@@ -34,6 +34,7 @@ import {
   EyeIcon,
 } from "@/components/icons"
 import { format } from "date-fns"
+import { sl } from "date-fns/locale"
 import { updateAppointmentStatus } from "@/app/actions/appointments"
 import { AppointmentDetailsDialog } from "./appointment-details-dialog"
 
@@ -76,6 +77,22 @@ const statusVariants: Record<
   NO_SHOW: "destructive",
 }
 
+const statusLabels: Record<string, string> = {
+  PENDING: "V čakanju",
+  CONFIRMED: "Potrjeno",
+  COMPLETED: "Zaključeno",
+  CANCELLED: "Odpovedano",
+  NO_SHOW: "Ni se pojavil",
+}
+
+/** Slovenska množina: 1 termin, 2 termina, 3–4 termine, 5+ terminov. */
+function prikazaniTermini(n: number): string {
+  if (n === 1) return "Prikazan 1 termin"
+  if (n === 2) return `Prikazana ${n} termina`
+  if (n === 3 || n === 4) return `Prikazani ${n} termine`
+  return `Prikazanih ${n} terminov`
+}
+
 export function StaffAppointmentsList({
   appointments,
 }: StaffAppointmentsListProps) {
@@ -105,33 +122,33 @@ export function StaffAppointmentsList({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Appointments</CardTitle>
+        <CardTitle>Termini</CardTitle>
         <CardDescription>
-          Showing {appointments.length} appointments
+          {prikazaniTermini(appointments.length)}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {appointments.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <p className="text-muted-foreground">No appointments found</p>
+            <p className="text-muted-foreground">Ni najdenih terminov</p>
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Date & Time</TableHead>
-                <TableHead>Service</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Price</TableHead>
+                <TableHead>Stranka</TableHead>
+                <TableHead>Datum in čas</TableHead>
+                <TableHead>Storitev</TableHead>
+                <TableHead>Trajanje</TableHead>
+                <TableHead>Cena</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right">Dejanja</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {appointments.map((appointment) => {
                 const serviceName =
-                  appointment.services[0]?.service.name || "Service"
+                  appointment.services[0]?.service.name || "Storitev"
                 const totalDuration = appointment.services.reduce(
                   (acc, s) => acc + s.service.duration,
                   0
@@ -166,7 +183,9 @@ export function StaffAppointmentsList({
                     {/* Date & Time */}
                     <TableCell>
                       <p className="font-medium">
-                        {format(new Date(appointment.startTime), "MMM d, yyyy")}
+                        {format(new Date(appointment.startTime), "d. MMMM yyyy", {
+                          locale: sl,
+                        })}
                       </p>
                       <p className="text-muted-foreground text-sm">
                         {format(new Date(appointment.startTime), "HH:mm")}
@@ -192,7 +211,7 @@ export function StaffAppointmentsList({
                     {/* Status */}
                     <TableCell>
                       <Badge variant={statusVariants[appointment.status]}>
-                        {appointment.status.replace("_", " ")}
+                        {statusLabels[appointment.status] || appointment.status}
                       </Badge>
                     </TableCell>
 
@@ -216,7 +235,7 @@ export function StaffAppointmentsList({
                             }}
                           >
                             <EyeIcon size={16} className="mr-2" />
-                            View Details
+                            Podrobnosti
                           </DropdownMenuItem>
                           {(appointment.status === "CONFIRMED" ||
                             appointment.status === "PENDING") && (
@@ -228,7 +247,7 @@ export function StaffAppointmentsList({
                                 }
                               >
                                 <CheckCircleIcon size={16} className="mr-2" />
-                                Mark Complete
+                                Označi kot zaključeno
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 disabled={isPending}
@@ -236,7 +255,7 @@ export function StaffAppointmentsList({
                                 onClick={() => handleMarkNoShow(appointment.id)}
                               >
                                 <XCircleIcon size={16} className="mr-2" />
-                                Mark No Show
+                                Ni se pojavil
                               </DropdownMenuItem>
                             </>
                           )}

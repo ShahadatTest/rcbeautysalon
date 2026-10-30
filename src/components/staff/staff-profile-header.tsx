@@ -7,6 +7,8 @@ import {
   EnvelopeIcon,
   PhoneIcon,
 } from "@/components/icons"
+import { format } from "date-fns"
+import { sl } from "date-fns/locale"
 
 interface StaffProfile {
   id: string
@@ -29,7 +31,7 @@ export function StaffProfileHeader({ profile }: StaffProfileHeaderProps) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
-          <p className="text-muted-foreground">Profile not found</p>
+          <p className="text-muted-foreground">Profil ni bil najden</p>
         </CardContent>
       </Card>
     )
@@ -41,9 +43,8 @@ export function StaffProfileHeader({ profile }: StaffProfileHeaderProps) {
     .join("")
     .toUpperCase()
 
-  const memberSince = new Date(profile.createdAt).toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
+  const memberSince = format(new Date(profile.createdAt), "MMMM yyyy", {
+    locale: sl,
   })
 
   return (
@@ -65,7 +66,7 @@ export function StaffProfileHeader({ profile }: StaffProfileHeaderProps) {
               variant={profile.isActive ? "default" : "secondary"}
               className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap"
             >
-              {profile.isActive ? "Active" : "Inactive"}
+              {profile.isActive ? "Aktiven" : "Neaktiven"}
             </Badge>
           </div>
 
@@ -109,7 +110,7 @@ export function StaffProfileHeader({ profile }: StaffProfileHeaderProps) {
               </span>
             </div>
             <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
-              Completed
+              Zaključeni
             </p>
           </div>
 
@@ -122,7 +123,7 @@ export function StaffProfileHeader({ profile }: StaffProfileHeaderProps) {
               </span>
             </div>
             <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
-              Member since
+              Član od
             </p>
           </div>
         </div>

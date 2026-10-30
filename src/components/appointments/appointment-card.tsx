@@ -23,6 +23,7 @@ import {
   SpinnerGapIcon,
 } from "@/components/icons"
 import { format } from "date-fns"
+import { sl } from "date-fns/locale"
 import {
   cancelAppointment,
   getAvailableTimeSlots,
@@ -85,7 +86,7 @@ export function AppointmentCard({
         setRescheduleOpen(false)
         router.refresh()
       } else {
-        setError(result.error || "Failed to reschedule")
+        setError(result.error || "Prestavljanje termina ni uspelo")
       }
     })
   }
@@ -99,7 +100,7 @@ export function AppointmentCard({
       if (result.success && result.checkoutUrl) {
         window.location.href = result.checkoutUrl
       } else {
-        setError(result.error || "Failed to initiate payment")
+        setError(result.error || "Začetek plačila ni uspel")
       }
     })
   }
@@ -114,7 +115,7 @@ export function AppointmentCard({
         setCancelDialogOpen(false)
         router.refresh()
       } else {
-        setError(result.error || "Failed to cancel appointment")
+        setError(result.error || "Odpoved termina ni uspela")
         setCancelDialogOpen(false)
       }
     })
@@ -128,11 +129,11 @@ export function AppointmentCard({
         label: string
       }
     > = {
-      CONFIRMED: { variant: "default", label: "Confirmed" },
-      PENDING: { variant: "secondary", label: "Pending Payment" },
-      COMPLETED: { variant: "outline", label: "Completed" },
-      CANCELLED: { variant: "destructive", label: "Cancelled" },
-      NO_SHOW: { variant: "destructive", label: "No Show" },
+      CONFIRMED: { variant: "default", label: "Potrjen" },
+      PENDING: { variant: "secondary", label: "Čakanje na plačilo" },
+      COMPLETED: { variant: "outline", label: "Zaključen" },
+      CANCELLED: { variant: "destructive", label: "Odpovedan" },
+      NO_SHOW: { variant: "destructive", label: "Ni se pojavil" },
     }
     const config = variants[status] || variants.PENDING
     return <Badge variant={config.variant}>{config.label}</Badge>
@@ -154,13 +155,13 @@ export function AppointmentCard({
                 {serviceNames}
                 {isNew && (
                   <Badge variant="default" className="bg-green-600">
-                    New
+                    Nov
                   </Badge>
                 )}
               </CardTitle>
               <CardDescription className="mt-2 flex items-center gap-1">
                 <CalendarIcon size={14} weight="regular" />
-                {format(new Date(appointment.startTime), "MMMM d, yyyy")} at{" "}
+                {format(new Date(appointment.startTime), "d. MMMM yyyy", { locale: sl })} ob {" "}
                 {format(new Date(appointment.startTime), "HH:mm")}
               </CardDescription>
             </div>
@@ -170,15 +171,15 @@ export function AppointmentCard({
         <CardContent className="space-y-3">
           <div className="text-muted-foreground flex items-center text-sm">
             <UserIcon size={16} className="mr-2" weight="regular" />
-            <span>With {appointment.staff.name}</span>
+            <span>Pri {appointment.staff.name}</span>
           </div>
           <div className="text-muted-foreground flex items-center text-sm">
             <ClockIcon size={16} className="mr-2" weight="regular" />
-            <span>Duration: {totalDuration} minutes</span>
+            <span>Trajanje: {totalDuration} minut</span>
           </div>
           <div className="text-muted-foreground flex items-center text-sm">
             <CurrencyDollarIcon size={16} className="mr-2" weight="regular" />
-            <span>Total Price: {fmt(appointment.totalPrice)}</span>
+            <span>Skupaj: {fmt(appointment.totalPrice)}</span>
           </div>
 
           {/* Deposit status */}
@@ -194,10 +195,10 @@ export function AppointmentCard({
                     />
                     <div className="text-sm">
                       <p className="font-semibold text-green-900 dark:text-green-100">
-                        Deposit Paid: {fmt(appointment.depositAmount)}
+                        Polog plačan: {fmt(appointment.depositAmount)}
                       </p>
                       <p className="text-green-800 dark:text-green-200">
-                        Non-refundable
+                        Nepovratno
                       </p>
                     </div>
                   </div>
@@ -212,10 +213,10 @@ export function AppointmentCard({
                     />
                     <div className="text-sm">
                       <p className="font-semibold text-amber-900 dark:text-amber-100">
-                        Payment Required: {fmt(appointment.depositAmount)}
+                        Potrebno plačilo: {fmt(appointment.depositAmount)}
                       </p>
                       <p className="text-amber-800 dark:text-amber-200">
-                        Please complete payment to confirm your appointment
+                        Za potrditev termina dokončajte plačilo
                       </p>
                     </div>
                   </div>
@@ -227,7 +228,7 @@ export function AppointmentCard({
           {/* Notes */}
           {appointment.notes && (
             <div className="bg-muted mt-4 rounded-lg p-3">
-              <p className="text-sm font-semibold">Notes:</p>
+              <p className="text-sm font-semibold">Opombe:</p>
               <p className="text-muted-foreground text-sm">{appointment.notes}</p>
             </div>
           )}
@@ -266,7 +267,7 @@ export function AppointmentCard({
                         className="mr-2"
                         weight="regular"
                       />
-                      Pay Now
+                      Plačaj zdaj
                     </>
                   )}
                 </Button>
@@ -278,7 +279,7 @@ export function AppointmentCard({
                 disabled={isPending}
               >
                 <CalendarIcon size={18} className="mr-2" weight="regular" />
-                Reschedule
+                Prestavi
               </Button>
               <Button
                 variant="destructive"
@@ -293,7 +294,7 @@ export function AppointmentCard({
                     weight="regular"
                   />
                 ) : (
-                  "Cancel"
+                  "Odpovi"
                 )}
               </Button>
             </div>
@@ -307,7 +308,7 @@ export function AppointmentCard({
               <Link
                 href={`/booking?service=${appointment.services[0]?.service.slug}`}
               >
-                Book Again
+                Rezerviraj ponovno
               </Link>
             </Button>
           </CardFooter>
@@ -330,10 +331,10 @@ export function AppointmentCard({
       <ConfirmDialog
         open={cancelDialogOpen}
         onOpenChange={setCancelDialogOpen}
-        title="Cancel Appointment"
-        description="Are you sure you want to cancel this appointment? The deposit is non-refundable."
-        confirmLabel="Yes, Cancel"
-        cancelLabel="No, Keep It"
+        title="Odpovi termin"
+        description="Ste prepričani, da želite odpovedati ta termin? Polog je nepovraten."
+        confirmLabel="Da, odpovi"
+        cancelLabel="Ne, obdrži"
         onConfirm={handleCancelAppointment}
         variant="destructive"
       />

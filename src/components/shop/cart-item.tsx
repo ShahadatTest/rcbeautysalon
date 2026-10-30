@@ -21,7 +21,7 @@ export function CartItem({ item }: CartItemProps) {
 
   const handleConfirmRemove = () => {
     removeItem(item.productId)
-    toast.success(`${item.name} has been removed from your cart.`)
+    toast.success(`${item.name} je bil odstranjen iz košarice.`)
     setShowRemoveDialog(false)
   }
 
@@ -66,7 +66,7 @@ export function CartItem({ item }: CartItemProps) {
             {item.name}
           </h3>
           <p className="text-muted-foreground mt-1 text-sm">
-            {fmt(item.price)} each
+            {fmt(item.price)} na kos
           </p>
         </div>
 
@@ -120,9 +120,9 @@ export function CartItem({ item }: CartItemProps) {
       <ConfirmDialog
         open={showRemoveDialog}
         onOpenChange={setShowRemoveDialog}
-        title="Remove Item"
-        description={`Are you sure you want to remove "${item.name}" from your cart?`}
-        confirmLabel="Remove"
+        title="Odstrani izdelek"
+        description={`Ste prepričani, da želite odstraniti "${item.name}" iz košarice?`}
+        confirmLabel="Odstrani"
         onConfirm={handleConfirmRemove}
         variant="destructive"
       />

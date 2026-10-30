@@ -17,9 +17,9 @@ export function AppointmentsList({
     <Tabs defaultValue="upcoming" className="space-y-6">
       <TabsList className="grid w-full max-w-md grid-cols-2">
         <TabsTrigger value="upcoming">
-          Upcoming ({upcomingAppointments.length})
+          Prihajajoči ({upcomingAppointments.length})
         </TabsTrigger>
-        <TabsTrigger value="past">Past ({pastAppointments.length})</TabsTrigger>
+        <TabsTrigger value="past">Pretekli ({pastAppointments.length})</TabsTrigger>
       </TabsList>
 
       <TabsContent value="upcoming" className="space-y-4">
@@ -32,10 +32,10 @@ export function AppointmentsList({
                 weight="regular"
               />
               <p className="text-muted-foreground mb-4 text-center">
-                No upcoming appointments
+                Ni prihajajočih terminov
               </p>
               <Button asChild>
-                <Link href="/services">Book Your First Appointment</Link>
+                <Link href="/services">Rezervirajte svoj prvi termin</Link>
               </Button>
             </CardContent>
           </Card>
@@ -60,7 +60,7 @@ export function AppointmentsList({
                 weight="regular"
               />
               <p className="text-muted-foreground text-center">
-                No past appointments
+                Ni preteklih terminov
               </p>
             </CardContent>
           </Card>

@@ -4,19 +4,19 @@ import { z } from "zod"
 const workingHourSchema = z.object({
   dayOfWeek: z.number().min(0).max(6),
   isActive: z.boolean(),
-  startTime: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format"),
-  endTime: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format"),
+  startTime: z.string().regex(/^\d{2}:\d{2}$/, "Neveljavna oblika časa"),
+  endTime: z.string().regex(/^\d{2}:\d{2}$/, "Neveljavna oblika časa"),
 })
 
 // Base schema with common fields
 const staffBaseSchema = z.object({
   name: z
     .string()
-    .min(2, "Name must be at least 2 characters")
-    .max(100, "Name must be less than 100 characters"),
+    .min(2, "Ime mora imeti vsaj 2 znaka")
+    .max(100, "Ime ne sme biti daljše od 100 znakov"),
   email: z
     .string()
-    .email("Invalid email address"),
+    .email("Neveljaven e-poštni naslov"),
   phone: z.string().optional(),
   bio: z.string().optional(),
   image: z.string().optional(),
@@ -35,16 +35,16 @@ export const updateStaffSchema = staffBaseSchema
 export const staffSelfUpdateSchema = z.object({
   name: z
     .string()
-    .min(2, "Name must be at least 2 characters")
-    .max(100, "Name must be less than 100 characters"),
+    .min(2, "Ime mora imeti vsaj 2 znaka")
+    .max(100, "Ime ne sme biti daljše od 100 znakov"),
   phone: z
     .string()
-    .regex(/^[\d\s\-+()]*$/, "Invalid phone number format")
+    .regex(/^[\d\s\-+()]*$/, "Neveljavna oblika telefonske številke")
     .optional()
     .or(z.literal("")),
   bio: z
     .string()
-    .max(500, "Bio must be less than 500 characters")
+    .max(500, "Predstavitev ne sme biti daljša od 500 znakov")
     .optional()
     .or(z.literal("")),
 })

@@ -110,7 +110,7 @@ export function StaffDialog({ staff, open, onOpenChange }: StaffDialogProps) {
           {/* Servicios */}
           {staff.staffServices && staff.staffServices.length > 0 && (
             <div className="mt-6">
-              <h4 className="mb-3 text-sm font-semibold">Services</h4>
+              <h4 className="mb-3 text-sm font-semibold">Storitve</h4>
               <div className="flex flex-wrap gap-2">
                 {staff.staffServices.map((ss) => (
                   <Badge
@@ -131,7 +131,7 @@ export function StaffDialog({ staff, open, onOpenChange }: StaffDialogProps) {
             size="lg"
           >
             <CalendarIcon size={18} className="mr-2" />
-            Book with {staff.name.split(" ")[0]}
+            Rezerviraj pri {staff.name.split(" ")[0]}
           </Button>
         </div>
       </DialogContent>

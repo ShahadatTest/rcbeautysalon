@@ -10,8 +10,8 @@ import {
 } from "@/app/actions/staff"
 
 export const metadata: Metadata = {
-  title: "Staff Portal | RC Beauty Salon",
-  description: "Manage your appointments and schedule",
+  title: "Portal za osebje | RC Beauty Salon",
+  description: "Upravljajte svoje termine in urnik",
 }
 
 export default async function StaffDashboardPage() {
@@ -27,9 +27,9 @@ export default async function StaffDashboardPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Welcome Back!</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Dobrodošli nazaj!</h1>
         <p className="text-muted-foreground mt-1">
-          Here&apos;s your overview for today
+          Tu je vaš današnji pregled
         </p>
       </div>
 

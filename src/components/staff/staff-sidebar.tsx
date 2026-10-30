@@ -12,22 +12,22 @@ import {
 
 const navItems = [
   {
-    label: "Dashboard",
+    label: "Nadzorna plošča",
     href: "/staff-portal",
     icon: HouseIcon,
   },
   {
-    label: "My Appointments",
+    label: "Moji termini",
     href: "/staff-portal/appointments",
     icon: CalendarIcon,
   },
   {
-    label: "My Schedule",
+    label: "Moj urnik",
     href: "/staff-portal/schedule",
     icon: ClockIcon,
   },
   {
-    label: "My Profile",
+    label: "Moj profil",
     href: "/staff-portal/profile",
     icon: UserIcon,
   },

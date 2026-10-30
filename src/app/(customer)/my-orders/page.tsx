@@ -14,10 +14,11 @@ import {
 import { auth } from "@/lib/auth/auth"
 import { redirect } from "next/navigation"
 import { getCustomerOrders } from "@/app/actions/orders"
+import { formatCurrency } from "@/lib/utils/format"
 
 export const metadata: Metadata = {
-  title: "My Orders | RC Beauty Salon",
-  description: "View your order history and track your purchases.",
+  title: "Moja naročila | RC Beauty Salon",
+  description: "Pregledajte zgodovino svojih naročil in spremljajte nakupe.",
 }
 
 const statusColors: Record<string, string> = {
@@ -29,11 +30,11 @@ const statusColors: Record<string, string> = {
 }
 
 const statusLabels: Record<string, string> = {
-  PENDING: "Pending",
-  PAID: "Paid",
-  COMPLETED: "Completed",
-  CANCELLED: "Cancelled",
-  REFUNDED: "Refunded",
+  PENDING: "V obdelavi",
+  PAID: "Plačano",
+  COMPLETED: "Zaključeno",
+  CANCELLED: "Odpovedano",
+  REFUNDED: "Povrnjeno",
 }
 
 export default async function MyOrdersPage() {
@@ -51,10 +52,10 @@ export default async function MyOrdersPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="from-primary to-accent mb-2 bg-linear-to-r bg-clip-text text-4xl font-bold text-transparent">
-            My Orders
+            Moja naročila
           </h1>
           <p className="text-muted-foreground text-lg">
-            View your purchase history and order details
+            Pregledajte zgodovino nakupov in podrobnosti naročil
           </p>
         </div>
 
@@ -66,12 +67,12 @@ export default async function MyOrdersPage() {
               <div className="bg-muted mb-4 flex h-16 w-16 items-center justify-center rounded-full">
                 <ShoppingBagIcon size={32} className="text-muted-foreground" />
               </div>
-              <h3 className="mb-2 text-lg font-semibold">No orders yet</h3>
+              <h3 className="mb-2 text-lg font-semibold">Še ni naročil</h3>
               <p className="text-muted-foreground mb-6 text-center">
-                When you make a purchase, your orders will appear here.
+                Ko opravite nakup, se bodo vaša naročila prikazala tukaj.
               </p>
               <Button asChild>
-                <Link href="/shop">Start Shopping</Link>
+                <Link href="/shop">Začnite z nakupovanjem</Link>
               </Button>
             </CardContent>
           </Card>
@@ -131,13 +132,13 @@ export default async function MyOrdersPage() {
                             {item.product.name}
                           </p>
                           <p className="text-muted-foreground text-sm">
-                            Qty: {item.quantity} × €{item.price.toFixed(2)}
+                            Količina: {item.quantity} × {formatCurrency(item.price)}
                           </p>
                         </div>
 
                         {/* Item Total */}
                         <p className="font-medium">
-                          ${(item.quantity * item.price).toFixed(2)}
+                          {formatCurrency(item.quantity * item.price)}
                         </p>
                       </div>
                     ))}
@@ -147,16 +148,16 @@ export default async function MyOrdersPage() {
                   <div className="mt-4 flex items-center justify-between border-t pt-4">
                     <div>
                       <span className="text-muted-foreground text-sm">
-                        Total
+                        Skupaj
                       </span>
                       <p className="text-xl font-bold">
-                        €{order.total.toFixed(2)}
+                        {formatCurrency(order.total)}
                       </p>
                     </div>
 
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/my-orders/${order.id}`}>
-                        View Details
+                        Podrobnosti
                         <ArrowRightIcon size={16} className="ml-2" />
                       </Link>
                     </Button>

@@ -18,9 +18,9 @@ export function AppointmentsSummary({ stats }: AppointmentsSummaryProps) {
       <CardHeader>
         <div className="flex items-center gap-2">
           <CalendarIcon size={20} className="text-primary" />
-          <CardTitle className="text-lg">Appointments</CardTitle>
+          <CardTitle className="text-lg">Termini</CardTitle>
         </div>
-        <CardDescription>Your appointment history</CardDescription>
+        <CardDescription>Zgodovina vaših terminov</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-3 gap-4 text-center">
@@ -28,32 +28,32 @@ export function AppointmentsSummary({ stats }: AppointmentsSummaryProps) {
             <p className="text-primary text-2xl font-bold">
               {stats?.upcomingAppointments || 0}
             </p>
-            <p className="text-muted-foreground text-xs">Upcoming</p>
+            <p className="text-muted-foreground text-xs">Prihajajoči</p>
           </div>
           <div className="bg-muted/50 rounded-lg p-3">
             <p className="text-2xl font-bold text-green-600">
               {stats?.completedAppointments || 0}
             </p>
-            <p className="text-muted-foreground text-xs">Completed</p>
+            <p className="text-muted-foreground text-xs">Zaključeni</p>
           </div>
           <div className="bg-muted/50 rounded-lg p-3">
             <p className="text-2xl font-bold">
               {stats?.totalAppointments || 0}
             </p>
-            <p className="text-muted-foreground text-xs">Total</p>
+            <p className="text-muted-foreground text-xs">Skupaj</p>
           </div>
         </div>
 
         <div className="mt-4 flex flex-col gap-2">
           <Link href="/my-appointments">
             <Button variant="outline" className="w-full">
-              View All Appointments
+              Prikaži vse termine
             </Button>
           </Link>
           <Link href="/services">
             <Button className="w-full">
               <CalendarIcon size={16} className="mr-2" />
-              Book New Appointment
+              Rezerviraj nov termin
             </Button>
           </Link>
         </div>

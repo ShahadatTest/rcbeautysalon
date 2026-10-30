@@ -19,7 +19,7 @@ import type { Payment } from "@/lib/interfaces"
 export async function updateProfileImage(imageUrl: string) {
   const session = await auth()
   if (!session?.user?.id) {
-    return { success: false, error: "Not authenticated" }
+    return { success: false, error: "Niste prijavljeni" }
   }
 
   try {
@@ -32,7 +32,7 @@ export async function updateProfileImage(imageUrl: string) {
     return { success: true }
   } catch (error) {
     console.error("Update profile image error:", error)
-    return { success: false, error: "Failed to update profile image" }
+    return { success: false, error: "Posodabljanje profilne slike ni uspelo" }
   }
 }
 
@@ -175,7 +175,7 @@ export async function updateProfile(data: UpdateProfileInput) {
   const session = await auth()
 
   if (!session?.user?.id) {
-    return { success: false, errors: [{ message: "Unauthorized" }] }
+    return { success: false, errors: [{ message: "Nepooblaščen dostop" }] }
   }
 
   const validated = updateProfileSchema.safeParse(data)
@@ -211,7 +211,7 @@ export async function updateProfile(data: UpdateProfileInput) {
     return { success: true }
   } catch (error) {
     console.error("Update profile error:", error)
-    return { success: false, error: "Failed to update profile" }
+    return { success: false, error: "Posodabljanje profila ni uspelo" }
   }
 }
 
@@ -219,7 +219,7 @@ export async function updateProfile(data: UpdateProfileInput) {
 export async function changePassword(data: ChangePasswordInput) {
   const session = await auth()
   if (!session?.user?.id) {
-    return { success: false, error: "Not authenticated" }
+    return { success: false, error: "Niste prijavljeni" }
   }
 
   const validated = changePasswordSchema.safeParse(data)
@@ -239,7 +239,7 @@ export async function changePassword(data: ChangePasswordInput) {
     if (!user?.password) {
       return {
         success: false,
-        error: "Cannot change password for OAuth accounts",
+        error: "Za OAuth račune gesla ni mogoče spremeniti",
       }
     }
 
@@ -250,7 +250,7 @@ export async function changePassword(data: ChangePasswordInput) {
     )
 
     if (!isValid) {
-      return { success: false, error: "Current password is incorrect" }
+      return { success: false, error: "Trenutno geslo ni pravilno" }
     }
 
     // Hash and update new password
@@ -263,7 +263,7 @@ export async function changePassword(data: ChangePasswordInput) {
     return { success: true }
   } catch (error) {
     console.error("Change password error:", error)
-    return { success: false, error: "Failed to change password" }
+    return { success: false, error: "Sprememba gesla ni uspela" }
   }
 }
 
@@ -271,7 +271,7 @@ export async function changePassword(data: ChangePasswordInput) {
 export async function sendPasswordResetFromAccount() {
   const session = await auth()
   if (!session?.user?.id || !session?.user?.email) {
-    return { success: false, error: "Not authenticated" }
+    return { success: false, error: "Niste prijavljeni" }
   }
 
   try {
@@ -281,13 +281,13 @@ export async function sendPasswordResetFromAccount() {
     })
 
     if (!user) {
-      return { success: false, error: "User not found" }
+      return { success: false, error: "Uporabnika ni mogoče najti" }
     }
 
     if (!user.password) {
       return {
         success: false,
-        error: "Cannot reset password for OAuth accounts",
+        error: "Za OAuth račune gesla ni mogoče ponastaviti",
       }
     }
 
@@ -310,7 +310,7 @@ export async function sendPasswordResetFromAccount() {
     return { success: true }
   } catch (error) {
     console.error("Send password reset error:", error)
-    return { success: false, error: "Failed to send reset email" }
+    return { success: false, error: "Pošiljanje e-poštnega sporočila za ponastavitev ni uspelo" }
   }
 }
 
@@ -353,14 +353,14 @@ export async function updateNotificationPreferences(data: {
   const session = await auth()
 
   if (!session?.user?.id) {
-    return { success: false, error: "Not authenticated" }
+    return { success: false, error: "Niste prijavljeni" }
   }
 
   try {
     const validated = notificationPreferencesSchema.safeParse(data)
 
     if (!validated.success) {
-      return { success: false, error: "Invalid data" }
+      return { success: false, error: "Neveljavni podatki" }
     }
 
     const prefs = await prisma.notificationPreferences.upsert({
@@ -372,7 +372,7 @@ export async function updateNotificationPreferences(data: {
     return { success: true, preferences: prefs }
   } catch (error) {
     console.error("Update notification preferences error:", error)
-    return { success: false, error: "Failed to update preferences" }
+    return { success: false, error: "Shranjevanje nastavitev ni uspelo" }
   }
 }
 
@@ -422,7 +422,7 @@ export async function getPaymentHistory(): Promise<Payment[]> {
         amount: appt.depositAmount.toNumber(),
         status: "COMPLETED",
         createdAt: appt.createdAt,
-        description: serviceNames || "Appointment Deposit",
+        description: serviceNames || "Polog za termin",
         referenceId: appt.id,
       })
     }
@@ -435,7 +435,7 @@ export async function getPaymentHistory(): Promise<Payment[]> {
         amount: order.total.toNumber(),
         status: order.status === "COMPLETED" ? "COMPLETED" : "PENDING",
         createdAt: order.createdAt,
-        description: `Order #${order.id.slice(-6).toUpperCase()}`,
+        description: `Naročilo #${order.id.slice(-6).toUpperCase()}`,
         referenceId: order.id,
       })
     }

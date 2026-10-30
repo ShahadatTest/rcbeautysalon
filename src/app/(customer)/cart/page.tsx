@@ -5,8 +5,8 @@ import { ArrowLeftIcon } from "@/components/icons"
 import { CartContent } from "@/components/shop/cart-content"
 
 export const metadata: Metadata = {
-  title: "Shopping Cart | RC Beauty Salon",
-  description: "Review and manage your shopping cart items.",
+  title: "Nakupovalna košarica | RC Beauty Salon",
+  description: "Pregledajte in upravljajte izdelke v svoji košarici.",
 }
 
 export default function CartPage() {
@@ -21,7 +21,7 @@ export default function CartPage() {
         >
           <Link href="/shop">
             <ArrowLeftIcon size={16} className="mr-2" />
-            Back to Shop
+            Nazaj v trgovino
           </Link>
         </Button>
 

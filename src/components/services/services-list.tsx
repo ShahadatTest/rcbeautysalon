@@ -137,7 +137,7 @@ export function ServicesList({
                             {/* Hover Button */}
                             <div className="mt-3 translate-y-2 transform opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
                               <div className="text-accent border-accent/50 inline-flex items-center border-b pb-1 text-xs font-medium">
-                                View Details
+                                Podrobnosti
                                 <svg
                                   className="ml-1 h-3 w-3"
                                   fill="none"
@@ -168,7 +168,7 @@ export function ServicesList({
       ) : (
         <div className="py-12 text-center">
           <p className="text-muted-foreground text-lg">
-            No services found matching your filters.
+            Ni storitev, ki ustrezajo izbranim filtrom.
           </p>
         </div>
       )}

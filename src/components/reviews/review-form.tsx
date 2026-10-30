@@ -52,7 +52,7 @@ export function ReviewForm({ serviceId, serviceName }: ReviewFormProps) {
         router.refresh() // Refresh server data to show new review
         setTimeout(() => setSuccess(false), 5000)
       } else {
-        setError(result.error || "Failed to submit review")
+        setError(result.error || "Oddaja ocene ni uspela")
       }
     })
   }
@@ -61,7 +61,7 @@ export function ReviewForm({ serviceId, serviceName }: ReviewFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div>
         <Label className="text-base font-semibold">
-          Rate your experience with {serviceName}
+          Ocenite svojo izkušnjo pri {serviceName}
         </Label>
         <div className="mt-2 flex gap-1">
           {[1, 2, 3, 4, 5].map((star) => (
@@ -88,7 +88,7 @@ export function ReviewForm({ serviceId, serviceName }: ReviewFormProps) {
         </div>
         {rating > 0 && (
           <p className="mt-1 text-sm text-muted-foreground">
-            You rated {rating} out of 5 stars
+            Ocena: {rating} od 5 zvezdic
           </p>
         )}
         {errors.rating && (
@@ -98,18 +98,18 @@ export function ReviewForm({ serviceId, serviceName }: ReviewFormProps) {
 
       <div>
         <Label htmlFor="comment" className="text-base font-semibold">
-          Share your thoughts
+          Delite svoje mnenje
         </Label>
         <Textarea
           id="comment"
           {...register("comment")}
-          placeholder="Tell us about your experience with this service..."
+          placeholder="Povejte nam svojo izkušnjo s to storitvijo..."
           className="mt-2 min-h-[120px] resize-none"
           disabled={isPending}
           maxLength={1000}
         />
         <p className="mt-1 text-sm text-muted-foreground">
-          {comment?.length || 0}/1000 characters (minimum 10)
+          {comment?.length || 0}/1000 znakov (najmanj 10)
         </p>
         {errors.comment && (
           <p className="mt-1 text-sm text-destructive">{errors.comment.message}</p>
@@ -124,7 +124,7 @@ export function ReviewForm({ serviceId, serviceName }: ReviewFormProps) {
 
       {success && (
         <div className="rounded-md bg-success/10 p-3 text-sm text-success">
-          Thank you for your review! It has been submitted successfully.
+          Hvala za vašo oceno! Uspešno je bila oddana.
         </div>
       )}
 
@@ -132,7 +132,7 @@ export function ReviewForm({ serviceId, serviceName }: ReviewFormProps) {
         {isPending && (
           <SpinnerGapIcon size={18} className="mr-2 animate-spin" />
         )}
-        Submit Review
+        Oddaj oceno
       </Button>
     </form>
   )

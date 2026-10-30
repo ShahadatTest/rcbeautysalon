@@ -24,13 +24,13 @@ export function StaffStatsCards({ stats }: StaffStatsCardsProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-muted-foreground text-sm font-medium">
-            Today&apos;s Appointments
+            Današnji termini
           </CardTitle>
           <CalendarCheckIcon size={20} className="text-primary" />
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold">{stats.todaysAppointments}</div>
-          <p className="text-muted-foreground text-xs">Scheduled for today</p>
+          <p className="text-muted-foreground text-xs">Razporejeno za danes</p>
         </CardContent>
       </Card>
 
@@ -38,13 +38,13 @@ export function StaffStatsCards({ stats }: StaffStatsCardsProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-muted-foreground text-sm font-medium">
-            This Month
+            Ta mesec
           </CardTitle>
           <ClockIcon size={20} className="text-blue-500" />
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold">{stats.monthlyAppointments}</div>
-          <p className="text-muted-foreground text-xs">Total appointments</p>
+          <p className="text-muted-foreground text-xs">Skupno število terminov</p>
         </CardContent>
       </Card>
 
@@ -52,7 +52,7 @@ export function StaffStatsCards({ stats }: StaffStatsCardsProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-muted-foreground text-sm font-medium">
-            Monthly Earnings
+            Mesečni zaslužek
           </CardTitle>
           <CurrencyDollarIcon size={20} className="text-green-500" />
         </CardHeader>
@@ -61,7 +61,7 @@ export function StaffStatsCards({ stats }: StaffStatsCardsProps) {
             {fmt(stats.monthlyEarnings)}
           </div>
           <p className="text-muted-foreground text-xs">
-            Based on completed services
+            Na podlagi zaključenih storitev
           </p>
         </CardContent>
       </Card>
@@ -70,7 +70,7 @@ export function StaffStatsCards({ stats }: StaffStatsCardsProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-muted-foreground text-sm font-medium">
-            Completed
+            Zaključeni
           </CardTitle>
           <CheckCircleIcon size={20} className="text-green-500" />
         </CardHeader>
@@ -78,7 +78,7 @@ export function StaffStatsCards({ stats }: StaffStatsCardsProps) {
           <div className="text-3xl font-bold">
             {stats.completedThisMonthAppointments}
           </div>
-          <p className="text-muted-foreground text-xs">This month</p>
+          <p className="text-muted-foreground text-xs">Ta mesec</p>
         </CardContent>
       </Card>
     </div>

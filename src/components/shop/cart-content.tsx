@@ -43,7 +43,7 @@ export function CartContent() {
 
   const handleClearCart = () => {
     clearCart()
-    toast.success("Your cart has been cleared!")
+    toast.success("Košarica je bila izpraznjena!")
     setShowClearDialog(false)
   }
 
@@ -51,7 +51,7 @@ export function CartContent() {
     if (status === "loading") return
 
     if (!session) {
-      toast.error("Please log in to checkout")
+      toast.error("Za zaključek nakupa se prijavite")
       router.push("/login?callbackUrl=/cart")
       return
     }
@@ -64,10 +64,10 @@ export function CartContent() {
       if (!result.success) {
         if (result.stockErrors && result.stockErrors.length > 0) {
           result.stockErrors.forEach((error) => {
-            toast.error(`${error.name}: Only ${error.available} available`)
+            toast.error(`${error.name}: Na voljo le še ${error.available} kos`)
           })
         } else {
-          toast.error(result.error || "Failed to create checkout session")
+          toast.error(result.error || "Ustvarjanje plačilne seje ni uspelo")
         }
         return
       }
@@ -77,7 +77,7 @@ export function CartContent() {
       }
     } catch (error) {
       console.error("Checkout error:", error)
-      toast.error("Something went wrong. Please try again.")
+      toast.error("Prišlo je do napake. Poskusite znova.")
     } finally {
       setIsCheckingOut(false)
     }
@@ -88,15 +88,22 @@ export function CartContent() {
       {/* Header Badge */}
       <div className="mb-8">
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold">Shopping Cart</h1>
+          <h1 className="text-3xl font-bold">Nakupovalna košarica</h1>
           {totalItems > 0 && (
             <Badge variant="secondary" className="text-sm">
-              {totalItems} {totalItems === 1 ? "item" : "items"}
+              {totalItems} {" "}
+              {totalItems === 1
+                ? "izdelek"
+                : totalItems === 2
+                  ? "izdelka"
+                  : totalItems < 5
+                    ? "izdelki"
+                    : "izdelkov"}
             </Badge>
           )}
         </div>
         <p className="text-muted-foreground mt-1">
-          Review and manage your items
+          Pregledajte in upravljajte svoje izdelke
         </p>
       </div>
 
@@ -107,7 +114,7 @@ export function CartContent() {
             <CardHeader className="border-border/50 bg-muted/30 flex flex-row items-center justify-between border-b">
               <CardTitle className="flex items-center gap-2">
                 <ShoppingBag size={20} />
-                Cart Items
+                Izdelki v košarici
               </CardTitle>
               {items.length > 0 && (
                 <Button
@@ -117,7 +124,7 @@ export function CartContent() {
                   className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                 >
                   <Trash size={16} className="mr-2" />
-                  Clear Cart
+                  Izprazni košarico
                 </Button>
               )}
             </CardHeader>
@@ -132,16 +139,16 @@ export function CartContent() {
                     />
                   </div>
                   <h3 className="mb-2 text-xl font-semibold">
-                    Your cart is empty
+                    Vaša košarica je prazna
                   </h3>
                   <p className="text-muted-foreground mx-auto mb-6 max-w-sm">
-                    Looks like you haven&apos;t added any products yet. Start
-                    shopping to fill your cart!
+                    Videti je, da še niste dodali nobenih izdelkov. Začnite z
+                    nakupovanjem in napolnite košarico!
                   </p>
                   <Button asChild size="lg" className="shadow-md">
                     <Link href="/shop">
                       <ShoppingBag className="mr-2 h-5 w-5" />
-                      Browse Products
+                      Raziščite izdelke
                     </Link>
                   </Button>
                 </div>
@@ -160,33 +167,33 @@ export function CartContent() {
         <div className="lg:col-span-1">
           <Card className="border-border/50 sticky top-24 shadow-sm">
             <CardHeader className="border-border/50 bg-muted/30 border-b">
-              <CardTitle>Order Summary</CardTitle>
+              <CardTitle>Povzetek naročila</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 p-6">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal</span>
+                <span className="text-muted-foreground">Vmesna vsota</span>
                 <span className="font-medium">{fmt(totalPrice)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Shipping</span>
+                <span className="text-muted-foreground">Dostava</span>
                 {shipping === 0 ? (
-                  <span className="font-medium text-green-600">Free</span>
+                  <span className="font-medium text-green-600">Brezplačno</span>
                 ) : (
                   <span className="font-medium">{fmt(shipping)}</span>
                 )}
               </div>
               {shipping > 0 && totalPrice > 0 && (
                 <p className="text-muted-foreground bg-accent/10 rounded-lg p-2 text-center text-xs">
-                  Add {fmt((50 - totalPrice))} more for free shipping!
+                  Dodajte še {fmt((50 - totalPrice))} za brezplačno dostavo!
                 </p>
               )}
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Estimated Tax</span>
+                <span className="text-muted-foreground">Predvideni davek</span>
                 <span className="font-medium">{fmt(tax)}</span>
               </div>
               <Separator />
               <div className="flex justify-between text-lg font-bold">
-                <span>Total</span>
+                <span>Skupaj</span>
                 <span className="text-primary">{fmt(grandTotal)}</span>
               </div>
             </CardContent>
@@ -200,22 +207,22 @@ export function CartContent() {
                 {isCheckingOut ? (
                   <CircleNotch size={20} className="animate-spin" />
                 ) : (
-                  "Proceed to Checkout"
+                  "Zaključi nakup"
                 )}
               </Button>
               <Button variant="outline" className="w-full" asChild>
-                <Link href="/shop">Continue Shopping</Link>
+                <Link href="/shop">Nadaljuj z nakupovanjem</Link>
               </Button>
 
               {/* Trust Badges */}
               <div className="text-muted-foreground mt-4 flex items-center justify-center gap-4 text-xs">
                 <div className="flex items-center gap-1">
                   <Truck size={16} />
-                  <span>Fast Shipping</span>
+                  <span>Hitra dostava</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <ShieldCheck size={16} />
-                  <span>Secure Checkout</span>
+                  <span>Varen nakup</span>
                 </div>
               </div>
             </CardFooter>
@@ -227,9 +234,9 @@ export function CartContent() {
       <ConfirmDialog
         open={showClearDialog}
         onOpenChange={setShowClearDialog}
-        title="Clear Cart"
-        description="Are you sure you want to remove all items from your cart? This action cannot be undone."
-        confirmLabel="Clear Cart"
+        title="Izprazni košarico"
+        description="Ste prepričani, da želite odstraniti vse izdelke iz košarice? Tega dejanja ni mogoče razveljaviti."
+        confirmLabel="Izprazni košarico"
         onConfirm={handleClearCart}
         variant="destructive"
       />

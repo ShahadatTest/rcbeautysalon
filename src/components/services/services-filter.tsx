@@ -58,7 +58,7 @@ export function ServicesFilter({
           />
           <Input
             type="text"
-            placeholder="Search services..."
+            placeholder="Išči storitve..."
             value={filters.search || ""}
             onChange={(e) => handleFilterChange({ search: e.target.value })}
             className="pl-10"
@@ -75,16 +75,16 @@ export function ServicesFilter({
           disabled={isPending}
         >
           <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Sort by" />
+            <SelectValue placeholder="Razvrsti po" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="name_asc">Name (A-Z)</SelectItem>
-            <SelectItem value="price_asc">Price (Low-High)</SelectItem>
-            <SelectItem value="price_desc">Price (High-Low)</SelectItem>
-            <SelectItem value="duration_asc">Duration (Short-Long)</SelectItem>
-            <SelectItem value="duration_desc">Duration (Long-Short)</SelectItem>
-            <SelectItem value="rating_desc">Highest Rated</SelectItem>
-            <SelectItem value="popularity_desc">Most Popular</SelectItem>
+            <SelectItem value="name_asc">Ime (A–Ž)</SelectItem>
+            <SelectItem value="price_asc">Cena (naraščajoče)</SelectItem>
+            <SelectItem value="price_desc">Cena (padajoče)</SelectItem>
+            <SelectItem value="duration_asc">Trajanje (naraščajoče)</SelectItem>
+            <SelectItem value="duration_desc">Trajanje (padajoče)</SelectItem>
+            <SelectItem value="rating_desc">Najbolje ocenjeno</SelectItem>
+            <SelectItem value="popularity_desc">Najbolj priljubljeno</SelectItem>
           </SelectContent>
         </Select>
 
@@ -105,7 +105,7 @@ export function ServicesFilter({
         <div className="grid gap-4 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-4">
           {/* Category Filter */}
           <div className="space-y-2">
-            <Label>Category</Label>
+            <Label>Kategorija</Label>
             <Select
               value={filters.categoryId || "all"}
               onValueChange={(value) =>
@@ -116,10 +116,10 @@ export function ServicesFilter({
               disabled={isPending}
             >
               <SelectTrigger>
-                <SelectValue placeholder="All Categories" />
+                <SelectValue placeholder="Vse kategorije" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="all">Vse kategorije</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
@@ -131,7 +131,7 @@ export function ServicesFilter({
 
           {/* Staff Filter */}
           <div className="space-y-2">
-            <Label>Staff Member</Label>
+            <Label>Osebje</Label>
             <Select
               value={filters.staffId || "all"}
               onValueChange={(value) =>
@@ -142,10 +142,10 @@ export function ServicesFilter({
               disabled={isPending}
             >
               <SelectTrigger>
-                <SelectValue placeholder="All Staff" />
+                <SelectValue placeholder="Vse osebje" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Staff</SelectItem>
+                <SelectItem value="all">Vse osebje</SelectItem>
                 {staff.map((member) => (
                   <SelectItem key={member.id} value={member.id}>
                     {member.name}
@@ -157,11 +157,11 @@ export function ServicesFilter({
 
           {/* Price Range */}
           <div className="space-y-2">
-            <Label>Price Range</Label>
+            <Label>Cenovni razpon</Label>
             <div className="flex gap-2">
               <Input
                 type="number"
-                placeholder="Min"
+                placeholder="Od"
                 value={filters.minPrice || ""}
                 onChange={(e) =>
                   handleFilterChange({
@@ -175,7 +175,7 @@ export function ServicesFilter({
               />
               <Input
                 type="number"
-                placeholder="Max"
+                placeholder="Do"
                 value={filters.maxPrice || ""}
                 onChange={(e) =>
                   handleFilterChange({
@@ -192,11 +192,11 @@ export function ServicesFilter({
 
           {/* Duration Range */}
           <div className="space-y-2">
-            <Label>Duration (minutes)</Label>
+            <Label>Trajanje (minute)</Label>
             <div className="flex gap-2">
               <Input
                 type="number"
-                placeholder="Min"
+                placeholder="Od"
                 value={filters.minDuration || ""}
                 onChange={(e) =>
                   handleFilterChange({
@@ -210,7 +210,7 @@ export function ServicesFilter({
               />
               <Input
                 type="number"
-                placeholder="Max"
+                placeholder="Do"
                 value={filters.maxDuration || ""}
                 onChange={(e) =>
                   handleFilterChange({
@@ -238,7 +238,7 @@ export function ServicesFilter({
             disabled={isPending}
           >
             <CloseIcon size={16} weight="regular" className="mr-2" />
-            Clear Filters
+            Počisti filtre
           </Button>
         </div>
       )}
@@ -246,7 +246,7 @@ export function ServicesFilter({
       {/* Loading Indicator */}
       {isPending && (
         <div className="text-muted-foreground text-center text-sm">
-          Filtering services...
+          Filtriranje storitev...
         </div>
       )}
     </div>

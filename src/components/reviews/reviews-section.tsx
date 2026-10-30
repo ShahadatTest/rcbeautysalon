@@ -90,7 +90,7 @@ export function ReviewsSection({ reviews }: ReviewsSectionProps) {
                         {review.user.image && (
                           <AvatarImage
                             src={cloudinaryPresets.userAvatar(review.user.image)}
-                            alt={review.user.name || "User"}
+                            alt={review.user.name || "Uporabnik"}
                           />
                         )}
                         <AvatarFallback className="bg-primary/10 text-primary">
@@ -98,9 +98,9 @@ export function ReviewsSection({ reviews }: ReviewsSectionProps) {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-semibold">{review.user.name || "Anonymous"}</p>
+                        <p className="font-semibold">{review.user.name || "Anonimno"}</p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(review.createdAt).toLocaleDateString("en-US", {
+                          {new Date(review.createdAt).toLocaleDateString("sl-SI", {
                             year: "numeric",
                             month: "long",
                             day: "numeric",

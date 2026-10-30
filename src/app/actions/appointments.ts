@@ -31,7 +31,7 @@ import { sendAppointmentCompletedEmail } from "@/lib/email/appointment-completed
 import { sendAppointmentCancelledEmail } from "@/lib/email/appointment-cancelled"
 import { sendAppointmentRescheduledEmail } from "@/lib/email/appointment-rescheduled"
 import { sendAppointmentExpiredEmail } from "@/lib/email/appointment-expired"
-import { getPublicOrg, getSessionOrg, requireAdminOrg, getResolvedOrg } from "@/lib/tenant"
+import { getSessionOrg, requireAdminOrg, getResolvedOrg } from "@/lib/tenant"
 
 /**
  * Resolve the organization for the current request: admins/staff act within
@@ -359,7 +359,7 @@ export async function createAppointment(
     // Resolve the tenant organization for this booking
     const org = await resolveRequestOrg()
     if (!org) {
-      return { success: false, error: "Booking is currently unavailable" }
+      return { success: false, error: "Rezervacija trenutno ni na voljo" }
     }
 
     // Validate required fields (date+time strings or a prebuilt startTime)
@@ -368,12 +368,12 @@ export async function createAppointment(
       !data.serviceIds.length ||
       (!data.startTime && !(data.bookingDate && data.bookingTime))
     ) {
-      return { success: false, error: "Missing required fields" }
+      return { success: false, error: "Manjkajo obvezni podatki" }
     }
 
     // Validate customer information (either authenticated user OR guest info)
     if (!session?.user && (!data.guestName || !data.guestEmail)) {
-      return { success: false, error: "Customer information is required" }
+      return { success: false, error: "Potrebni so kontakt podatki" }
     }
 
     // Prevent employees from booking appointments with themselves
@@ -383,7 +383,7 @@ export async function createAppointment(
         select: { id: true },
       })
       if (currentUserStaff && currentUserStaff.id === data.staffId) {
-        return { success: false, error: "You cannot book an appointment with yourself" }
+        return { success: false, error: "Pri sebi ne morete rezervirati termina" }
       }
     }
 
@@ -393,7 +393,7 @@ export async function createAppointment(
       services.length === 0 ||
       services.length !== new Set(data.serviceIds).size
     ) {
-      return { success: false, error: "Invalid service selection" }
+      return { success: false, error: "Neveljavna izbira storitev" }
     }
 
     const baseTotalPrice = services.reduce((sum, s) => sum + s.price, 0)
@@ -523,7 +523,7 @@ export async function createAppointment(
     })
 
     if (!staff) {
-      return { success: false, error: "Invalid staff selection" }
+      return { success: false, error: "Neveljavna izbira specialista" }
     }
 
     // Create the appointment with associated services
@@ -599,7 +599,7 @@ export async function createAppointment(
     console.error("Error creating appointment:", error)
     return {
       success: false,
-      error: "Failed to create appointment. Please try again.",
+      error: "Ustvarjanje termina ni uspelo. Poskusite znova.",
     }
   }
 }
@@ -656,7 +656,7 @@ export async function cancelAppointment(appointmentId: string) {
     if (!session?.user) {
       return {
         success: false,
-        error: "You must be logged in to cancel appointments",
+        error: "Za odpoved termina morate biti prijavljeni",
       }
     }
 
@@ -672,14 +672,14 @@ export async function cancelAppointment(appointmentId: string) {
 
     // Validate appointment exists
     if (!appointment) {
-      return { success: false, error: "Appointment not found" }
+      return { success: false, error: "Termina ni mogoče najti" }
     }
 
     // Validate user owns this appointment
     if (appointment.customer?.userId !== session.user.id) {
       return {
         success: false,
-        error: "You don't have permission to cancel this appointment",
+        error: "Nimate dovoljenja za odpoved tega termina",
       }
     }
 
@@ -698,7 +698,7 @@ export async function cancelAppointment(appointmentId: string) {
     console.error("Error cancelling appointment:", error)
     return {
       success: false,
-      error: "Failed to cancel appointment. Please try again.",
+      error: "Odpoved termina ni uspela. Poskusite znova.",
     }
   }
 }
@@ -1079,7 +1079,7 @@ export async function rescheduleAppointment(
   if (!session?.user) {
     return {
       success: false,
-      error: "You must be logged in to reschedule appointments",
+      error: "Za prestavitev termina morate biti prijavljeni",
     }
   }
 
@@ -1087,7 +1087,7 @@ export async function rescheduleAppointment(
   if (!org) {
     return {
       success: false,
-      error: "Appointment not found",
+      error: "Termina ni mogoče najti",
     }
   }
 
@@ -1114,7 +1114,7 @@ export async function rescheduleAppointment(
   if (!appointment) {
     return {
       success: false,
-      error: "Appointment not found",
+      error: "Termina ni mogoče najti",
     }
   }
 
@@ -1125,7 +1125,7 @@ export async function rescheduleAppointment(
   if (!isAdmin && !isOwner) {
     return {
       success: false,
-      error: "You don't have permission to reschedule this appointment",
+      error: "Nimate dovoljenja za prestavitev tega termina",
     }
   }
 
@@ -1133,7 +1133,7 @@ export async function rescheduleAppointment(
   if (appointment.status === "CANCELLED" || appointment.status === "NO_SHOW") {
     return {
       success: false,
-      error: "You cannot reschedule a cancelled or no-show appointment",
+      error: "Odpovedanega termina ali termina, ko se stranka ni pojavila, ni mogoče prestaviti",
     }
   }
 
@@ -1141,7 +1141,7 @@ export async function rescheduleAppointment(
   if (new Date(appointment.startTime) < new Date()) {
     return {
       success: false,
-      error: "Cannot reschedule past appointments",
+      error: "Terminov v preteklosti ni mogoče prestavljati",
     }
   }
 

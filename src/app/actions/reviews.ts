@@ -14,7 +14,7 @@ export async function createReview(data: ReviewFormData) {
   if (!session?.user) {
     return {
       success: false,
-      error: "You must be logged in to submit a review.",
+      error: "Za oddajo ocene morate biti prijavljeni.",
     }
   }
 
@@ -22,7 +22,7 @@ export async function createReview(data: ReviewFormData) {
   if (data.rating < 1 || data.rating > 5) {
     return {
       success: false,
-      error: "Rating must be between 1 and 5.",
+      error: "Ocena mora biti med 1 in 5.",
     }
   }
 
@@ -31,7 +31,7 @@ export async function createReview(data: ReviewFormData) {
   if (comment.length < 10 || comment.length > 1000) {
     return {
       success: false,
-      error: "Comment must be between 10 and 1000 characters.",
+      error: "Komentar mora imeti med 10 in 1000 znakov.",
     }
   }
 
@@ -50,7 +50,7 @@ export async function createReview(data: ReviewFormData) {
   if (!service || !service.isActive) {
     return {
       success: false,
-      error: "Service not found or not available.",
+      error: "Storitev ni bila najdena ali ni na voljo.",
     }
   }
 
@@ -78,7 +78,7 @@ export async function createReview(data: ReviewFormData) {
     console.error("Error creating review:", error)
     return {
       success: false,
-      error: "Failed to create review. Please try again.",
+      error: "Ustvarjanje ocene ni uspelo. Poskusite znova.",
     }
   }
 }
@@ -90,7 +90,7 @@ export async function getUserReviews() {
   if (!session?.user) {
     return {
       success: false,
-      error: "You must be logged in to view your reviews.",
+      error: "Za ogled svojih ocen morate biti prijavljeni.",
       reviews: [],
     }
   }
@@ -116,7 +116,7 @@ export async function getUserReviews() {
     console.error("Error fetching user reviews:", error)
     return {
       success: false,
-      error: "Failed to fetch reviews.",
+      error: "Pridobivanje ocen ni uspelo.",
       reviews: [],
     }
   }
@@ -129,7 +129,7 @@ export async function deleteReview(reviewId: string) {
   if (!session?.user) {
     return {
       success: false,
-      error: "You must be logged in to delete a review.",
+      error: "Za izbris ocene morate biti prijavljeni.",
     }
   }
 
@@ -142,11 +142,11 @@ export async function deleteReview(reviewId: string) {
     })
 
     if (!review) {
-      return { success: false, error: "Review not found." }
+      return { success: false, error: "Ocena ni bila najdena." }
     }
 
     if (review.userId !== session.user.id) {
-      return { success: false, error: "You can only delete your own reviews." }
+      return { success: false, error: "Izbrisati lahko samo svoje ocene." }
     }
 
     await prisma.review.delete({
@@ -161,7 +161,7 @@ export async function deleteReview(reviewId: string) {
     return { success: true }
   } catch (error) {
     console.error("Error deleting review:", error)
-    return { success: false, error: "Failed to delete review." }
+    return { success: false, error: "Brisanje ocene ni uspelo." }
   }
 }
 
@@ -175,7 +175,7 @@ export async function updateReview(
   if (!session?.user) {
     return {
       success: false,
-      error: "You must be logged in to update a review.",
+      error: "Za posodobitev ocene morate biti prijavljeni.",
     }
   }
   try {
@@ -187,18 +187,18 @@ export async function updateReview(
     })
 
     if (!review) {
-      return { success: false, error: "Review not found." }
+      return { success: false, error: "Ocena ni bila najdena." }
     }
 
     if (review.userId !== session.user.id) {
-      return { success: false, error: "You can only update your own reviews." }
+      return { success: false, error: "Posodobiti lahko samo svoje ocene." }
     }
 
     // Validate comment length
     if (data.comment.length < 10 || data.comment.length > 1000) {
       return {
         success: false,
-        error: "Comment must be between 10 and 1000 characters.",
+        error: "Komentar mora imeti med 10 in 1000 znakov.",
       }
     }
 
@@ -219,7 +219,7 @@ export async function updateReview(
     return { success: true, review: updatedReview }
   } catch (error) {
     console.error("Error updating review:", error)
-    return { success: false, error: "Failed to update review." }
+    return { success: false, error: "Posodabljanje ocene ni uspelo." }
   }
 }
 
@@ -254,7 +254,7 @@ export async function getServiceReviews(serviceId: string) {
     console.error("Error fetching service reviews:", error)
     return {
       success: false,
-      error: "Failed to fetch reviews.",
+      error: "Pridobivanje ocen ni uspelo.",
       reviews: [],
     }
   }

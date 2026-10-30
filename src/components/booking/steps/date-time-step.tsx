@@ -61,7 +61,6 @@ export function DateTimeStep({
     }
 
     loadTimeSlots()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStaffId, selectedDate, serviceDuration])
 
   return (

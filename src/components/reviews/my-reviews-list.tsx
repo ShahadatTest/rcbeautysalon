@@ -32,15 +32,15 @@ export function MyReviewsList({ reviews }: MyReviewsListProps) {
           <div className="bg-muted mb-4 flex h-16 w-16 items-center justify-center rounded-full">
             <StarIcon size={32} className="text-muted-foreground" />
           </div>
-          <h3 className="mb-2 text-lg font-semibold">No reviews yet</h3>
+          <h3 className="mb-2 text-lg font-semibold">Še ni ocen</h3>
           <p className="text-muted-foreground mb-6 text-center max-w-sm">
-            After completing a service, you can leave a review to help others
-            and share your experience.
+            Po zaključeni storitvi lahko pustite oceno, s katero pomagate
+            drugim in delite svojo izkušnjo.
           </p>
           <Button asChild>
             <Link href="/services">
               <ScissorsIcon size={16} className="mr-2" />
-              Browse Services
+              Raziščite storitve
             </Link>
           </Button>
         </CardContent>

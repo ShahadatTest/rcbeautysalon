@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useSyncExternalStore } from "react"
 import { MoonIcon, SunIcon, DesktopIcon } from "@/components/icons"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
@@ -9,30 +9,24 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-
 export function ThemeToggle() {
-  const [mounted, setMounted] = useState(false)
-  const [open, setOpen] = useState(false)
+  // useSyncExternalStore avoids a setState-in-effect hydration flag:
+  // false on the server/first client render, true afterwards.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
   const { setTheme, theme, resolvedTheme } = useTheme()
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
   const items = [
-    { key: "light", label: "Light", icon: SunIcon },
-    { key: "dark", label: "Dark", icon: MoonIcon },
-    { key: "system", label: "System", icon: DesktopIcon },
+    { key: "light", label: "Svetlo", icon: SunIcon },
+    { key: "dark", label: "Temno", icon: MoonIcon },
+    { key: "system", label: "Sistemsko", icon: DesktopIcon },
   ]
 
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme)
-    setOpen(false)
   }
 
   // Render placeholder button during SSR to avoid hydration mismatch
@@ -40,7 +34,7 @@ export function ThemeToggle() {
     return (
       <Button variant="ghost" size="icon" className="group hover:bg-primary/10">
         <MoonIcon size={20} weight="fill" className="text-primary" />
-        <span className="sr-only">Toggle theme</span>
+        <span className="sr-only">Preklopi temo</span>
       </Button>
     )
   }
@@ -48,36 +42,32 @@ export function ThemeToggle() {
   const isDark = resolvedTheme === "dark"
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <Tooltip open={open ? false : undefined}>
-        <TooltipTrigger asChild>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="group hover:bg-primary/10"
-            >
-              {isDark ? (
-                <SunIcon
-                  size={20}
-                  weight="fill"
-                  className="text-accent transition-transform group-hover:scale-110"
-                />
-              ) : (
-                <MoonIcon
-                  size={20}
-                  weight="fill"
-                  className="text-primary transition-transform group-hover:scale-110"
-                />
-              )}
-              <span className="sr-only">Toggle theme</span>
-            </Button>
-          </DropdownMenuTrigger>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Theme</p>
-        </TooltipContent>
-      </Tooltip>
+    <DropdownMenu>
+      {/* NOTE: no Tooltip wrapper here — composing TooltipTrigger asChild
+          around DropdownMenuTrigger asChild swallows the click and the
+          dropdown never opens. */}
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="group hover:bg-primary/10"
+        >
+          {isDark ? (
+            <SunIcon
+              size={20}
+              weight="fill"
+              className="text-accent transition-transform group-hover:scale-110"
+            />
+          ) : (
+            <MoonIcon
+              size={20}
+              weight="fill"
+              className="text-primary transition-transform group-hover:scale-110"
+            />
+          )}
+          <span className="sr-only">Preklopi temo</span>
+        </Button>
+      </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="mt-2 min-w-[140px] space-y-1 bg-card border-border">
         {items.map(({ key, label, icon: Icon }) => {
           const isActive = theme === key

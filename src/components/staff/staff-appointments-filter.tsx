@@ -88,7 +88,7 @@ export function StaffAppointmentsFilter({
             <Input
               onChange={handlerSearchInput}
               value={filters.search || ""}
-              placeholder="Search by customer name..."
+              placeholder="Išči po imenu stranke …"
               className="pl-10"
             />
           </div>
@@ -99,7 +99,7 @@ export function StaffAppointmentsFilter({
               variant="outline"
               size="icon"
               onClick={() => handlerSearchDate("today")}
-              title="Reset to today"
+              title="Ponastavi na danes"
             >
               <CalendarIcon size={18} />
             </Button>
@@ -108,13 +108,13 @@ export function StaffAppointmentsFilter({
               onValueChange={handlerSearchDate}
             >
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Select date" />
+                <SelectValue placeholder="Izberite datum" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="week">This Week</SelectItem>
-                <SelectItem value="month">This Month</SelectItem>
-                <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="today">Danes</SelectItem>
+                <SelectItem value="week">Ta teden</SelectItem>
+                <SelectItem value="month">Ta mesec</SelectItem>
+                <SelectItem value="all">Vse obdobje</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -128,12 +128,12 @@ export function StaffAppointmentsFilter({
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="confirmed">Confirmed</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-              <SelectItem value="no_show">No Show</SelectItem>
+              <SelectItem value="all">Vsi statusi</SelectItem>
+              <SelectItem value="pending">V čakanju</SelectItem>
+              <SelectItem value="confirmed">Potrjeno</SelectItem>
+              <SelectItem value="completed">Zaključeno</SelectItem>
+              <SelectItem value="cancelled">Odpovedano</SelectItem>
+              <SelectItem value="no_show">Ni se pojavil</SelectItem>
             </SelectContent>
           </Select>
         </div>

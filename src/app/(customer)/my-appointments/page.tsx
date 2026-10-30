@@ -47,10 +47,10 @@ export default async function MyAppointmentsPage(
         {/* Header */}
         <div className="mb-8">
           <h1 className="from-primary to-accent mb-2 bg-linear-to-r bg-clip-text text-4xl font-bold text-transparent">
-            My Appointments
+            Moji termini
           </h1>
           <p className="text-muted-foreground text-lg">
-            View and manage your beauty appointments
+            Pregledajte in upravljajte svoje termine
           </p>
         </div>
 
@@ -58,11 +58,11 @@ export default async function MyAppointmentsPage(
         {newAppointmentId && (
           <div className="mb-6 rounded-lg border-2 border-green-200 bg-green-50 p-4 dark:border-green-900/50 dark:bg-green-950/20">
             <p className="font-semibold text-green-900 dark:text-green-100">
-              ✓ Appointment Booked Successfully!
+              ✓ Termin uspešno rezerviran!
             </p>
             <p className="mt-1 text-sm text-green-800 dark:text-green-200">
-              Your appointment has been created. Complete payment to confirm
-              your booking.
+              Vaš termin je bil ustvarjen. Dokončajte plačilo za potrditev
+              rezervacije.
             </p>
           </div>
         )}
@@ -82,7 +82,7 @@ export default async function MyAppointmentsPage(
               className="w-full shadow-lg transition-all hover:scale-105 sm:w-auto"
             >
               <CalendarIcon size={20} className="mr-2" weight="regular" />
-              Book New Appointment
+              Rezerviraj nov termin
             </Button>
           </Link>
         </div>

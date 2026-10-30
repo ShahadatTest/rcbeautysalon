@@ -23,6 +23,7 @@ import {
   ScissorsIcon,
 } from "@/components/icons"
 import { format } from "date-fns"
+import { sl } from "date-fns/locale"
 
 interface AppointmentService {
   service: {
@@ -71,11 +72,19 @@ const statusVariants: Record<
 }
 
 const statusLabels: Record<string, string> = {
-  PENDING: "Pending",
-  CONFIRMED: "Confirmed",
-  COMPLETED: "Completed",
-  CANCELLED: "Cancelled",
-  NO_SHOW: "No Show",
+  PENDING: "V čakanju",
+  CONFIRMED: "Potrjeno",
+  COMPLETED: "Zaključeno",
+  CANCELLED: "Odpovedano",
+  NO_SHOW: "Ni se pojavil",
+}
+
+/** Slovenska množina: 1 storitev, 2 storitvi, 3–4 storitve, 5+ storitev. */
+function storitveCount(n: number): string {
+  if (n === 1) return "1 storitev"
+  if (n === 2) return `${n} storitvi`
+  if (n === 3 || n === 4) return `${n} storitve`
+  return `${n} storitev`
 }
 
 export function AppointmentDetailsDialog({
@@ -90,9 +99,9 @@ export function AppointmentDetailsDialog({
   if (!appointment) return null
 
   const customerEmail =
-    appointment.customer?.email || appointment.guestEmail || "N/A"
+    appointment.customer?.email || appointment.guestEmail || "Ni podatka"
   const customerPhone =
-    appointment.customer?.phone || appointment.guestPhone || "N/A"
+    appointment.customer?.phone || appointment.guestPhone || "Ni podatka"
 
   const totalDuration = appointment.services.reduce(
     (acc, s) => acc + s.service.duration,
@@ -110,7 +119,7 @@ export function AppointmentDetailsDialog({
           <DialogHeader className="space-y-2">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <DialogTitle className="text-lg font-bold sm:text-xl">
-                Appointment Details
+                Podrobnosti termina
               </DialogTitle>
               <Badge
                 variant={statusVariants[appointment.status]}
@@ -134,7 +143,7 @@ export function AppointmentDetailsDialog({
                 <span className="bg-primary/10 rounded-full p-1">
                   <ScissorsIcon size={12} className="text-primary" />
                 </span>
-                Customer
+                Stranka
               </h4>
               <div className="bg-card border-border/50 flex items-start gap-3 rounded-xl border p-3 shadow-sm transition-shadow hover:shadow-md sm:gap-4 sm:p-4">
                 <Avatar className="ring-primary/20 h-12 w-12 ring-2 sm:h-14 sm:w-14">
@@ -169,7 +178,7 @@ export function AppointmentDetailsDialog({
                 <span className="bg-primary/10 rounded-full p-1">
                   <CalendarIcon size={12} className="text-primary" />
                 </span>
-                Schedule
+                Datum in ura
               </h4>
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 <div className="bg-muted/30 border-border/30 rounded-xl border p-3 text-center transition-colors hover:bg-muted/50 sm:p-4">
@@ -178,16 +187,18 @@ export function AppointmentDetailsDialog({
                     className="text-primary mx-auto mb-2"
                   />
                   <p className="text-muted-foreground text-[10px] uppercase tracking-wide sm:text-xs">
-                    Date
+                    Datum
                   </p>
                   <p className="mt-1 text-sm font-semibold sm:text-base">
-                    {format(new Date(appointment.startTime), "MMM d, yyyy")}
+                    {format(new Date(appointment.startTime), "d. MMMM yyyy", {
+                      locale: sl,
+                    })}
                   </p>
                 </div>
                 <div className="bg-muted/30 border-border/30 rounded-xl border p-3 text-center transition-colors hover:bg-muted/50 sm:p-4">
                   <ClockIcon size={20} className="text-primary mx-auto mb-2" />
                   <p className="text-muted-foreground text-[10px] uppercase tracking-wide sm:text-xs">
-                    Time
+                    Čas
                   </p>
                   <p className="mt-1 text-sm font-semibold sm:text-base">
                     {format(new Date(appointment.startTime), "HH:mm")}
@@ -205,11 +216,10 @@ export function AppointmentDetailsDialog({
                   <span className="bg-primary/10 rounded-full p-1">
                     <ScissorsIcon size={12} className="text-primary" />
                   </span>
-                  Services
+                  Storitve
                 </span>
                 <Badge variant="outline" className="text-[10px] sm:text-xs">
-                  {appointment.services.length} item
-                  {appointment.services.length > 1 ? "s" : ""}
+                  {storitveCount(appointment.services.length)}
                 </Badge>
               </h4>
               <div className="space-y-2">
@@ -240,13 +250,13 @@ export function AppointmentDetailsDialog({
             {/* Summary Card */}
             <div className="bg-linear-to-br from-primary/5 via-primary/10 to-primary/5 rounded-xl p-4 sm:p-5">
               <div className="flex items-center justify-between text-xs sm:text-sm">
-                <span className="text-muted-foreground">Total Duration</span>
+                <span className="text-muted-foreground">Skupno trajanje</span>
                 <span className="font-medium">{totalDuration} min</span>
               </div>
               <Separator className="bg-border/30 my-3" />
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground text-sm sm:text-base">
-                  Total Price
+                  Skupna cena
                 </span>
                 <span className="text-primary text-xl font-bold sm:text-2xl">
                   {fmt(appointment.totalPrice)}
@@ -260,7 +270,7 @@ export function AppointmentDetailsDialog({
                 <Separator className="bg-border/50" />
                 <div className="space-y-2">
                   <h4 className="text-muted-foreground text-xs font-semibold uppercase tracking-wider sm:text-sm">
-                    Notes
+                    Opombe
                   </h4>
                   <div className="bg-muted/30 border-border/30 rounded-xl border p-3 sm:p-4">
                     <p className="text-muted-foreground text-xs leading-relaxed sm:text-sm">
@@ -277,7 +287,7 @@ export function AppointmentDetailsDialog({
                 <Separator className="bg-border/50" />
                 <div className="space-y-3">
                   <h4 className="text-muted-foreground text-xs font-semibold uppercase tracking-wider sm:text-sm">
-                    Update Status
+                    Posodobi status
                   </h4>
                   <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
                     <Button
@@ -287,7 +297,7 @@ export function AppointmentDetailsDialog({
                       onClick={() => onMarkComplete?.(appointment.id)}
                     >
                       <CheckCircleIcon size={18} className="mr-2" />
-                      Mark Complete
+                      Označi kot zaključeno
                     </Button>
                     <Button
                       variant="destructive"
@@ -296,7 +306,7 @@ export function AppointmentDetailsDialog({
                       onClick={() => onMarkNoShow?.(appointment.id)}
                     >
                       <XCircleIcon size={18} className="mr-2" />
-                      No Show
+                      Ni se pojavil
                     </Button>
                   </div>
                 </div>
@@ -309,9 +319,10 @@ export function AppointmentDetailsDialog({
                 <Separator className="bg-border/50" />
                 <div className="bg-muted/30 rounded-xl p-4 text-center">
                   <p className="text-muted-foreground text-xs sm:text-sm">
-                    This appointment has been{" "}
+                    Status tega termina:{" "}
                     <span className="font-medium">
-                      {statusLabels[appointment.status]?.toLowerCase()}
+                      {statusLabels[appointment.status]?.toLowerCase() ||
+                        appointment.status}
                     </span>
                   </p>
                 </div>

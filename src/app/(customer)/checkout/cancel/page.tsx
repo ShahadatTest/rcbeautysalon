@@ -5,8 +5,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ShoppingCartIcon, StorefrontIcon } from "@/components/icons"
 
 export const metadata: Metadata = {
-  title: "Checkout Cancelled | RC Beauty Salon",
-  description: "Your checkout was cancelled. Your cart is still saved.",
+  title: "Nakup preklican | RC Beauty Salon",
+  description: "Vaš nakup je bil preklican. Vaša košarica je še vedno shranjena.",
 }
 
 export default function CheckoutCancelPage() {
@@ -20,11 +20,11 @@ export default function CheckoutCancelPage() {
           </div>
 
           {/* Title */}
-          <h1 className="mb-2 text-2xl font-bold">Checkout Cancelled</h1>
+          <h1 className="mb-2 text-2xl font-bold">Nakup preklican</h1>
 
           {/* Message */}
           <p className="text-muted-foreground mb-8">
-            No worries! Your cart is still saved and ready when you are.
+            Brez skrbi! Vaša košarica je še vedno shranjena in pripravljena, ko boste pripravljeni vi.
           </p>
 
           {/* Actions */}
@@ -32,23 +32,23 @@ export default function CheckoutCancelPage() {
             <Button asChild className="w-full">
               <Link href="/cart">
                 <ShoppingCartIcon size={18} className="mr-2" />
-                Return to Cart
+                Nazaj v košarico
               </Link>
             </Button>
 
             <Button variant="outline" asChild className="w-full">
               <Link href="/shop">
                 <StorefrontIcon size={18} className="mr-2" />
-                Continue Shopping
+                Nadaljuj z nakupovanjem
               </Link>
             </Button>
           </div>
 
           {/* Help Link */}
           <p className="text-muted-foreground mt-6 text-sm">
-            Having issues?{" "}
+            Imate težave?{" "}
             <Link href="/#contact" className="text-primary hover:underline">
-              Contact us
+              Kontaktirajte nas
             </Link>
           </p>
         </CardContent>

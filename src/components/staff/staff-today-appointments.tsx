@@ -20,6 +20,14 @@ interface AppointmentService {
   }
 }
 
+const statusLabels: Record<string, string> = {
+  PENDING: "V čakanju",
+  CONFIRMED: "Potrjeno",
+  COMPLETED: "Zaključeno",
+  CANCELLED: "Odpovedano",
+  NO_SHOW: "Ni se pojavil",
+}
+
 interface Appointment {
   id: string
   startTime: Date
@@ -40,13 +48,13 @@ export function StaffTodayAppointments({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Today&apos;s Appointments</CardTitle>
-        <CardDescription>Your scheduled appointments for today</CardDescription>
+        <CardTitle>Današnji termini</CardTitle>
+        <CardDescription>Vaši termini za današnji dan</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {appointments.map((appointment, index) => {
           const serviceName =
-            appointment.services[0]?.service.name || "Service"
+            appointment.services[0]?.service.name || "Storitev"
           const totalDuration = appointment.services.reduce(
             (acc, s) => acc + s.service.duration,
             0
@@ -77,7 +85,7 @@ export function StaffTodayAppointments({
                     <div className="text-muted-foreground flex items-center gap-2 text-sm">
                       <span>{serviceName}</span>
                       {appointment.services.length > 1 && (
-                        <span>+{appointment.services.length - 1} more</span>
+                        <span>+{appointment.services.length - 1}</span>
                       )}
                       <span>•</span>
                       <span className="flex items-center gap-1">
@@ -102,12 +110,12 @@ export function StaffTodayAppointments({
                     {appointment.status === "COMPLETED" && (
                       <CheckCircleIcon size={14} className="mr-1" />
                     )}
-                    {appointment.status}
+                    {statusLabels[appointment.status] || appointment.status}
                   </Badge>
 
                   {appointment.status !== "COMPLETED" && (
                     <Button size="sm" variant="outline">
-                      Mark Complete
+                      Označi kot zaključeno
                     </Button>
                   )}
                 </div>
@@ -123,7 +131,7 @@ export function StaffTodayAppointments({
         {appointments.length === 0 && (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <p className="text-muted-foreground">
-              No appointments scheduled for today
+              Za danes ni razporejenih terminov
             </p>
           </div>
         )}
