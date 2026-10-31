@@ -36,7 +36,11 @@ export const getPublicOrg = cache(async (): Promise<Organization | null> => {
       // back to another tenant's content under this URL.
       return null
     }
-    // Unknown slug → custom-domain/platform-root fallback below.
+    // UNKNOWN slug under /s/* (EPIC #3 E3-8 isolation fix): return null —
+    // the (public) layout then renders the neutral maintenance screen.
+    // Falling through to the platform-root fallback here would serve the
+    // DEFAULT tenant's site under someone else's URL (§16 B.5/E.8 leak).
+    return null
   }
 
   // ---- Custom domain resolution (EPIC #3 E3-6) ----
@@ -128,6 +132,10 @@ export async function getResolvedOrg(): Promise<Organization | null> {
       // another tenant's data under this tenant's URL.
       return null
     }
+    // UNKNOWN slug under /s/* (EPIC #3 E3-8 isolation fix): no org —
+    // never fall through to the session/default tenant under a URL
+    // that names a non-existent tenant.
+    return null
   }
   const session = await auth()
   if (

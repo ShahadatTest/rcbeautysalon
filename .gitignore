@@ -9,3 +9,7 @@ dev.log
 agent-ctx/
 .vscode/
 .env*
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
