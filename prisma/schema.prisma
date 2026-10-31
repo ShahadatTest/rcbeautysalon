@@ -96,9 +96,79 @@ model Organization {
   documents           Document[]
   productVariants     ProductVariant[]
   extensionRecords    ExtensionRecord[]
+  platformSubscription PlatformSubscription?
+  billingEvents       PlatformBillingEvent[]
 
   @@index([slug])
   @@index([status])
+}
+
+// ============================================================
+// PLATFORM SUBSCRIPTION (EPIC #3 E3-4) — the tenant's PAID PLAN
+// with the PLATFORM (money flows to the platform account), as
+// opposed to per-tenant Stripe keys that collect the tenant's OWN
+// customer payments. Strict separation, per docs/EPIC-3/PLAN.md.
+//
+// State is driven EXCLUSIVELY by provider webhook events —
+// nothing in this row is ever faked. Without a configured
+// PLATFORM_STRIPE_* key the flow honestly reports "setup required".
+// ============================================================
+model PlatformSubscription {
+  id                   String    @id @default(cuid())
+  organizationId       String    @unique
+
+  // Provider-side identifiers (null until a hosted checkout completes)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?   @unique
+  stripePriceId        String?
+
+  // Lifecycle mirrored from the provider:
+  // INCOMPLETE | TRIALING | ACTIVE | PAST_DUE | CANCELED | UNPAID
+  status               String    @default("INCOMPLETE")
+  // Plan this subscription maps to (entitlements when ACTIVE/TRIALING)
+  plan                 String    @default("free")
+
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  canceledAt           DateTime?
+
+  // Pending hosted-checkout intent (recorded at checkout creation).
+  // The PLAN change itself NEVER happens here — only the webhook
+  // confirmation moves entitlements (acceptance: webhook-driven).
+  pendingCheckoutSessionId String?
+  pendingPlanId            String?
+  pendingAt                DateTime?
+
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  events       PlatformBillingEvent[]
+
+  @@index([status])
+}
+
+// Immutable billing history — one row per provider event. The
+// unique stripeEventId is the webhook idempotency key: a retried
+// delivery can never be applied twice.
+model PlatformBillingEvent {
+  id             String    @id @default(cuid())
+  organizationId String
+  subscriptionId String?
+  stripeEventId  String    @unique
+  type           String
+  amountCents    Int?
+  currency       String?
+  plan           String?
+  periodStart    DateTime?
+  periodEnd      DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  subscription PlatformSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
 }
 
 // Binary media storage (DB fallback when Cloudinary is not configured)

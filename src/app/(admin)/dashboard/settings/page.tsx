@@ -12,15 +12,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { getServerI18n } from "@/lib/i18n/server"
 import { getSessionOrg } from "@/lib/tenant"
 import { getSessionPlanContext } from "@/lib/plans/resolve"
+import { loadBillingOverview } from "@/lib/payments/billing-overview"
 
-export default async function SettingsPage() {
-  const [{ t }, settings, publication, org, planContext] = await Promise.all([
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ billing?: string }>
+}) {
+  const [{ t }, params, settings, publication, org, planContext] = await Promise.all([
     getServerI18n(),
+    searchParams,
     getSalonSettings(),
     getPublicationStatus(),
     getSessionOrg(),
     getSessionPlanContext(),
   ])
+
+  // Billing read model depends on the resolved tenant — one extra
+  // sequential read after the parallel block above.
+  const billing = org ? await loadBillingOverview(org.id) : null
 
   if (!settings) {
     return (
@@ -47,6 +57,22 @@ export default async function SettingsPage() {
                   }
                 : null
             }
+            billing={
+              billing
+                ? {
+                    paymentsConfigured: billing.paymentsConfigured,
+                    subscription: billing.subscription,
+                    history: billing.history.map((e) => ({
+                      id: e.id,
+                      type: e.type,
+                      amountCents: e.amountCents,
+                      currency: e.currency,
+                      createdAt: e.createdAt,
+                    })),
+                  }
+                : null
+            }
+            billingFlag={params.billing ?? null}
           />
           <PublicationCard
             initial={publication}

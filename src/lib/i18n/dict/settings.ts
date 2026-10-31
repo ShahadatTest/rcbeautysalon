@@ -47,6 +47,50 @@ export const settingsSl = {
     plansTitle: "Na voljo paketi",
     perMonth: "na mesec",
     comingSoon: "cenik sledi",
+    billing: {
+      statusTitle: "Naročnina",
+      noSubscription: "Ni aktivne naročnine — paket deluje v predstavitvenem načinu.",
+      status: {
+        INCOMPLETE: "Obdelava plačila",
+        TRIALING: "Vzorčno obdobje",
+        ACTIVE: "Aktivna",
+        PAST_DUE: "Zapadlo plačilo",
+        CANCELED: "Preklicana",
+        UNPAID: "Neplačana",
+      },
+      nextBilling: "Naslednje obračunavanje:",
+      cancelsAtPeriodEnd:
+        "Preklicano — naročnina se zaključi na koncu plačanega obdobja, nato se paket vrne na FREE.",
+      cancelRequested: "Preklic zahtevan — čaka potrditev plačilnega ponudnika.",
+      historyTitle: "Zgodovina obračunavanja",
+      historyEmpty: "Ni še dogodkov obračunavanja.",
+      subscribe: "Naroči se ({plan})",
+      subscribeNote:
+        "Odpre se Stripe plačilna stran. Paket se aktivira samodejno, takoj ko Stripe potrdi plačilo.",
+      cancel: "Prekliči naročnino",
+      cancelConfirmTitle: "Preklicati naročnino?",
+      cancelConfirmBody:
+        "Naročnina bo preklicana na koncu trenutnega obračunskega obdobja. Do takrat ostanete na trenutnem paketu. Podatki ne bodo izbrisani.",
+      cancelConfirmAction: "Zahtevaj preklic",
+      cancelSuccess:
+        "Zahteva za preklic je poslana — potrditveni dogodek plačilnega ponudnika jo uveljavi na koncu obdobja.",
+      checkoutSuccess: "Hvala! Naročnina se aktivira takoj, ko Stripe pošlje potrditev plačila.",
+      checkoutCancelled: "Plačanje je bilo preklicano — nič ne sme biti označeno kot plačano.",
+      setupRequiredTitle: "Plačilni sloj ni konfiguriran",
+      setupRequired:
+        "Za naročnine platforma potrebuje svoj Stripe račun (env PLATFORM_STRIPE_*). Dokler ključi niso nastavljeni, deluje le predstavitveni preklop paketov — brez plačila in brez fake uspeha.",
+      demoMode: "Predstavitveni način (brez plačila)",
+      amountDue: "Znesek",
+      period: "Obdobje",
+      eventTypes: {
+        "checkout.session.completed": "Zaključena prijava na plačilo",
+        "customer.subscription.created": "Ustvarjena naročnina",
+        "customer.subscription.updated": "Posodobljena naročnina",
+        "customer.subscription.deleted": "Zaključena naročnina",
+        "invoice.paid": "Plačan račun",
+        "invoice.payment_failed": "Neuspelo plačilo računa",
+      },
+    },
   },
   modules: {
     title: "Moduli",
@@ -441,6 +485,50 @@ export const settingsEn: SettingsDict = {
     plansTitle: "Available plans",
     perMonth: "per month",
     comingSoon: "pricing to follow",
+    billing: {
+      statusTitle: "Subscription",
+      noSubscription: "No active subscription — the plan runs in demonstration mode.",
+      status: {
+        INCOMPLETE: "Processing payment",
+        TRIALING: "Trial period",
+        ACTIVE: "Active",
+        PAST_DUE: "Payment past due",
+        CANCELED: "Canceled",
+        UNPAID: "Unpaid",
+      },
+      nextBilling: "Next billing:",
+      cancelsAtPeriodEnd:
+        "Canceled — the subscription ends at the close of the paid period, then the plan returns to FREE.",
+      cancelRequested: "Cancellation requested — awaiting confirmation from the payment provider.",
+      historyTitle: "Billing history",
+      historyEmpty: "No billing events yet.",
+      subscribe: "Subscribe ({plan})",
+      subscribeNote:
+        "A Stripe hosted payment page opens. The plan activates automatically as soon as Stripe confirms the payment.",
+      cancel: "Cancel subscription",
+      cancelConfirmTitle: "Cancel the subscription?",
+      cancelConfirmBody:
+        "The subscription will be canceled at the end of the current billing period. Until then you stay on your current plan. No data will be deleted.",
+      cancelConfirmAction: "Request cancellation",
+      cancelSuccess:
+        "Cancellation request sent — the provider's confirmation event applies it at the end of the period.",
+      checkoutSuccess: "Thank you! The subscription activates as soon as Stripe sends the payment confirmation.",
+      checkoutCancelled: "Payment was canceled — nothing is ever marked as paid.",
+      setupRequiredTitle: "Billing not configured",
+      setupRequired:
+        "Subscriptions require the platform's own Stripe account (env PLATFORM_STRIPE_*). Until the keys are set, only the demonstration plan switch works — no payments, no fake success.",
+      demoMode: "Demonstration mode (no payment)",
+      amountDue: "Amount",
+      period: "Period",
+      eventTypes: {
+        "checkout.session.completed": "Checkout completed",
+        "customer.subscription.created": "Subscription created",
+        "customer.subscription.updated": "Subscription updated",
+        "customer.subscription.deleted": "Subscription ended",
+        "invoice.paid": "Invoice paid",
+        "invoice.payment_failed": "Invoice payment failed",
+      },
+    },
   },
   modules: {
     title: "Modules",
