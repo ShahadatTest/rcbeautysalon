@@ -27,19 +27,22 @@ import {
   ReceiptIcon,
   FileTextIcon,
   SlidersIcon,
+  StackIcon,
   UserCogIcon,
   SettingsIcon,
   CloseIcon,
 } from "@/components/icons"
 
 interface NavItem {
-  nameKey: "dashboard" | "analytics" | "appointments" | "customers" | "services" | "products" | "packages" | "shopOrders" | "workOrders" | "documents" | "forms" | "staff" | "settings"
+  nameKey: "dashboard" | "analytics" | "appointments" | "customers" | "services" | "products" | "packages" | "shopOrders" | "workOrders" | "documents" | "forms" | "records" | "staff" | "settings"
   href: string
   icon: React.ComponentType<{ size?: number; className?: string }>
   /** Capability that must not be "disabled" for this item to render. */
   capability?: CapabilityKey
   /** Item renders when ANY of these capabilities is enabled (§11: packages combine services AND products). */
   anyCapabilities?: CapabilityKey[]
+  /** Item renders only when the profile enables at least one extension with entities (§13). */
+  requiresExtensions?: boolean
   /** Terminology key overriding the generic dictionary label. */
   termKey?: "appointmentPlural" | "servicePlural" | "productPlural" | "orderPlural"
 }
@@ -60,6 +63,9 @@ const navigation: NavItem[] = [
   // E-commerce shop orders — generic label, only for shop-capable tenants
   { nameKey: "shopOrders", href: "/dashboard/orders", icon: ShoppingBagIcon, capability: "shop" },
   { nameKey: "forms", href: "/dashboard/forms", icon: SlidersIcon, capability: "forms" },
+  // Extension entity registries (vehicles, batches, …) — §13, rendered
+  // only when the profile enables extensions that contribute entities
+  { nameKey: "records", href: "/dashboard/records", icon: StackIcon, requiresExtensions: true },
   { nameKey: "staff", href: "/dashboard/staff", icon: UserCogIcon, capability: "staff" },
   { nameKey: "settings", href: "/dashboard/settings", icon: SettingsIcon },
 ]
@@ -74,6 +80,9 @@ function SidebarNav({ onNavigate }: SidebarNavProps) {
 
   // Capability-gated navigation (EPIC #1 §21): irrelevant modules never render.
   const visible = navigation.filter((item) => {
+    if (item.requiresExtensions) {
+      return profile.extensions.length > 0
+    }
     if (item.anyCapabilities?.length) {
       return item.anyCapabilities.some(
         (cap) => profile.capabilities[cap] !== "disabled"

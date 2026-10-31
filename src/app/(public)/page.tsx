@@ -5,7 +5,7 @@ import {
   getPublicFeaturedStaff,
 } from "@/lib/public-site"
 import { HomeContent } from "@/components/landing/home-content"
-import { resolveCtaLinks } from "@/lib/public-cta"
+import { resolveCtaLinks, resolveCtaSectionHref } from "@/lib/public-cta"
 import { resolveEffectiveProfile } from "@/lib/profiles/resolve"
 
 export default async function HomePage() {
@@ -35,6 +35,7 @@ export default async function HomePage() {
       org={{ slug: org.slug, name: org.name, logo: org.logo }}
       content={content}
       ctaLinks={resolveCtaLinks(org.vertical, content, org.profileOverrides)}
+      ctaSectionHref={resolveCtaSectionHref(org.vertical, content.cta.buttonHref, org.profileOverrides)}
       serviceCtaLabel={
         resolveEffectiveProfile(org).capabilities.appointments !== "disabled"
           ? "Rezerviraj"

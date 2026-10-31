@@ -83,6 +83,7 @@ model Organization {
   packages            Package[]
   documents           Document[]
   productVariants     ProductVariant[]
+  extensionRecords    ExtensionRecord[]
 
   @@index([slug])
   @@index([status])
@@ -387,6 +388,7 @@ model Customer {
   formSubmissions FormSubmission[]
   workOrders      WorkOrder[]
   documents       Document[]
+  extensionRecords ExtensionRecord[]
 
   @@index([userId])
   @@index([organizationId])
@@ -682,10 +684,15 @@ model WorkOrder {
   // Origin: the public form submission that produced this order (if any)
   sourceSubmissionId String? @unique
 
+  // Optional link to an extension registry record (e.g. the vehicle
+  // being serviced in a workshop) — universal, extension-agnostic.
+  linkedRecordId String? @unique
+
   organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   customer           Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
   customerId         String?
   workflowDefinition WorkflowDefinition? @relation(fields: [workflowDefinitionId], references: [id], onDelete: SetNull)
+  linkedRecord       ExtensionRecord?    @relation(fields: [linkedRecordId], references: [id], onDelete: SetNull)
   events             WorkOrderEvent[]
   documents          Document[]
 
@@ -717,6 +724,44 @@ model WorkOrderEvent {
 
   @@index([organizationId])
   @@index([workOrderId, createdAt])
+}
+
+// ============================================================
+// EXTENSION RECORDS (EPIC #1 §13 — Phase 6, universal extension
+// runtime). One org-scoped, generic store for the entities that
+// ENABLED EXTENSIONS declare (vehicle registry for workshops,
+// tire sets, harvest batches for beekeeping, measurement sets,
+// workspaces …). The record shape is NOT hardcoded per industry:
+//   • (extensionId, entityKey) select the declaration in the
+//     extension registry (src/lib/profiles/extensions.ts);
+//   • `data` holds values validated server-side against the
+//     declarative field list — the client can never inject
+//     unknown fields (same pattern as FormSubmission);
+//   • customer is a real FK (customers are a universal primitive),
+//     work orders link back polymorphically via WorkOrder.linkedRecordId.
+// Adding a new extension = registry entry only, no migration.
+// ============================================================
+
+model ExtensionRecord {
+  id             String  @id @default(cuid())
+  organizationId String
+  extensionId    String // extension registry id, e.g. "vehicle-workshop"
+  entityKey      String // entity key inside the extension, e.g. "vehicle"
+  title          String // human label derived from the first meaningful field
+  data           Json // validated values per the declared fields
+
+  customerId String?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  linkedWorkOrders WorkOrder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, entityKey])
+  @@index([customerId])
 }
 
 // ============================================================

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { requireAdminOrg, requirePublicOrg } from "@/lib/tenant"
+import { validateFieldValues } from "@/lib/field-validation"
 import type { Prisma } from "@prisma/client"
 
 // ============================================================
@@ -114,69 +115,14 @@ export async function getPublicForms(): Promise<PublicFormDefinition[]> {
 
 /**
  * Validate submitted values against a field definition.
- * Returns a map of fieldKey → human-readable error key.
+ * Shared pure implementation (src/lib/field-validation.ts) — the
+ * same logic guards every dynamic surface (§8 single source).
  */
 function validateValues(
   fields: PublicFormField[],
   values: Record<string, unknown>
 ): { errors: Record<string, string>; clean: Record<string, unknown> } {
-  const errors: Record<string, string> = {}
-  const clean: Record<string, unknown> = {}
-
-  for (const field of fields) {
-    const raw = values[field.key]
-    const empty =
-      raw === undefined ||
-      raw === null ||
-      (typeof raw === "string" && raw.trim() === "")
-
-    if (field.required && empty) {
-      errors[field.key] = "required"
-      continue
-    }
-    if (empty) continue
-
-    if (field.type === "number") {
-      const n = Number(raw)
-      if (!Number.isFinite(n)) {
-        errors[field.key] = "number"
-        continue
-      }
-      clean[field.key] = n
-      continue
-    }
-
-    if (field.type === "select") {
-      const value = String(raw)
-      if (field.options && !field.options.includes(value)) {
-        errors[field.key] = "option"
-        continue
-      }
-      clean[field.key] = value
-      continue
-    }
-
-    if (field.type === "checkbox") {
-      clean[field.key] = raw === true || raw === "true" || raw === "on"
-      continue
-    }
-
-    if (field.type === "date") {
-      const d = new Date(String(raw))
-      if (Number.isNaN(d.getTime())) {
-        errors[field.key] = "date"
-        continue
-      }
-      clean[field.key] = String(raw)
-      continue
-    }
-
-    // text / textarea — length cap for safety
-    const s = String(raw).trim().slice(0, 5000)
-    clean[field.key] = s
-  }
-
-  return { errors, clean }
+  return validateFieldValues(fields, values)
 }
 
 /** Find-or-create a tenant customer from guest contact details. */

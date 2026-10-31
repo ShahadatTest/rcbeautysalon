@@ -38,6 +38,8 @@ export interface WorkOrderListItem {
   workflowName: string | null
   customerName: string | null
   customerEmail: string | null
+  /** Linked extension record (e.g. the vehicle being serviced). */
+  linkedRecord: { id: string; title: string; entityKey: string } | null
   createdAt: string
   lastEventAt: string | null
   lastEventMessage: string | null
@@ -145,6 +147,7 @@ export async function getWorkOrdersOverview(): Promise<WorkOrdersOverview> {
       where: { organizationId: org.id },
       include: {
         customer: { select: { name: true, email: true } },
+        linkedRecord: { select: { id: true, title: true, entityKey: true } },
         events: { orderBy: { createdAt: "desc" }, take: 1 },
       },
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
@@ -183,6 +186,13 @@ export async function getWorkOrdersOverview(): Promise<WorkOrdersOverview> {
       workflowName: ownDef?.name ?? null,
       customerName: o.customer?.name ?? null,
       customerEmail: o.customer?.email ?? null,
+      linkedRecord: o.linkedRecord
+        ? {
+            id: o.linkedRecord.id,
+            title: o.linkedRecord.title,
+            entityKey: o.linkedRecord.entityKey,
+          }
+        : null,
       createdAt: o.createdAt.toISOString(),
       lastEventAt: o.events[0]?.createdAt.toISOString() ?? null,
       lastEventMessage: o.events[0]?.message ?? null,
@@ -223,6 +233,15 @@ export interface WorkOrderDetail {
   customer: { id: string; name: string; email: string | null; phone: string | null } | null
   workflow: WorkflowDefinitionInfo | null
   currentStageKey: string | null
+  /** Linked extension record with its declared fields (e.g. vehicle data). */
+  linkedRecord: {
+    id: string
+    entityKey: string
+    entityName: string
+    title: string
+    data: Record<string, unknown>
+    fields: { key: string; label: string; unit?: string }[]
+  } | null
   events: WorkOrderEventItem[]
   sourceSubmissionId: string | null
 }
@@ -236,10 +255,33 @@ export async function getWorkOrderDetail(id: string): Promise<WorkOrderDetail | 
     include: {
       customer: true,
       workflowDefinition: { include: { stages: { orderBy: { order: "asc" } } } },
+      linkedRecord: true,
       events: { orderBy: { createdAt: "asc" } },
     },
   })
   if (!order) return null
+
+  // Entity display name comes from the extension registry (data-driven).
+  let linkedRecord: WorkOrderDetail["linkedRecord"] = null
+  if (order.linkedRecord) {
+    const { getExtension } = await import("@/lib/profiles/extensions")
+    const ext = getExtension(order.linkedRecord.extensionId)
+    const entity = ext?.entities.find((e) => e.key === order.linkedRecord!.entityKey)
+    linkedRecord = {
+      id: order.linkedRecord.id,
+      entityKey: order.linkedRecord.entityKey,
+      entityName: entity?.name ?? order.linkedRecord.entityKey,
+      title: order.linkedRecord.title,
+      data: (order.linkedRecord.data && typeof order.linkedRecord.data === "object"
+        ? order.linkedRecord.data
+        : {}) as Record<string, unknown>,
+      fields: (entity?.fields ?? []).map((f) => ({
+        key: f.key,
+        label: f.label,
+        ...(f.unit ? { unit: f.unit } : {}),
+      })),
+    }
+  }
 
   return {
     id: order.id,
@@ -277,6 +319,7 @@ export async function getWorkOrderDetail(id: string): Promise<WorkOrderDetail | 
         }
       : null,
     currentStageKey: order.currentStageKey,
+    linkedRecord,
     events: order.events.map((e) => ({
       id: e.id,
       type: e.type,
@@ -298,6 +341,8 @@ export interface CreateWorkOrderInput {
   notes?: string | null
   total?: number | null
   workflowDefinitionId?: string | null
+  /** Optional extension record link (e.g. vehicle in a workshop). */
+  linkedRecordId?: string | null
 }
 
 export interface WorkOrderActionResult {
@@ -331,6 +376,16 @@ export async function createWorkOrder(
   }
   const firstStage = definition.stages[0]
 
+  // Linked extension record must exist in THIS tenant (§3 isolation).
+  let linkedRecordId: string | null = null
+  if (input.linkedRecordId) {
+    const rec = await prisma.extensionRecord.findFirst({
+      where: { id: input.linkedRecordId, organizationId: org.id },
+      select: { id: true },
+    })
+    if (rec) linkedRecordId = rec.id
+  }
+
   const created = await prisma.$transaction(async (tx) => {
     const max = await tx.workOrder.aggregate({
       where: { organizationId: org.id },
@@ -351,6 +406,7 @@ export async function createWorkOrder(
             : null,
         notes: input.notes?.trim() || null,
         customerId: input.customerId || null,
+        linkedRecordId,
         workflowDefinitionId: definition.id,
         currentStageKey: firstStage.key,
         events: {

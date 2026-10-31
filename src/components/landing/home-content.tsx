@@ -51,6 +51,8 @@ interface HomeContentProps {
   content: SiteContent
   /** Profile-resolved hero/CTA links (EPIC #1 §4) — falls back to content. */
   ctaLinks?: { primaryCta: CtaLink; secondaryCta: CtaLink | null }
+  /** Profile-guarded bottom CTA target (stale /booking seeds are remapped, §21). */
+  ctaSectionHref?: string
   /** Label on service cards — booking profiles say "Rezerviraj", others "Poglej". */
   serviceCtaLabel?: string
   featuredServices: Service[]
@@ -62,6 +64,7 @@ export function HomeContent({
   org,
   content,
   ctaLinks,
+  ctaSectionHref,
   serviceCtaLabel = "Rezerviraj",
   featuredServices,
   featuredProducts,
@@ -389,7 +392,7 @@ export function HomeContent({
               {content.cta.text}
             </p>
             <CTAButton
-              href={toHref(content.cta.buttonHref)}
+              href={ctaSectionHref ?? toHref(content.cta.buttonHref)}
               className="from-primary to-primary/90 border-accent/30 group border-2 bg-linear-to-r text-white shadow-2xl transition-all duration-300 hover:scale-105 hover:opacity-90"
             >
               {content.cta.buttonLabel}

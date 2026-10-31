@@ -8,12 +8,22 @@ Ena namestitev streže **več neodvisnim salonom** — vsak s svojo domeno (`/s/
 
 ## ✨ Zmožnosti
 
+### 🏢 Univerzalna platforma za vse dejavnosti (EPIC #1)
+- **Profilni motor dejavnosti** — dejavnost določa CELO izkušnjo, ne samo izgled: module, terminologijo (SL/EN), obrazce, delovne procese, dashboard widgete, javni CTA način (`booking | inquiry | order | quote`) in razširitve
+- **11 profilov dejavnosti**: lepotni salon, frizer, barber, nohti, kozmetika, masaža, epilacija, šiviljstvo, **vulkanizer & avtoservis**, **čebelarstvo** + univerzalno
+- **Matrika zmožnosti `required | optional | disabled`** — irelevantni moduli se nikjer ne izrisujejo (npr. čebelarstvo brez terminov, delovnih nalog in storitev)
+- **Univerzalna delovna naročila** s konfigurabilnimi procesi (stopnje, validirani prehodi, popolna sled dogodkov)
+- **Dinamični obrazci** — javna povpraševanja + admin inbox, urejanje polj brez kode, strežniška validacija vsakega polja
+- **Evidence po razširitvah** (§13) — evidenca vozil in gum za vulanizerja, serije/žetev za čebelarstvo, mere za šiviljstvo; nova razširitev = samo vnos v register, brez kode in brez migracije
+- **Katalog**: storitve, izdelki, variante, paketi (storitve + izdelki), ponudbe in računi s številčenjem po najemniku
+- **Lastniška prilagoditev**: moduli vklop/izklop, dashboard widgeti, urejevalniki obrazcev in procesov — vse verzionirano, brez programiranja
+
 ### 🏢 Večnajemniškost (multi-tenant)
 - Vsak salon dobi svojo javno stran pod `/s/[slug]` (npr. `/s/salon-luna/rezervacija`)
-- **Vertikale** — vnaprej pripravljeni predloge po panogi: frizer, barber, nohti, lepota, masaža, depilacija, splošno
-- Vsaka vertikala prinese lastne kategorije, vzorčne storitve, barvno paleto, pisave in besedila
+- **Izolacija najemnikov** — vsaka poizvedba org-scoped, shemski guardrail test zahteva `organizationId` + indeks na vseh najemniških modelih, runtime izolacijski skript
+- **Profili dejavnosti** — vnaprej pripravljene predloge po panogi, ki jih lastnik lahko preglasi (overrides ne mutirajo skupnega profila)
 - **Tema engine** — palete + pisave na nivoju organizacije, urejanje vsebine (hero, odprt čas, o nas …)
-- **Samostojno vključitev (onboarding)** — nov salon se registrira na `/start` in takoj dobi celotno stran
+- **Samostojno vključitev (onboarding)** — nov salon se registrira na `/start`, izbere dejavnost in takoj dobi celotno stran z materializiranimi obrazci, procesi in katalogom
 
 ### 📅 Rezervacije
 - Spletna rezervacija s pologom (znesek nastavi salon, privzeto **50 €**)
@@ -165,10 +175,14 @@ Neon ✅ · Supabase · Railway — katerikoli PostgreSQL
 pnpm dev          # dev strežnik (Turbopack)
 pnpm build        # produkcijski build
 pnpm lint         # ESLint
+pnpm test         # vitest — profilni motor, overrides, izolacijski guardraili (71 testov)
+DATABASE_URL=… bun scripts/verify-tenant-isolation.ts   # runtime preverba izolacije najemnikov
 pnpm format       # Prettier
 pnpm db:studio    # Prisma Studio (GUI za bazo)
 pnpm db:seed      # vzorčni podatki
 ```
+
+Arhitektura univerzalne platforme (analiza, matrika zmožnosti, fazni načrt z akceptančnimi kriteriji): [`docs/EPIC-1/ARCHITECTURE.md`](docs/EPIC-1/ARCHITECTURE.md).
 
 ## 📄 Licenca
 

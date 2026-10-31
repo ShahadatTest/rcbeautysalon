@@ -38,6 +38,8 @@ import {
   type WorkOrderListItem,
   type WorkflowDefinitionInfo,
 } from "@/app/actions/work-orders"
+import { listExtensionRecordOptions } from "@/app/actions/records"
+import { useI18n } from "@/lib/i18n/provider"
 import { formatCurrency } from "@/lib/utils/format"
 
 // ============================================================
@@ -117,10 +119,14 @@ export function WorkOrdersClient({
   locale,
 }: WorkOrdersClientProps) {
   const router = useRouter()
+  const { profile } = useI18n()
   const [open, setOpen] = useState(false)
   const [pending, startTransition] = useTransition()
   const [customers, setCustomers] = useState<
     { id: string; name: string; email: string | null }[]
+  >([])
+  const [recordOptions, setRecordOptions] = useState<
+    { id: string; entityName: string; title: string; customerName: string | null }[]
   >([])
   const [form, setForm] = useState({
     title: "",
@@ -128,7 +134,13 @@ export function WorkOrdersClient({
     dueDate: "",
     priority: "NORMAL",
     notes: "",
+    linkedRecordId: "",
   })
+
+  // Extension registries (vehicles, …) can be linked to a work order (§13).
+  const hasExtensions = profile.extensions.length > 0
+  const linkedRecordLabel =
+    locale === "sl" ? "Povezan zapis iz evidenc" : "Linked registry record"
 
   const openDialog = async () => {
     setOpen(true)
@@ -137,6 +149,13 @@ export function WorkOrdersClient({
         setCustomers(await listWorkOrderCustomers())
       } catch {
         // non-fatal: the order can be created without a customer
+      }
+    }
+    if (hasExtensions && recordOptions.length === 0) {
+      try {
+        setRecordOptions(await listExtensionRecordOptions())
+      } catch {
+        // non-fatal: the order can be created without a linked record
       }
     }
   }
@@ -154,11 +173,12 @@ export function WorkOrdersClient({
         dueDate: form.dueDate || null,
         priority: form.priority,
         notes: form.notes || null,
+        linkedRecordId: form.linkedRecordId || null,
       })
       if (result.ok) {
         toast.success(createLabels.created)
         setOpen(false)
-        setForm({ title: "", customerId: "", dueDate: "", priority: "NORMAL", notes: "" })
+        setForm({ title: "", customerId: "", dueDate: "", priority: "NORMAL", notes: "", linkedRecordId: "" })
         router.push(`/dashboard/work-orders/${result.id}`)
       } else {
         toast.error(errorText(result.error))
@@ -270,6 +290,32 @@ export function WorkOrdersClient({
                 />
               </div>
 
+              {/* Optional link to an extension registry record (vehicle, …) */}
+              {hasExtensions && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="wo-record">{linkedRecordLabel}</Label>
+                  <Select
+                    value={form.linkedRecordId || "none"}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, linkedRecordId: v === "none" ? "" : v }))
+                    }
+                  >
+                    <SelectTrigger id="wo-record">
+                      <SelectValue placeholder="—" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">—</SelectItem>
+                      {recordOptions.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>
+                          {r.entityName}: {r.title}
+                          {r.customerName ? ` — ${r.customerName}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <DialogFooter>
                 <Button
                   type="button"
@@ -323,6 +369,11 @@ export function WorkOrdersClient({
                       >
                         {o.title}
                       </Link>
+                      {o.linkedRecord && (
+                        <div className="text-muted-foreground text-xs">
+                          {o.linkedRecord.title}
+                        </div>
+                      )}
                       {o.total !== null && (
                         <div className="text-muted-foreground text-xs">
                           {formatCurrency(o.total)}

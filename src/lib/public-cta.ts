@@ -124,3 +124,27 @@ export function isBookingEnabled(
     profile.capabilities.appointments !== "disabled"
   )
 }
+
+/**
+ * Bottom CTA-section href guard (§21 — Phase 6 fix).
+ * Seeds written before profile CTA modes default buttonHref to
+ * "/booking" even for non-appointment profiles. For NON-booking
+ * tenants such a stale href is remapped to the profile's real
+ * target (order → /shop, inquiry/quote → /inquiry). Owner-set
+ * custom hrefs that do NOT point at booking are kept as-is;
+ * booking tenants keep full owner control.
+ */
+export function resolveCtaSectionHref(
+  profileId: string | null | undefined,
+  configuredHref: string,
+  overrides?: unknown
+): string {
+  const profile = effective(profileId, overrides)
+  if (profile.website.ctaMode === "booking") return configuredHref
+  const stale =
+    !configuredHref ||
+    configuredHref.startsWith("/booking") ||
+    configuredHref.startsWith("/s/") && configuredHref.endsWith("/booking")
+  if (!stale) return configuredHref
+  return profile.website.ctaMode === "order" ? "/shop" : "/inquiry"
+}

@@ -10,6 +10,7 @@ export { MenuIcon } from "./menu-icon"
 export { SearchIcon } from "./search-icon"
 export { FilterIcon } from "./filter-icon"
 export { SlidersIcon } from "./sliders-icon"
+export { StackIcon } from "./stack-icon"
 
 // User & Account
 export { UserIcon } from "./user-icon"

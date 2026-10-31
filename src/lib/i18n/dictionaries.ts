@@ -13,6 +13,7 @@ import { settingsSl, settingsEn } from "./dict/settings"
 import { authSl, authEn } from "./dict/auth"
 import { workFormsSl, workFormsEn } from "./dict/work-forms"
 import { catalogDocsSl, catalogDocsEn } from "./dict/catalog-docs"
+import { recordsSl, recordsEn } from "./dict/records"
 
 const dictionaries = {
   sl: {
@@ -29,6 +30,7 @@ const dictionaries = {
     auth: authSl,
     workForms: workFormsSl,
     catalogDocs: catalogDocsSl,
+    recordsPage: recordsSl,
   },
   en: {
     common: commonEn,
@@ -44,6 +46,7 @@ const dictionaries = {
     auth: authEn,
     workForms: workFormsEn,
     catalogDocs: catalogDocsEn,
+    recordsPage: recordsEn,
   },
 } as const
 

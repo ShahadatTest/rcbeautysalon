@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
 import { Button } from "@/components/ui/button"
@@ -66,6 +67,7 @@ export function WorkOrderDetailClient({
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [note, setNote] = useState("")
+  const recordsLinkLabel = locale === "sl" ? "Odpri evidence" : "Open records"
 
   const stages = order.workflow?.stages ?? []
   const currentStage = stages.find((s) => s.key === order.currentStageKey)
@@ -353,6 +355,45 @@ export function WorkOrderDetailClient({
             )}
           </CardContent>
         </Card>
+
+        {/* Linked extension record (e.g. the vehicle being serviced) — §13 */}
+        {order.linkedRecord && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">
+                {order.linkedRecord.entityName}: {order.linkedRecord.title}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <dl className="space-y-1.5 text-sm">
+                {Object.entries(order.linkedRecord.data)
+                  .filter(([k, v]) => {
+                    const f = order.linkedRecord?.fields.find((x) => x.key === k)
+                    return v !== null && v !== undefined && v !== "" && f
+                  })
+                  .slice(0, 12)
+                  .map(([k, v]) => {
+                    const f = order.linkedRecord?.fields.find((x) => x.key === k)
+                    return (
+                      <div key={k} className="flex justify-between gap-3">
+                        <dt className="text-muted-foreground text-xs">
+                          {f?.label ?? k}
+                          {f?.unit ? ` (${f.unit})` : ""}
+                        </dt>
+                        <dd className="font-medium">{String(v)}</dd>
+                      </div>
+                    )
+                  })}
+              </dl>
+              <Link
+                href="/dashboard/records"
+                className="text-primary mt-3 inline-block text-xs hover:underline"
+              >
+                {recordsLinkLabel}
+              </Link>
+            </CardContent>
+          </Card>
+        )}
 
         {order.notes && (
           <Card>
