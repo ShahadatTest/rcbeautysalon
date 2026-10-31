@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Local dev daemon (sandbox helper; intentionally untracked via
+    // .git/info/exclude — never part of the repo).
+    "scripts/start-dev-daemon.cjs",
   ]),
 ]);
 

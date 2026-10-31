@@ -7,6 +7,8 @@ import { revalidatePath } from "next/cache"
 import { auth } from "@/lib/auth/auth"
 import { UnauthorizedError } from "@/lib/auth/guards"
 import { getPublicOrg, getSessionOrg, requireAdminOrg } from "@/lib/tenant"
+import { enforcePlanLimit } from "@/lib/plans/resolve"
+import { getLocaleFromCookies } from "@/lib/i18n/server"
 import {
   startOfDay,
   endOfDay,
@@ -231,6 +233,13 @@ export const getStaffMemberById = async (id: string) => {
 export const createStaffMember = async (data: UpdateStaffInput) => {
   try {
     const { org } = await requireAdminOrg()
+
+    // Plan entitlements (EPIC #3 E3-3): block NEW team members at the plan
+    // limit — never touches existing content (downgrade tolerance).
+    const limit = await enforcePlanLimit(org, "staff", await getLocaleFromCookies())
+    if (!limit.ok) {
+      return { success: false, error: limit.message, code: limit.code }
+    }
 
     const { serviceIds, workingHours, email, ...staffData } = data
 

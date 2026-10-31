@@ -14,6 +14,40 @@ export const settingsSl = {
     extensions: "Razširitve",
     customized: "prilagojeno",
   },
+  plan: {
+    title: "Paket in raba",
+    description:
+      "Vaš trenutni paket določa omejitve vsebine in ekipe. Raba se prikazuje v realnem času iz vaših podatkov.",
+    currentPlan: "Trenutni paket",
+    usage: "Raba",
+    unlimited: "Neomejeno",
+    resources: {
+      services: "Storitve",
+      products: "Izdelki",
+      staff: "Zaposleni",
+    },
+    nearLimit: "Približuje se omejitev — razmislite o nadgradnji paketa.",
+    overLimit:
+      "Raba presega omejitev paketa. Obstoječa vsebina ostane delujoča, novih vnosov pa ne morete dodajati, dokler raba ne pade pod omejitev.",
+    atLimit: "Dosegli ste omejitev paketa za ta vir.",
+    changePlan: "Zamenjaj paket",
+    switchTo: "Preklopi na {plan}",
+    currentBadge: "vaš paket",
+    confirmTitle: "Preklopiti na paket {plan}?",
+    confirmDowngradeWarning:
+      "Vaša trenutna raba presega omejitve tega paketa. Obstoječa vsebina ne bo izbrisana, novih vnosov nad omejitev pa ne boste mogli dodajati.",
+    confirmFreePhase:
+      "Med predstavitveno fazo je zamenjava paketa brezplačna — plačilni sloj sledi v prihajajoči posodobitvi.",
+    confirmAction: "Potrdi preklop",
+    switchSuccess: "Paket je preklopljen na {plan}. Nove omejitve veljajo takoj.",
+    switchFailed: "Zamenjava paketa ni uspela. Poskusite znova.",
+    unknownPlan: "Neznan paket.",
+    refresh: "Osveži rabo",
+    loadError: "Podatkov o paketu ni bilo mogoče naložiti.",
+    plansTitle: "Na voljo paketi",
+    perMonth: "na mesec",
+    comingSoon: "cenik sledi",
+  },
   modules: {
     title: "Moduli",
     description:
@@ -373,6 +407,40 @@ export const settingsEn: SettingsDict = {
     fieldsCount: "fields",
     extensions: "Extensions",
     customized: "customized",
+  },
+  plan: {
+    title: "Plan and usage",
+    description:
+      "Your current plan sets content and team limits. Usage is shown live from your own data.",
+    currentPlan: "Current plan",
+    usage: "Usage",
+    unlimited: "Unlimited",
+    resources: {
+      services: "Services",
+      products: "Products",
+      staff: "Team members",
+    },
+    nearLimit: "Approaching the limit — consider upgrading your plan.",
+    overLimit:
+      "Usage exceeds the plan limit. Existing content keeps working, but you cannot add new entries until usage drops below the limit.",
+    atLimit: "You reached the plan limit for this resource.",
+    changePlan: "Change plan",
+    switchTo: "Switch to {plan}",
+    currentBadge: "your plan",
+    confirmTitle: "Switch to the {plan} plan?",
+    confirmDowngradeWarning:
+      "Your current usage exceeds this plan's limits. Existing content will not be deleted, but you cannot add new entries above the limit.",
+    confirmFreePhase:
+      "During the launch phase switching plans is free — the payment layer follows in an upcoming update.",
+    confirmAction: "Confirm switch",
+    switchSuccess: "Plan switched to {plan}. New limits apply immediately.",
+    switchFailed: "Plan switch failed. Please try again.",
+    unknownPlan: "Unknown plan.",
+    refresh: "Refresh usage",
+    loadError: "Could not load plan data.",
+    plansTitle: "Available plans",
+    perMonth: "per month",
+    comingSoon: "pricing to follow",
   },
   modules: {
     title: "Modules",

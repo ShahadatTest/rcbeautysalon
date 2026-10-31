@@ -7,6 +7,8 @@ import { CreateProductInput } from "@/lib/interfaces"
 import { requireAdminOrg, getResolvedOrg } from "@/lib/tenant"
 import { getPublicOrg } from "@/lib/tenant"
 import { UnauthorizedError } from "@/lib/auth/guards"
+import { enforcePlanLimit } from "@/lib/plans/resolve"
+import { getLocaleFromCookies } from "@/lib/i18n/server"
 
 export type UpdateProductInput = Partial<CreateProductInput>
 
@@ -132,6 +134,13 @@ export const getProductById = cache(async (id: string) => {
 export async function createProduct(data: CreateProductInput) {
   try {
     const { org } = await requireAdminOrg()
+
+    // Plan entitlements (EPIC #3 E3-3): block NEW products at the plan
+    // limit — never touches existing content (downgrade tolerance).
+    const limit = await enforcePlanLimit(org, "products", await getLocaleFromCookies())
+    if (!limit.ok) {
+      return { success: false, error: limit.message, code: limit.code }
+    }
 
     // Extract categoryId from data
     const { categoryId, ...productData } = data

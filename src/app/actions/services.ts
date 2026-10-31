@@ -8,6 +8,8 @@ import { revalidatePath } from "next/cache"
 import { CreateServiceInput } from "@/lib/interfaces"
 import { UnauthorizedError } from "@/lib/auth/guards"
 import { getPublicOrg, requireAdminOrg, getResolvedOrg } from "@/lib/tenant"
+import { enforcePlanLimit } from "@/lib/plans/resolve"
+import { getLocaleFromCookies } from "@/lib/i18n/server"
 
 export type UpdateServiceInput = Partial<CreateServiceInput>
 
@@ -513,6 +515,13 @@ export async function getServiceById(id: string) {
 export async function createService(data: CreateServiceInput) {
   try {
     const { org } = await requireAdminOrg()
+
+    // Plan entitlements (EPIC #3 E3-3): block NEW services at the plan
+    // limit — never touches existing content (downgrade tolerance).
+    const limit = await enforcePlanLimit(org, "services", await getLocaleFromCookies())
+    if (!limit.ok) {
+      return { success: false, error: limit.message, code: limit.code }
+    }
 
     // Extract staffIds and categoryId from data
     const { staffIds, categoryId, ...serviceData } = data

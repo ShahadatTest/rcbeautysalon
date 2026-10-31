@@ -1,0 +1,98 @@
+// ============================================================
+// PLAN RESOLVER (EPIC #3 E3-3 — server-only)
+// Resolves the tenant's plan + real usage counts from existing
+// tables (derived counters — no double bookkeeping, per PLAN.md
+// decision log). React cache() keeps one resolution per request.
+//
+// SERVER-ONLY: imports prisma. Never import from client code.
+// ============================================================
+
+import { cache } from "react"
+import { prisma } from "@/lib/prisma"
+import { getSessionOrg } from "@/lib/tenant"
+import { getPlan } from "./registry"
+import { checkPlanLimit, type LimitCheck, type PlanDefinition, type PlanId } from "./types"
+
+export interface PlanUsage {
+  services: number
+  products: number
+  staff: number
+}
+
+export interface PlanContext {
+  orgId: string
+  orgSlug: string
+  orgName: string
+  planId: PlanId
+  plan: PlanDefinition
+  usage: PlanUsage
+}
+
+const usageCounters = {
+  services: (orgId: string) => prisma.service.count({ where: { organizationId: orgId } }),
+  products: (orgId: string) => prisma.product.count({ where: { organizationId: orgId } }),
+  staff: (orgId: string) => prisma.staff.count({ where: { organizationId: orgId } }),
+} as const
+
+/** Current plan + derived usage for the signed-in admin's org. */
+export const getSessionPlanContext = cache(async (): Promise<PlanContext | null> => {
+  const org = await getSessionOrg()
+  if (!org) return null
+  return resolvePlanContext(org.id, org.slug, org.name, org.plan)
+})
+
+/** Plan context for an already-loaded org (avoids a second session lookup). */
+export async function resolvePlanContext(
+  orgId: string,
+  orgSlug: string,
+  orgName: string,
+  planValue: string | null | undefined
+): Promise<PlanContext> {
+  const plan = getPlan(planValue)
+  const [services, products, staff] = await Promise.all([
+    usageCounters.services(orgId),
+    usageCounters.products(orgId),
+    usageCounters.staff(orgId),
+  ])
+  return {
+    orgId,
+    orgSlug,
+    orgName,
+    planId: plan.id,
+    plan,
+    usage: { services, products, staff },
+  }
+}
+
+export type PlanLimitEnforcement =
+  | { ok: true }
+  | { ok: false; code: "LIMIT_REACHED"; message: string; messageEn: string; limit: number }
+
+/**
+ * Server-side enforcement for content-creating actions. Call AFTER
+ * requireAdminOrg() and BEFORE the prisma create. Returns a
+ * locale-picked, action-oriented error message when the tenant's plan
+ * blocks the new record (HTTP-429 semantics; server actions surface it
+ * as `{ success: false, error, code: "LIMIT_REACHED" }`).
+ *
+ * Downgrade tolerance: when usage already exceeds the limit (e.g. after
+ * a plan change), creation stays blocked until usage drops below the
+ * limit — existing content is never touched.
+ */
+export async function enforcePlanLimit(
+  org: { id: string; plan: string | null | undefined },
+  resource: "services" | "products" | "staff",
+  locale: "sl" | "en" = "sl"
+): Promise<PlanLimitEnforcement> {
+  const plan = getPlan(org.plan)
+  const current = await usageCounters[resource](org.id)
+  const check: LimitCheck = checkPlanLimit(plan, resource, current)
+  if (check.ok) return { ok: true }
+  return {
+    ok: false,
+    code: "LIMIT_REACHED",
+    limit: check.limit,
+    message: locale === "en" ? check.messageEn : check.message,
+    messageEn: check.messageEn,
+  }
+}

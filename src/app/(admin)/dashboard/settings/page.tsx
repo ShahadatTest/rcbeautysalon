@@ -6,17 +6,20 @@ import { PaymentsSettings } from "@/components/dashboard/payments-settings"
 import { ProfileOverview } from "@/components/dashboard/profile-overview"
 import { ModulesConfigurator } from "@/components/dashboard/modules-configurator"
 import { PublicationCard } from "@/components/dashboard/publication-card"
+import { PlanUsageCard } from "@/components/dashboard/plan-usage-card"
 import { SettingsTabs } from "@/components/dashboard/settings-tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getServerI18n } from "@/lib/i18n/server"
 import { getSessionOrg } from "@/lib/tenant"
+import { getSessionPlanContext } from "@/lib/plans/resolve"
 
 export default async function SettingsPage() {
-  const [{ t }, settings, publication, org] = await Promise.all([
+  const [{ t }, settings, publication, org, planContext] = await Promise.all([
     getServerI18n(),
     getSalonSettings(),
     getPublicationStatus(),
     getSessionOrg(),
+    getSessionPlanContext(),
   ])
 
   if (!settings) {
@@ -35,6 +38,16 @@ export default async function SettingsPage() {
     <SettingsTabs
       basic={
         <div className="space-y-6">
+          <PlanUsageCard
+            initial={
+              planContext
+                ? {
+                    planId: planContext.planId,
+                    usage: { ...planContext.usage },
+                  }
+                : null
+            }
+          />
           <PublicationCard
             initial={publication}
             siteHref={org ? `/s/${org.slug}` : null}
