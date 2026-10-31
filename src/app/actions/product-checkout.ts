@@ -383,7 +383,10 @@ export async function verifyProductOrder(sessionId: string) {
         },
       })
 
-      // Reduce stock for each item
+      // Reduce stock for each item + append ledger rows (E2-2):
+      // the ledger OBSERVES the issue (source ORDER); state behavior
+      // is unchanged (cart guard prevents oversell pre-payment).
+      const ledgerOrgId = existingOrder.organizationId ?? org?.id ?? null
       for (const item of existingOrder.items) {
         await tx.product.update({
           where: { id: item.productId },
@@ -393,6 +396,18 @@ export async function verifyProductOrder(sessionId: string) {
             },
           },
         })
+        if (ledgerOrgId) {
+          await tx.stockMovement.create({
+            data: {
+              organizationId: ledgerOrgId,
+              productId: item.productId,
+              direction: "OUT",
+              quantity: item.quantity,
+              source: "ORDER",
+              orderId: existingOrder.id,
+            },
+          })
+        }
       }
     })
 

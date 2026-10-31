@@ -533,7 +533,7 @@ const PROFILE_LIST: ActivityProfile[] = [
     ],
     dashboardWidgets: ["activeOrders", "deadlines", "todayAppointments", "revenue", "lowStock", "customers"],
     website: { ctaMode: "booking" },
-    extensions: ["vehicle-workshop"],
+    extensions: ["vehicle-workshop", "suppliers"],
     catalog: { seedVerticalId: "tire-service" },
   },
 
@@ -589,7 +589,7 @@ const PROFILE_LIST: ActivityProfile[] = [
     workflows: [],
     dashboardWidgets: ["revenue", "recentOrders", "lowStock", "customers"],
     website: { ctaMode: "order" },
-    extensions: ["batch-production"],
+    extensions: ["batch-production", "suppliers"],
     catalog: { seedVerticalId: "beekeeping" },
   },
 ]

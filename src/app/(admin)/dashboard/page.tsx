@@ -21,6 +21,7 @@ import {
   getRecentActivities,
 } from "@/app/actions/dashboard"
 import { getWorkOrdersOverview } from "@/app/actions/work-orders"
+import { getStockSummary } from "@/app/actions/inventory"
 import { formatDistanceToNow } from "date-fns"
 import { formatSalonTime } from "@/lib/booking-time"
 import { getSessionSalonTimezone } from "@/lib/tenant"
@@ -68,6 +69,12 @@ export default async function AdminDashboard() {
     )
   const workOrders = wantsWorkOrderWidgets ? await getWorkOrdersOverview() : null
   const ww = workOrders?.stats
+
+  // Stock summary widget (E2-2) — only for inventory-capable profiles
+  // whose widget set includes lowStock (skips the queries entirely otherwise).
+  const inventoryEnabled = profile.capabilities.inventory !== "disabled"
+  const stockSummary =
+    inventoryEnabled && hasWidget("lowStock") ? await getStockSummary() : null
 
   return (
     <div className="space-y-8">
@@ -315,6 +322,70 @@ export default async function AdminDashboard() {
                   </Button>
                 </Link>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Stock summary (EPIC #2 E2-2) — inventory-capable profiles only */}
+        {stockSummary && (
+          <Card className={showAppointments ? "col-span-3" : "col-span-7"}>
+            <CardHeader>
+              <CardTitle>{t.inventory.widgetTitle}</CardTitle>
+              <CardDescription>{t.inventory.widgetDesc}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="rounded-lg border p-3">
+                  <div className="text-2xl font-bold text-green-600">
+                    {stockSummary.inStock}
+                  </div>
+                  <p className="text-muted-foreground text-xs">{t.inventory.widgetInStock}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <div className="text-2xl font-bold text-amber-600">
+                    {stockSummary.low}
+                  </div>
+                  <p className="text-muted-foreground text-xs">{t.inventory.widgetLow}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <div className="text-2xl font-bold text-red-600">
+                    {stockSummary.out}
+                  </div>
+                  <p className="text-muted-foreground text-xs">{t.inventory.widgetOut}</p>
+                </div>
+              </div>
+
+              {stockSummary.lowItems.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold">{t.inventory.widgetLowListTitle}</h3>
+                  <div className="max-h-40 space-y-2 overflow-y-auto">
+                    {stockSummary.lowItems.map((p) => (
+                      <Link
+                        key={p.id}
+                        href={`/dashboard/products/${p.id}/edit`}
+                        className="flex items-center justify-between rounded-lg border p-2.5 transition-colors hover:bg-accent"
+                      >
+                        <span className="truncate text-sm font-medium">{p.name}</span>
+                        <span
+                          className={`ml-3 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                            p.stockQuantity === 0
+                              ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"
+                              : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
+                          }`}
+                        >
+                          {p.stockQuantity}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <Link href="/dashboard/products">
+                <Button variant="outline" className="w-full">
+                  {t.inventory.widgetManage}
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         )}

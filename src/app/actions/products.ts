@@ -118,7 +118,15 @@ export const getProductById = cache(async (id: string) => {
 
   const product = await prisma.product.findFirst({
     where: { id, organizationId: org.id },
-    include: { category: true },
+    include: {
+      category: true,
+      // Variants feed the stock-movement ledger card (E2-2).
+      variants: {
+        where: { isActive: true },
+        select: { id: true, name: true, stockQuantity: true },
+        orderBy: { position: "asc" },
+      },
+    },
   })
 
   if (!product) return null

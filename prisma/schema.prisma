@@ -104,6 +104,7 @@ model Organization {
   billingEvents        PlatformBillingEvent[]
   platformAuditLogs    PlatformAuditLog[]
   customDomains        CustomDomain[]
+  stockMovements       StockMovement[]
 
   @@index([slug])
   @@index([status])
@@ -241,6 +242,9 @@ model User {
 
   // Notification preferences
   notificationPreferences NotificationPreferences?
+
+  // Inventory ledger entries created by this user (E2-2)
+  stockMovements StockMovement[]
 
   @@index([email])
   @@index([role])
@@ -608,6 +612,7 @@ model Product {
   orderItems   OrderItem[]
   variants     ProductVariant[]
   packageItems PackageItem[]
+  stockMovements StockMovement[]
 
   @@unique([organizationId, sku])
   @@index([organizationId])
@@ -646,6 +651,7 @@ model Order {
 
   customer Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
   items    OrderItem[]
+  stockMovements StockMovement[]
 
   @@index([customerId])
   @@index([organizationId])
@@ -873,6 +879,10 @@ model ExtensionRecord {
   customer         Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
   linkedWorkOrders WorkOrder[]
 
+  // E2-2 inventory runtime — soft links FROM the stock ledger
+  stockMovementsAsSupplier StockMovement[] @relation("StockMovementSupplier")
+  stockMovementsAsBatch    StockMovement[] @relation("StockMovementBatch")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -906,6 +916,7 @@ model ProductVariant {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   product      Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stockMovements StockMovement[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1046,4 +1057,60 @@ model CustomDomain {
 
   @@index([organizationId])
   @@index([organizationId, status])
+}
+
+// ============================================================
+// STOCK MOVEMENT LEDGER (EPIC #2 E2-2) — append-only inventory
+// runtime. Each row is ONE stock event (receipt / issue); the
+// product/variant `stockQuantity` is the STATE, this table is
+// the LEDGER. Manual in/out flows update state + ledger in one
+// transaction; negative stock is rejected server-side.
+// Traceability: optional soft links to ExtensionRecord rows
+// (supplier / batch) keep §9.6 provenance without duplicating
+// the extension registry.
+// ============================================================
+
+enum StockDirection {
+  IN
+  OUT
+}
+
+enum StockMovementSource {
+  MANUAL
+  ORDER
+}
+
+model StockMovement {
+  id               String              @id @default(cuid())
+  organizationId   String
+  productId        String
+  productVariantId String?
+  direction        StockDirection
+  quantity         Int // always > 0 (validated in actions)
+  source           StockMovementSource @default(MANUAL)
+  note             String?             @db.Text
+
+  // When source = ORDER: the shop order that caused the issue
+  orderId String?
+
+  // Traceability links (E2-2): supplier + batch via ExtensionRecord
+  supplierRecordId String?
+  batchRecordId    String?
+
+  createdById String?
+
+  createdAt DateTime @default(now())
+
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product        Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant?  @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  order          Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  supplierRecord ExtensionRecord? @relation("StockMovementSupplier", fields: [supplierRecordId], references: [id], onDelete: SetNull)
+  batchRecord    ExtensionRecord? @relation("StockMovementBatch", fields: [batchRecordId], references: [id], onDelete: SetNull)
+  createdBy      User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([organizationId, productId])
+  @@index([productId])
+  @@index([createdAt])
 }

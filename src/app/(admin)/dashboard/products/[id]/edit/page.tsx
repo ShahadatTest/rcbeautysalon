@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeftIcon } from "@/components/icons"
 import { ProductForm } from "@/components/dashboard/product-form"
 import { ProductVariantsCard } from "@/components/dashboard/product-variants-card"
+import { StockMovementsCard } from "@/components/dashboard/stock-movements-card"
 import { getProductById } from "@/app/actions/products"
 import { getAllCategories } from "@/app/actions/services"
 import { getServerI18n } from "@/lib/i18n/server"
@@ -53,6 +54,19 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         productId={product.id}
         productPrice={product.price}
         labels={t.catalogDocs.variants}
+      />
+
+      {/* Stock movement ledger (EPIC #2 E2-2) — manual receipts/issues */}
+      <StockMovementsCard
+        productId={product.id}
+        productStock={product.stockQuantity}
+        trackInventory={product.trackInventory}
+        variants={product.variants.map((v) => ({
+          id: v.id,
+          name: v.name,
+          stockQuantity: v.stockQuantity,
+        }))}
+        labels={t.inventory}
       />
     </div>
   )

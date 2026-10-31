@@ -30,9 +30,13 @@ describe("E2-1 — capability extension registry", () => {
     }
   })
 
-  it("NEW extensions are enabled by NO existing profile (default disabled — acceptance)", () => {
+  it("extensions without a shipped runtime are enabled by NO existing profile", () => {
+    // E2-1 delivered the declarations; runtimes arrive phase by phase.
+    // `suppliers` became live in E2-2 (inventory runtime) — the rest
+    // must stay dormant until their phase references them.
+    const DORMANT = ["projects", "multi-location", "memberships", "delivery-runtime"] as const
     for (const profile of listProfiles()) {
-      for (const id of E21_IDS) {
+      for (const id of DORMANT) {
         expect(
           profile.extensions,
           `${profile.id} unexpectedly enables "${id}"`
@@ -114,6 +118,32 @@ describe("E2-1 — dependency matrix of the new extensions", () => {
   it("each new extension declares exactly its planned dependencies", () => {
     for (const [id, caps] of Object.entries(EXPECTED)) {
       expect([...EXTENSIONS[id]!.capabilities].sort(), id).toEqual([...caps].sort())
+    }
+  })
+})
+
+describe("E2-2 — suppliers extension runtime enablement", () => {
+  // E2-2 ships the inventory runtime and enables `suppliers` on the
+  // inventory-REQUIRED profiles — the supplier picker in the stock
+  // movement ledger reads exactly these registry entries.
+  it("inventory-required profiles enable the suppliers extension", () => {
+    for (const id of ["tire-service", "beekeeping"]) {
+      const profile = listProfiles().find((p) => p.id === id)!
+      expect(profile.capabilities.inventory, id).toBe("required")
+      expect(
+        profile.extensions,
+        `${id} must enable "suppliers" (E2-2)`
+      ).toContain("suppliers")
+    }
+  })
+
+  it("profiles WITHOUT inventory still do not enable suppliers", () => {
+    for (const profile of listProfiles()) {
+      if (profile.capabilities.inventory === "required") continue
+      expect(
+        profile.extensions,
+        `${profile.id} unexpectedly enables suppliers`
+      ).not.toContain("suppliers")
     }
   })
 })
