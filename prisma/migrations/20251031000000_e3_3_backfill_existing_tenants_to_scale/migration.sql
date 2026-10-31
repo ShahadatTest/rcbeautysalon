@@ -1,0 +1,17 @@
+-- EPIC #3 E3-3: backfill existing tenants to the SCALE plan.
+--
+-- Pre-E3-3 tenants have never had plan limits; giving them "free"
+-- (the schema default) would silently block new content creation
+-- (e.g. the default org has 4 staff > FREE limit 3) — a production
+-- behavior regression. Per the E3-1 precedent ("existing tenants keep
+-- working behavior; no rewrite") they keep their current limitless
+-- behavior on SCALE until they (or the operator) explicitly change it.
+--
+-- NEW tenants are unaffected: they are created with the schema default
+-- "free" (Organization.plan @default("free")), where the E3-3
+-- entitlements apply from the start. Payment gating of plan switches
+-- follows in E3-4.
+--
+-- Idempotent: only flips rows still on the un-set default "free".
+-- Safe to re-run.
+UPDATE "Organization" SET "plan" = 'scale' WHERE "plan" = 'free';
