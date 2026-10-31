@@ -8,6 +8,7 @@ import { StockMovementsCard } from "@/components/dashboard/stock-movements-card"
 import { getProductById } from "@/app/actions/products"
 import { getAllCategories } from "@/app/actions/services"
 import { getServerI18n } from "@/lib/i18n/server"
+import { getSessionEffectiveProfile } from "@/lib/profiles/resolve"
 
 interface EditProductPageProps {
   params: Promise<{ id: string }>
@@ -17,10 +18,11 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
   const { id } = await params
 
   // Fetch product and categories in parallel
-  const [product, categories, { t }] = await Promise.all([
+  const [product, categories, { t }, profile] = await Promise.all([
     getProductById(id),
     getAllCategories(),
     getServerI18n(),
+    getSessionEffectiveProfile(),
   ])
 
   if (!product) {
@@ -56,18 +58,21 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         labels={t.catalogDocs.variants}
       />
 
-      {/* Stock movement ledger (EPIC #2 E2-2) — manual receipts/issues */}
-      <StockMovementsCard
-        productId={product.id}
-        productStock={product.stockQuantity}
-        trackInventory={product.trackInventory}
-        variants={product.variants.map((v) => ({
-          id: v.id,
-          name: v.name,
-          stockQuantity: v.stockQuantity,
-        }))}
-        labels={t.inventory}
-      />
+      {/* Stock movement ledger (EPIC #2 E2-2) — manual receipts/issues.
+          §21: hidden when the owner disables the inventory capability. */}
+      {profile.capabilities.inventory !== "disabled" && (
+        <StockMovementsCard
+          productId={product.id}
+          productStock={product.stockQuantity}
+          trackInventory={product.trackInventory}
+          variants={product.variants.map((v) => ({
+            id: v.id,
+            name: v.name,
+            stockQuantity: v.stockQuantity,
+          }))}
+          labels={t.inventory}
+        />
+      )}
     </div>
   )
 }
