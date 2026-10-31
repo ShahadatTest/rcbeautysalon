@@ -1027,7 +1027,7 @@ async function main() {
   await prisma.order.deleteMany({})
 
   // Order 1 - COMPLETED (picked up) - 1 week ago
-  const order1 = await prisma.order.create({
+  await prisma.order.create({
     data: {
       customerId: customerJohn.id,
       subtotal: 60.0,
@@ -1046,7 +1046,7 @@ async function main() {
   })
 
   // Order 2 - COMPLETED - 2 weeks ago
-  const order2 = await prisma.order.create({
+  await prisma.order.create({
     data: {
       customerId: customerEmily.id,
       subtotal: 107.0,
@@ -1066,7 +1066,7 @@ async function main() {
 
   // Order 3 - PAID (ready for pickup) - yesterday
   const yesterday = addDays(today, -1)
-  const order3 = await prisma.order.create({
+  await prisma.order.create({
     data: {
       customerId: customerMichael.id,
       subtotal: 58.0,
@@ -1084,7 +1084,7 @@ async function main() {
   })
 
   // Order 4 - PENDING (not paid yet) - today
-  const order4 = await prisma.order.create({
+  await prisma.order.create({
     data: {
       customerId: customerEmily.id,
       subtotal: 73.0,
@@ -1102,7 +1102,7 @@ async function main() {
   })
 
   // Order 5 - CANCELLED - 3 days ago
-  const order5 = await prisma.order.create({
+  await prisma.order.create({
     data: {
       customerId: customerJohn.id,
       subtotal: 65.0,
@@ -1121,7 +1121,7 @@ async function main() {
 
   // Order 6 - COMPLETED (guest order) - 5 days ago
   const fiveDaysAgo = addDays(today, -5)
-  const order6 = await prisma.order.create({
+  await prisma.order.create({
     data: {
       guestName: 'Amanda Wilson',
       guestEmail: 'amanda.w@example.com',

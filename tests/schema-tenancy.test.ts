@@ -18,17 +18,11 @@ interface ModelInfo {
   indexes: string[]
 }
 
-const EXEMPT_MODELS = new Set([
-  // Pure platform/join models without tenant data of their own:
-  "WorkflowStage", // scoped via definition → definitionId
-  "WorkOrderEvent", // scoped via workOrder + own organizationId anyway
-  "Account",
-  "Session",
-  "VerificationToken",
-  "PackageItem",
-  "DocumentItem",
-  "CartItem",
-])
+// Models deliberately NOT in TENANT_MODELS (tenant scope runs indirectly):
+//   WorkflowStage   → scoped via WorkflowDefinition.definitionId
+//   WorkOrderEvent  → cascade-bound to WorkOrder (own organizationId anyway)
+//   Account / Session / VerificationToken → NextAuth join models
+//   PackageItem / DocumentItem / CartItem → scoped via parent document
 
 function parseSchema(src: string): ModelInfo[] {
   const models: ModelInfo[] = []
