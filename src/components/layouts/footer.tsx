@@ -4,18 +4,12 @@ import { Logo } from "@/components/ui/logo"
 import { getPublicSiteData } from "@/lib/public-site"
 import { orgPath } from "@/lib/org-path"
 import { formatOpeningHours } from "@/lib/site-content"
+import { getProfile, term as profileTerm } from "@/lib/profiles/registry"
 
 function truncate(text: string, max = 160): string {
   if (text.length <= max) return text
   return `${text.slice(0, max).trimEnd()}…`
 }
-
-const quickLinks = [
-  { href: "/services", label: "Storitve" },
-  { href: "/shop", label: "Trgovina" },
-  { href: "/booking", label: "Rezerviraj termin" },
-  { href: "/my-appointments", label: "Moji termini" },
-]
 
 const legalLinks = [
   { href: "#", label: "Zasebnost" },
@@ -33,6 +27,22 @@ const Footer = async () => {
   const aboutText = content?.about.paragraphs[0]
     ? truncate(content.about.paragraphs[0])
     : "Vaš salon lepote — rezervacije terminov, storitve in izbrani izdelki na enem mestu."
+
+  // Profile-aware footer links (EPIC #1 §21): irrelevant modules never render.
+  const profile = getProfile(org?.vertical)
+  const cap = (k: keyof typeof profile.capabilities) =>
+    profile.capabilities[k] !== "disabled"
+  const quickLinks = [
+    cap("services") && { href: "/services", label: "Storitve" },
+    cap("shop") && { href: "/shop", label: "Trgovina" },
+    profile.website.ctaMode === "booking" &&
+      cap("appointments") && { href: "/booking", label: "Rezerviraj termin" },
+    cap("appointments") && { href: "/my-appointments", label: "Moji termini" },
+    (profile.website.ctaMode === "inquiry" || profile.website.ctaMode === "quote") && {
+      href: "/inquiry",
+      label: profileTerm(profile, "bookingCta", "sl"),
+    },
+  ].filter(Boolean) as { href: string; label: string }[]
 
   const openingHours = content ? formatOpeningHours(content.openingHours) : []
 
@@ -254,9 +264,15 @@ const Footer = async () => {
               ))}
             </ul>
             <div className="border-primary/20 bg-primary/5 rounded-lg border p-4">
-              <p className="text-primary text-xs font-medium">
-                ✨ Rezervirajte online za zagotovljen termin.
-              </p>
+              {profile.website.ctaMode === "booking" ? (
+                <p className="text-primary text-xs font-medium">
+                  ✨ Rezervirajte online za zagotovljen termin.
+                </p>
+              ) : (
+                <p className="text-primary text-xs font-medium">
+                  ✨ {profileTerm(profile, "bookingCta", "sl")} — odgovorimo v najkrajšem možnem času.
+                </p>
+              )}
             </div>
           </div>
         </div>

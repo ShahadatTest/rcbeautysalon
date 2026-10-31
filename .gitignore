@@ -8,3 +8,4 @@ out/
 dev.log
 agent-ctx/
 .vscode/
+.env*

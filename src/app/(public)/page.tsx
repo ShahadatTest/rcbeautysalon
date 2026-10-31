@@ -5,6 +5,7 @@ import {
   getPublicFeaturedStaff,
 } from "@/lib/public-site"
 import { HomeContent } from "@/components/landing/home-content"
+import { resolveCtaLinks } from "@/lib/public-cta"
 
 export default async function HomePage() {
   const site = await getPublicSiteData()
@@ -32,6 +33,7 @@ export default async function HomePage() {
     <HomeContent
       org={{ slug: org.slug, name: org.name, logo: org.logo }}
       content={content}
+      ctaLinks={resolveCtaLinks(org.vertical, content)}
       featuredServices={featuredServices}
       featuredProducts={featuredProducts}
       featuredStaff={featuredStaff}

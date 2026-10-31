@@ -11,6 +11,7 @@ import { ordersSl, ordersEn } from "./dict/orders"
 import { staffSl, staffEn } from "./dict/staff"
 import { settingsSl, settingsEn } from "./dict/settings"
 import { authSl, authEn } from "./dict/auth"
+import { workFormsSl, workFormsEn } from "./dict/work-forms"
 
 const dictionaries = {
   sl: {
@@ -25,6 +26,7 @@ const dictionaries = {
     staff: staffSl,
     settings: settingsSl,
     auth: authSl,
+    workForms: workFormsSl,
   },
   en: {
     common: commonEn,
@@ -38,6 +40,7 @@ const dictionaries = {
     staff: staffEn,
     settings: settingsEn,
     auth: authEn,
+    workForms: workFormsEn,
   },
 } as const
 

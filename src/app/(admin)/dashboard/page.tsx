@@ -20,6 +20,7 @@ import {
   getTodaysAppointments,
   getRecentActivities,
 } from "@/app/actions/dashboard"
+import { getWorkOrdersOverview } from "@/app/actions/work-orders"
 import { formatDistanceToNow } from "date-fns"
 import { formatSalonTime } from "@/lib/booking-time"
 import { getSessionSalonTimezone } from "@/lib/tenant"
@@ -47,6 +48,16 @@ export default async function AdminDashboard() {
   const ordersLabel = workOrdersEnabled
     ? profileTerm(profile, "orderPlural", locale)
     : t.dashboard.shopSales
+
+  // Widget-driven work-order board data — only fetched for profiles whose
+  // dashboardWidgets actually use it (salons skip the extra queries entirely).
+  const wantsWorkOrderWidgets =
+    workOrdersEnabled &&
+    profile.dashboardWidgets.some((k) =>
+      ["activeOrders", "deadlines", "pendingApprovals", "readyForDelivery"].includes(k)
+    )
+  const workOrders = wantsWorkOrderWidgets ? await getWorkOrdersOverview() : null
+  const ww = workOrders?.stats
 
   return (
     <div className="space-y-8">
@@ -148,6 +159,27 @@ export default async function AdminDashboard() {
         </Card>
       </div>
 
+      {/* Work-order widgets — data-driven by profile.dashboardWidgets (§10) */}
+      {ww && (
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[
+            { label: t.workForms.workOrders.stats.active, value: ww.active, href: "/dashboard/work-orders" },
+            { label: t.workForms.workOrders.stats.dueSoon, value: ww.dueSoon, href: "/dashboard/work-orders" },
+            { label: t.workForms.workOrders.stats.pendingApprovals, value: ww.pendingApprovals, href: "/dashboard/work-orders" },
+            { label: t.workForms.workOrders.stats.readyForDelivery, value: ww.readyForDelivery, href: "/dashboard/work-orders" },
+          ].map((w) => (
+            <Link key={w.label} href={w.href}>
+              <Card className="hover:border-primary/40 transition-colors">
+                <CardContent className="p-4">
+                  <div className="text-2xl font-bold">{w.value}</div>
+                  <p className="text-muted-foreground mt-1 text-xs">{w.label}</p>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         {/* Today's Appointments — only for appointment-capable profiles */}
         {showAppointments && (
@@ -209,8 +241,70 @@ export default async function AdminDashboard() {
         </Card>
         )}
 
+        {/* Production deadlines — replaces the calendar for
+            appointment-less, work-order profiles (§10, §21) */}
+        {!showAppointments && workOrders && workOrders.orders.length > 0 && (
+          <Card className="col-span-4">
+            <CardHeader>
+              <CardTitle>{t.workForms.workOrders.stats.dueSoon}</CardTitle>
+              <CardDescription>{ordersLabel}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {workOrders.orders
+                  .filter((o) => o.status === "OPEN")
+                  .sort((a, b) => {
+                    if (!a.dueDate) return 1
+                    if (!b.dueDate) return -1
+                    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+                  })
+                  .slice(0, 6)
+                  .map((o) => (
+                    <Link
+                      key={o.id}
+                      href={`/dashboard/work-orders/${o.id}`}
+                      className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-accent"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">
+                          #{String(o.number).padStart(3, "0")} {o.title}
+                        </p>
+                        <p className="text-muted-foreground truncate text-sm">
+                          {o.currentStageName ?? "—"} · {o.customerName ?? t.workForms.workOrders.noCustomer}
+                        </p>
+                      </div>
+                      <div className="pl-3 text-right">
+                        <p
+                          className={`text-sm font-semibold ${
+                            o.overdue
+                              ? "text-red-600"
+                              : ""
+                          }`}
+                        >
+                          {o.dueDate
+                            ? new Date(o.dueDate).toLocaleDateString(locale === "en" ? "en-GB" : "sl-SI", {
+                                day: "numeric",
+                                month: "short",
+                              })
+                            : "—"}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+              </div>
+              <div className="mt-4">
+                <Link href="/dashboard/work-orders">
+                  <Button variant="outline" className="w-full">
+                    {t.workForms.workOrders.title}
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Quick Actions */}
-        <Card className={showAppointments ? "col-span-3" : "col-span-7"}>
+        <Card className={showAppointments || (!showAppointments && workOrders && workOrders.orders.length > 0) ? "col-span-3" : "col-span-7"}>
           <CardHeader>
             <CardTitle>{t.dashboard.quickActions}</CardTitle>
             <CardDescription>{t.dashboard.commonTasks}</CardDescription>

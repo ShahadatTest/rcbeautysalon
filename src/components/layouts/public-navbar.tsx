@@ -27,9 +27,11 @@ interface NavLinkItem {
 
 interface PublicNavbarProps {
   org: { slug: string | null; name: string; logo: string | null }
+  /** Profile-resolved call-to-action; null → hidden (e.g. module disabled). */
+  cta?: { label: string; href: string } | null
 }
 
-export function PublicNavbar({ org }: PublicNavbarProps) {
+export function PublicNavbar({ org, cta }: PublicNavbarProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { data: session, status } = useSession()
@@ -166,11 +168,13 @@ export function PublicNavbar({ org }: PublicNavbarProps) {
                 </Button>
               </Link>
             )}
-            <Link href={orgPath(org.slug, "/booking")}>
-              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-md">
-                Rezerviraj
-              </Button>
-            </Link>
+            {cta && (
+              <Link href={orgPath(org.slug, cta.href)}>
+                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-md">
+                  {cta.label}
+                </Button>
+              </Link>
+            )}
           </div>
         </nav>
 
@@ -293,12 +297,14 @@ export function PublicNavbar({ org }: PublicNavbarProps) {
               </Link>
             )}
 
-            {/* Book Now Button */}
-            <Link href={orgPath(org.slug, "/booking")} onClick={() => setMobileMenuOpen(false)} className="mt-2">
-              <Button className="bg-primary text-primary-foreground hover:bg-primary/90 w-full h-12 text-base">
-                Rezerviraj
-              </Button>
-            </Link>
+            {/* Profile-resolved CTA (hidden when module disabled) */}
+            {cta && (
+              <Link href={orgPath(org.slug, cta.href)} onClick={() => setMobileMenuOpen(false)} className="mt-2">
+                <Button className="bg-primary text-primary-foreground hover:bg-primary/90 w-full h-12 text-base">
+                  {cta.label}
+                </Button>
+              </Link>
+            )}
           </nav>
         </div>
       )}

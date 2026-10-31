@@ -23,19 +23,19 @@ import {
   ScissorsIcon,
   PackageIcon,
   ShoppingBagIcon,
+  ReceiptIcon,
+  SlidersIcon,
   UserCogIcon,
   SettingsIcon,
   CloseIcon,
 } from "@/components/icons"
 
 interface NavItem {
-  nameKey: "dashboard" | "analytics" | "appointments" | "customers" | "services" | "products" | "shopOrders" | "staff" | "settings"
+  nameKey: "dashboard" | "analytics" | "appointments" | "customers" | "services" | "products" | "shopOrders" | "workOrders" | "forms" | "staff" | "settings"
   href: string
   icon: React.ComponentType<{ size?: number; className?: string }>
   /** Capability that must not be "disabled" for this item to render. */
   capability?: CapabilityKey
-  /** Alternative capability — item renders when EITHER is enabled. */
-  alternateCapability?: CapabilityKey
   /** Terminology key overriding the generic dictionary label. */
   termKey?: "appointmentPlural" | "servicePlural" | "productPlural" | "orderPlural"
 }
@@ -47,7 +47,11 @@ const navigation: NavItem[] = [
   { nameKey: "customers", href: "/dashboard/users", icon: UsersIcon, capability: "customers" },
   { nameKey: "services", href: "/dashboard/services", icon: ScissorsIcon, capability: "services", termKey: "servicePlural" },
   { nameKey: "products", href: "/dashboard/products", icon: PackageIcon, capability: "shop", termKey: "productPlural" },
-  { nameKey: "shopOrders", href: "/dashboard/orders", icon: ShoppingBagIcon, capability: "workOrders", alternateCapability: "shop", termKey: "orderPlural" },
+  // Work orders (workflow-driven jobs) — terminology comes from the profile
+  { nameKey: "workOrders", href: "/dashboard/work-orders", icon: ReceiptIcon, capability: "workOrders", termKey: "orderPlural" },
+  // E-commerce shop orders — generic label, only for shop-capable tenants
+  { nameKey: "shopOrders", href: "/dashboard/orders", icon: ShoppingBagIcon, capability: "shop" },
+  { nameKey: "forms", href: "/dashboard/forms", icon: SlidersIcon, capability: "forms" },
   { nameKey: "staff", href: "/dashboard/staff", icon: UserCogIcon, capability: "staff" },
   { nameKey: "settings", href: "/dashboard/settings", icon: SettingsIcon },
 ]
@@ -63,11 +67,7 @@ function SidebarNav({ onNavigate }: SidebarNavProps) {
   // Capability-gated navigation (EPIC #1 §21): irrelevant modules never render.
   const visible = navigation.filter((item) => {
     if (!item.capability) return true
-    const main = profile.capabilities[item.capability] !== "disabled"
-    const alt = item.alternateCapability
-      ? profile.capabilities[item.alternateCapability] !== "disabled"
-      : false
-    return main || alt
+    return profile.capabilities[item.capability] !== "disabled"
   })
 
   return (
@@ -76,15 +76,8 @@ function SidebarNav({ onNavigate }: SidebarNavProps) {
         const isActive = pathname === item.href ||
           (item.href !== "/dashboard" && pathname.startsWith(item.href))
         const IconComponent = item.icon
-        // Industry terminology (order type) — falls back to the dictionary.
-        const label =
-          item.termKey && item.termKey === "orderPlural"
-            ? profile.capabilities.workOrders !== "disabled"
-              ? term(item.termKey)
-              : t.common.nav[item.nameKey]
-            : item.termKey
-              ? term(item.termKey)
-              : t.common.nav[item.nameKey]
+        // Industry terminology overrides the generic dictionary label.
+        const label = item.termKey ? term(item.termKey) : t.common.nav[item.nameKey]
         return (
           <Link
             key={item.nameKey}

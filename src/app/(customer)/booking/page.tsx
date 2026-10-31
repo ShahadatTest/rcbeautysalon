@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth/auth"
 import { getResolvedOrg } from "@/lib/tenant"
 import { orgPath } from "@/lib/org-path"
+import { isBookingEnabled } from "@/lib/public-cta"
 import {
   getServiceForBooking,
   getAvailableStaff,
@@ -23,6 +24,12 @@ export default async function BookingPage(props: BookingPageProps) {
   // Tenant-aware redirects: /s/[slug]/booking must keep its prefix
   const org = await getResolvedOrg()
   const p = (path: string) => orgPath(org?.slug, path)
+
+  // Profile guard (EPIC #1 §21): non-appointment businesses never see
+  // a booking calendar — they are routed to the inquiry form instead.
+  if (!isBookingEnabled(org?.vertical)) {
+    redirect(p("/inquiry"))
+  }
 
   // Get current session
   const session = await auth()

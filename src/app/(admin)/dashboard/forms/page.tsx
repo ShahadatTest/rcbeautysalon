@@ -1,0 +1,58 @@
+import { getServerI18n } from "@/lib/i18n/server"
+import { listFormDefinitions, listFormSubmissions } from "@/app/actions/forms"
+import { getSessionOrg } from "@/lib/tenant"
+import { getProfile } from "@/lib/profiles/registry"
+import { FormsClient } from "@/components/admin/forms/forms-client"
+
+// ============================================================
+// FORMS PAGE (EPIC #1 §8 — Phase 4)
+// Two surfaces: the tenant's form definitions (materialized
+// from its activity profile, owner-toggleable) and the inbox of
+// public submissions with the review pipeline + conversion into
+// work orders for workflow-capable tenants.
+// ============================================================
+
+export default async function FormsPage() {
+  const [{ t }, definitions, submissions, org] = await Promise.all([
+    getServerI18n(),
+    listFormDefinitions(),
+    listFormSubmissions(),
+    getSessionOrg(),
+  ])
+  const f = t.workForms.forms
+  const canWorkOrders = getProfile(org?.vertical).capabilities.workOrders !== "disabled"
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{f.title}</h1>
+        <p className="text-muted-foreground">{f.subtitle}</p>
+      </div>
+
+      <FormsClient
+        definitions={definitions}
+        submissions={submissions}
+        canWorkOrders={canWorkOrders}
+        labels={{
+          definitions: f.definitions,
+          active: f.active,
+          inactive: f.inactive,
+          submissions: f.submissions,
+          submissionsTitle: f.submissionsTitle,
+          emptySubmissions: f.emptySubmissions,
+          emptySubmissionsHint: f.emptySubmissionsHint,
+          contact: f.contact,
+          noContact: f.noContact,
+          viewData: f.viewData,
+          markInReview: f.markInReview,
+          markProcessed: f.markProcessed,
+          markNew: f.markNew,
+          createWorkOrder: f.createWorkOrder,
+          createdWorkOrder: f.createdWorkOrder,
+          statusLabels: f.statusLabels,
+          deactivateConfirm: f.deactivateConfirm,
+        }}
+      />
+    </div>
+  )
+}

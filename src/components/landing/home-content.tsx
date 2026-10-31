@@ -6,7 +6,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { cloudinaryPresets } from "@/lib/utils/cloudinary"
 import { orgPath } from "@/lib/org-path"
-import type { SectionKey, SiteContent } from "@/lib/site-content"
+import type { CtaLink, SectionKey, SiteContent } from "@/lib/site-content"
 import { HeroVideo } from "@/components/landing/hero-video"
 import { HeroActions } from "@/components/landing/hero-actions"
 import { FeatureCards } from "@/components/landing/feature-cards"
@@ -49,6 +49,8 @@ interface Staff {
 interface HomeContentProps {
   org: { slug: string | null; name: string; logo: string | null }
   content: SiteContent
+  /** Profile-resolved hero/CTA links (EPIC #1 §4) — falls back to content. */
+  ctaLinks?: { primaryCta: CtaLink; secondaryCta: CtaLink | null }
   featuredServices: Service[]
   featuredProducts: Product[]
   featuredStaff: Staff[]
@@ -57,10 +59,13 @@ interface HomeContentProps {
 export function HomeContent({
   org,
   content,
+  ctaLinks,
   featuredServices,
   featuredProducts,
   featuredStaff,
 }: HomeContentProps) {
+  const primaryCta = ctaLinks?.primaryCta ?? content.hero.primaryCta
+  const secondaryCta = ctaLinks ? ctaLinks.secondaryCta : content.hero.secondaryCta
   const { setActiveSection } = useNavigationStore()
 
   const prefix = org.slug ? `/s/${org.slug}` : ""
@@ -109,8 +114,8 @@ export function HomeContent({
                 {content.hero.subtitle}
               </p>
               <HeroActions
-                primaryCta={content.hero.primaryCta}
-                secondaryCta={content.hero.secondaryCta}
+                primaryCta={primaryCta}
+                secondaryCta={secondaryCta}
                 orgSlug={org.slug}
               />
             </div>
@@ -252,10 +257,10 @@ export function HomeContent({
                   ))}
                 </div>
                 <CTAButton
-                  href={toHref(content.hero.primaryCta.href)}
+                  href={toHref(primaryCta.href)}
                   className="from-primary to-primary/90 group bg-linear-to-r text-white shadow-lg hover:opacity-90"
                 >
-                  {content.hero.primaryCta.label}
+                  {primaryCta.label}
                 </CTAButton>
               </div>
             </div>

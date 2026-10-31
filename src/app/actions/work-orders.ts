@@ -1,0 +1,505 @@
+"use server"
+
+import { prisma } from "@/lib/prisma"
+import { revalidatePath } from "next/cache"
+import { requireAdminOrg } from "@/lib/tenant"
+
+// ============================================================
+// WORK ORDERS (EPIC #1 §9 — universal workflow engine, Phase 4)
+// A work order is a job tracked through the tenant's configured
+// WorkflowDefinition stages (seamstress production pipeline,
+// vehicle workshop work order, …). Stage transitions are
+// validated server-side (adjacent stages only — skipping stages
+// is rejected) and every change is appended to WorkOrderEvent,
+// giving a complete audit trail.
+// All queries/actions are strictly org-scoped via requireAdminOrg.
+// ============================================================
+
+/** Stage keys treated as "waiting on the customer's approval/quote". */
+const APPROVAL_STAGE_PATTERN = /(approval|approved|quote)/
+/** Stage keys treated as "ready for handover/delivery". */
+const DELIVERY_STAGE_PATTERN = /(delivery|handover|ready)/
+
+export interface WorkOrderListItem {
+  id: string
+  number: number
+  title: string
+  status: string
+  priority: string
+  dueDate: string | null
+  /** OPEN with dueDate in the past — dashboard highlights it. */
+  overdue: boolean
+  total: number | null
+  notes: string | null
+  currentStageKey: string | null
+  currentStageName: string | null
+  currentStageOrder: number | null
+  workflowDefinitionId: string | null
+  workflowName: string | null
+  customerName: string | null
+  customerEmail: string | null
+  createdAt: string
+  lastEventAt: string | null
+  lastEventMessage: string | null
+}
+
+export interface WorkOrderStats {
+  active: number
+  dueSoon: number
+  pendingApprovals: number
+  readyForDelivery: number
+  completedThisMonth: number
+}
+
+export interface WorkflowStageInfo {
+  key: string
+  name: string
+  order: number
+  description: string | null
+  slaHours: number | null
+  isFinal: boolean
+}
+
+export interface WorkflowDefinitionInfo {
+  id: string
+  key: string
+  name: string
+  entity: string
+  stages: WorkflowStageInfo[]
+}
+
+export interface WorkOrderEventItem {
+  id: string
+  type: string
+  fromStageKey: string | null
+  toStageKey: string | null
+  message: string | null
+  actorEmail: string | null
+  createdAt: string
+}
+
+export interface WorkOrdersOverview {
+  definitions: WorkflowDefinitionInfo[]
+  orders: WorkOrderListItem[]
+  stats: WorkOrderStats
+}
+
+function toNumber(value: unknown): number | null {
+  if (value === null || value === undefined) return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
+/** Compute dashboard/board stats from a list of work orders + stage metadata. */
+function computeStats(
+  orders: {
+    status: string
+    dueDate: Date | null
+    currentStageKey: string | null
+    updatedAt: Date
+  }[]
+): WorkOrderStats {
+  const now = Date.now()
+  const in7Days = now + 7 * 24 * 60 * 60 * 1000
+  const monthStart = new Date()
+  monthStart.setDate(1)
+  monthStart.setHours(0, 0, 0, 0)
+
+  let active = 0
+  let dueSoon = 0
+  let pendingApprovals = 0
+  let readyForDelivery = 0
+  let completedThisMonth = 0
+
+  for (const o of orders) {
+    if (o.status === "OPEN") {
+      active++
+      if (o.dueDate && o.dueDate.getTime() <= in7Days) dueSoon++
+      const key = o.currentStageKey ?? ""
+      if (APPROVAL_STAGE_PATTERN.test(key)) pendingApprovals++
+      if (DELIVERY_STAGE_PATTERN.test(key)) readyForDelivery++
+    }
+    if (
+      o.status === "COMPLETED" &&
+      o.updatedAt.getTime() >= monthStart.getTime()
+    ) {
+      completedThisMonth++
+    }
+  }
+
+  return { active, dueSoon, pendingApprovals, readyForDelivery, completedThisMonth }
+}
+
+/** Overview for the work orders page: definitions, orders, stats. */
+export async function getWorkOrdersOverview(): Promise<WorkOrdersOverview> {
+  const { org } = await requireAdminOrg()
+
+  const [definitions, orders] = await Promise.all([
+    prisma.workflowDefinition.findMany({
+      where: { organizationId: org.id, isActive: true, entity: "order" },
+      include: { stages: { orderBy: { order: "asc" } } },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.workOrder.findMany({
+      where: { organizationId: org.id },
+      include: {
+        customer: { select: { name: true, email: true } },
+        events: { orderBy: { createdAt: "desc" }, take: 1 },
+      },
+      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    }),
+  ])
+
+  const stats = computeStats(
+    orders.map((o) => ({
+      status: o.status,
+      dueDate: o.dueDate,
+      currentStageKey: o.currentStageKey,
+      updatedAt: o.updatedAt,
+    }))
+  )
+
+  const ordersSerialized = orders.map((o) => {
+    const ownDef = definitions.find((d) => d.id === o.workflowDefinitionId)
+    const ownStage = ownDef?.stages.find((s) => s.key === o.currentStageKey)
+    return {
+      id: o.id,
+      number: o.number,
+      title: o.title,
+      status: o.status,
+      priority: o.priority,
+      dueDate: o.dueDate?.toISOString() ?? null,
+      overdue:
+        o.status === "OPEN" &&
+        !!o.dueDate &&
+        o.dueDate.getTime() < Date.now(),
+      total: toNumber(o.total),
+      notes: o.notes,
+      currentStageKey: o.currentStageKey,
+      currentStageName: ownStage?.name ?? null,
+      currentStageOrder: ownStage?.order ?? null,
+      workflowDefinitionId: o.workflowDefinitionId,
+      workflowName: ownDef?.name ?? null,
+      customerName: o.customer?.name ?? null,
+      customerEmail: o.customer?.email ?? null,
+      createdAt: o.createdAt.toISOString(),
+      lastEventAt: o.events[0]?.createdAt.toISOString() ?? null,
+      lastEventMessage: o.events[0]?.message ?? null,
+    }
+  })
+
+  return {
+    definitions: definitions.map((d) => ({
+      id: d.id,
+      key: d.key,
+      name: d.name,
+      entity: d.entity,
+      stages: d.stages.map((s) => ({
+        key: s.key,
+        name: s.name,
+        order: s.order,
+        description: s.description,
+        slaHours: s.slaHours,
+        isFinal: s.isFinal,
+      })),
+    })),
+    orders: ordersSerialized,
+    stats,
+  }
+}
+
+export interface WorkOrderDetail {
+  id: string
+  number: number
+  title: string
+  status: string
+  priority: string
+  dueDate: string | null
+  total: number | null
+  notes: string | null
+  createdAt: string
+  customer: { id: string; name: string; email: string | null; phone: string | null } | null
+  workflow: WorkflowDefinitionInfo | null
+  currentStageKey: string | null
+  events: WorkOrderEventItem[]
+  sourceSubmissionId: string | null
+}
+
+/** Full detail of one work order (org-scoped) with the audit trail. */
+export async function getWorkOrderDetail(id: string): Promise<WorkOrderDetail | null> {
+  const { org } = await requireAdminOrg()
+
+  const order = await prisma.workOrder.findFirst({
+    where: { id, organizationId: org.id },
+    include: {
+      customer: true,
+      workflowDefinition: { include: { stages: { orderBy: { order: "asc" } } } },
+      events: { orderBy: { createdAt: "asc" } },
+    },
+  })
+  if (!order) return null
+
+  return {
+    id: order.id,
+    number: order.number,
+    title: order.title,
+    status: order.status,
+    priority: order.priority,
+    dueDate: order.dueDate?.toISOString() ?? null,
+    total: toNumber(order.total),
+    notes: order.notes,
+    createdAt: order.createdAt.toISOString(),
+    customer: order.customer
+      ? {
+          id: order.customer.id,
+          name: order.customer.name,
+          email: order.customer.email,
+          phone: order.customer.phone,
+        }
+      : null,
+    workflow: order.workflowDefinition
+      ? {
+          id: order.workflowDefinition.id,
+          key: order.workflowDefinition.key,
+          name: order.workflowDefinition.name,
+          entity: order.workflowDefinition.entity,
+          stages: order.workflowDefinition.stages.map((s) => ({
+            key: s.key,
+            name: s.name,
+            order: s.order,
+            description: s.description,
+            slaHours: s.slaHours,
+            isFinal: s.isFinal,
+          })),
+        }
+      : null,
+    currentStageKey: order.currentStageKey,
+    events: order.events.map((e) => ({
+      id: e.id,
+      type: e.type,
+      fromStageKey: e.fromStageKey,
+      toStageKey: e.toStageKey,
+      message: e.message,
+      actorEmail: e.actorEmail,
+      createdAt: e.createdAt.toISOString(),
+    })),
+    sourceSubmissionId: order.sourceSubmissionId,
+  }
+}
+
+export interface CreateWorkOrderInput {
+  title: string
+  customerId?: string | null
+  dueDate?: string | null
+  priority?: string
+  notes?: string | null
+  total?: number | null
+  workflowDefinitionId?: string | null
+}
+
+export interface WorkOrderActionResult {
+  ok: boolean
+  error?: string
+  id?: string
+}
+
+/**
+ * Create a work order in the FIRST stage of the tenant's active
+ * "order" workflow. Human-friendly per-tenant number = max+1.
+ */
+export async function createWorkOrder(
+  input: CreateWorkOrderInput
+): Promise<WorkOrderActionResult> {
+  const { org, session } = await requireAdminOrg()
+  const title = input.title?.trim()
+  if (!title) return { ok: false, error: "MISSING_TITLE" }
+
+  const definition = await prisma.workflowDefinition.findFirst({
+    where: {
+      organizationId: org.id,
+      isActive: true,
+      entity: "order",
+      ...(input.workflowDefinitionId ? { id: input.workflowDefinitionId } : {}),
+    },
+    include: { stages: { orderBy: { order: "asc" } } },
+  })
+  if (!definition || definition.stages.length === 0) {
+    return { ok: false, error: "NO_WORKFLOW" }
+  }
+  const firstStage = definition.stages[0]
+
+  const created = await prisma.$transaction(async (tx) => {
+    const max = await tx.workOrder.aggregate({
+      where: { organizationId: org.id },
+      _max: { number: true },
+    })
+    const number = (max._max.number ?? 0) + 1
+    return tx.workOrder.create({
+      data: {
+        organizationId: org.id,
+        number,
+        title,
+        status: "OPEN",
+        priority: input.priority ?? "NORMAL",
+        dueDate: input.dueDate ? new Date(input.dueDate) : null,
+        total:
+          input.total !== null && input.total !== undefined
+            ? input.total
+            : null,
+        notes: input.notes?.trim() || null,
+        customerId: input.customerId || null,
+        workflowDefinitionId: definition.id,
+        currentStageKey: firstStage.key,
+        events: {
+          create: {
+            organizationId: org.id,
+            type: "CREATED",
+            toStageKey: firstStage.key,
+            message: title,
+            actorEmail: session.user?.email ?? null,
+          },
+        },
+      },
+    })
+  })
+
+  revalidatePath("/dashboard/work-orders")
+  revalidatePath("/dashboard")
+  return { ok: true, id: created.id }
+}
+
+/**
+ * Move a work order to another workflow stage. Server-side
+ * validation: only ADJACENT stages are allowed (no skipping), the
+ * order must be OPEN, and the target stage must belong to the
+ * order's workflow definition. Moving into the final stage
+ * completes the order. Every transition is recorded as an event.
+ */
+export async function advanceWorkOrder(
+  id: string,
+  toStageKey: string
+): Promise<WorkOrderActionResult> {
+  const { org, session } = await requireAdminOrg()
+
+  const order = await prisma.workOrder.findFirst({
+    where: { id, organizationId: org.id },
+    include: {
+      workflowDefinition: { include: { stages: { orderBy: { order: "asc" } } } },
+    },
+  })
+  if (!order) return { ok: false, error: "NOT_FOUND" }
+  if (order.status !== "OPEN") return { ok: false, error: "NOT_OPEN" }
+  if (!order.workflowDefinition) return { ok: false, error: "NO_WORKFLOW" }
+
+  const stages = order.workflowDefinition.stages
+  const current = stages.find((s) => s.key === order.currentStageKey)
+  const target = stages.find((s) => s.key === toStageKey)
+  if (!current) return { ok: false, error: "INVALID_CURRENT" }
+  if (!target) return { ok: false, error: "UNKNOWN_STAGE" }
+  if (current.isFinal) return { ok: false, error: "ALREADY_FINAL" }
+  if (Math.abs(target.order - current.order) !== 1) {
+    return { ok: false, error: "INVALID_TRANSITION" }
+  }
+
+  const completed = target.isFinal
+  await prisma.$transaction([
+    prisma.workOrder.update({
+      where: { id: order.id },
+      data: {
+        currentStageKey: target.key,
+        status: completed ? "COMPLETED" : "OPEN",
+      },
+    }),
+    prisma.workOrderEvent.create({
+      data: {
+        organizationId: org.id,
+        workOrderId: order.id,
+        type: completed ? "STATUS_CHANGED" : "STAGE_CHANGED",
+        fromStageKey: current.key,
+        toStageKey: target.key,
+        message: completed ? `Zaključeno: ${target.name}` : target.name,
+        actorEmail: session.user?.email ?? null,
+      },
+    }),
+  ])
+
+  revalidatePath("/dashboard/work-orders")
+  revalidatePath(`/dashboard/work-orders/${id}`)
+  revalidatePath("/dashboard")
+  return { ok: true, id: order.id }
+}
+
+/** Cancel an open work order (audit event, history preserved). */
+export async function cancelWorkOrder(id: string): Promise<WorkOrderActionResult> {
+  const { org, session } = await requireAdminOrg()
+
+  const order = await prisma.workOrder.findFirst({
+    where: { id, organizationId: org.id },
+  })
+  if (!order) return { ok: false, error: "NOT_FOUND" }
+  if (order.status !== "OPEN") return { ok: false, error: "NOT_OPEN" }
+
+  await prisma.$transaction([
+    prisma.workOrder.update({
+      where: { id: order.id },
+      data: { status: "CANCELLED" },
+    }),
+    prisma.workOrderEvent.create({
+      data: {
+        organizationId: org.id,
+        workOrderId: order.id,
+        type: "STATUS_CHANGED",
+        fromStageKey: order.currentStageKey,
+        message: "Naročilo preklicano",
+        actorEmail: session.user?.email ?? null,
+      },
+    }),
+  ])
+
+  revalidatePath("/dashboard/work-orders")
+  revalidatePath(`/dashboard/work-orders/${id}`)
+  revalidatePath("/dashboard")
+  return { ok: true, id: order.id }
+}
+
+/** Append a free-text note to the audit trail. */
+export async function addWorkOrderNote(
+  id: string,
+  message: string
+): Promise<WorkOrderActionResult> {
+  const { org, session } = await requireAdminOrg()
+  const text = message?.trim()
+  if (!text) return { ok: false, error: "EMPTY_NOTE" }
+
+  const order = await prisma.workOrder.findFirst({
+    where: { id, organizationId: org.id },
+  })
+  if (!order) return { ok: false, error: "NOT_FOUND" }
+
+  await prisma.workOrderEvent.create({
+    data: {
+      organizationId: org.id,
+      workOrderId: order.id,
+      type: "NOTE",
+      message: text,
+      actorEmail: session.user?.email ?? null,
+    },
+  })
+
+  revalidatePath(`/dashboard/work-orders/${id}`)
+  return { ok: true, id: order.id }
+}
+
+/** Customers for the create dialog (org-scoped, minimal fields). */
+export async function listWorkOrderCustomers(): Promise<
+  { id: string; name: string; email: string | null }[]
+> {
+  const { org } = await requireAdminOrg()
+  const customers = await prisma.customer.findMany({
+    where: { organizationId: org.id },
+    select: { id: true, name: true, email: true },
+    orderBy: { name: "asc" },
+    take: 200,
+  })
+  return customers
+}

@@ -1,5 +1,6 @@
 import { PublicNavbar } from "@/components/layouts/public-navbar"
 import { getPublicOrg } from "@/lib/tenant"
+import { resolvePublicCta } from "@/lib/public-cta"
 
 export default async function CustomerLayout({
   children,
@@ -7,6 +8,7 @@ export default async function CustomerLayout({
   children: React.ReactNode
 }) {
   const org = await getPublicOrg()
+  const cta = resolvePublicCta(org?.vertical)
 
   return (
     <>
@@ -16,6 +18,7 @@ export default async function CustomerLayout({
           name: org?.name ?? "Salon",
           logo: org?.logo ?? null,
         }}
+        cta={cta.enabled ? { label: cta.label, href: cta.href } : null}
       />
       <main>{children}</main>
     </>

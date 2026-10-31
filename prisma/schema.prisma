@@ -79,6 +79,7 @@ model Organization {
   formDefinitions     FormDefinition[]
   formSubmissions     FormSubmission[]
   workflowDefinitions WorkflowDefinition[]
+  workOrders          WorkOrder[]
 
   @@index([slug])
   @@index([status])
@@ -381,6 +382,7 @@ model Customer {
   appointments    Appointment[]
   orders          Order[]
   formSubmissions FormSubmission[]
+  workOrders      WorkOrder[]
 
   @@index([userId])
   @@index([organizationId])
@@ -617,6 +619,7 @@ model WorkflowDefinition {
 
   organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   stages       WorkflowStage[]
+  workOrders   WorkOrder[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -639,4 +642,72 @@ model WorkflowStage {
 
   @@unique([definitionId, key])
   @@index([definitionId])
+}
+
+// ============================================================
+// WORK ORDERS (EPIC #1 Phase 4, §9 universal workflow engine)
+// A work order is a job tracked through a tenant's configurable
+// WorkflowDefinition stages (e.g. seamstress production pipeline,
+// vehicle workshop work order). Deliberately SEPARATE from the
+// shop Order model so appointment-less industries get a first-
+// class operational entity without touching e-commerce flows.
+// All rows are strictly org-scoped. Stage transitions are
+// validated server-side; every change is appended to WorkOrderEvent
+// (full audit trail, §17).
+// ============================================================
+
+model WorkOrder {
+  id             String    @id @default(cuid())
+  organizationId String
+  number         Int // human-friendly, sequential per tenant
+  title          String
+  status         String    @default("OPEN") // OPEN | COMPLETED | CANCELLED
+  priority       String    @default("NORMAL") // LOW | NORMAL | HIGH | URGENT
+
+  // Workflow state (validated transitions, history in events)
+  workflowDefinitionId String?
+  currentStageKey      String?
+
+  // Planning
+  dueDate DateTime?
+  total   Decimal?  @db.Decimal(10, 2)
+  notes   String?   @db.Text
+
+  // Origin: the public form submission that produced this order (if any)
+  sourceSubmissionId String? @unique
+
+  organization       Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer           Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerId         String?
+  workflowDefinition WorkflowDefinition? @relation(fields: [workflowDefinitionId], references: [id], onDelete: SetNull)
+  events             WorkOrderEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, number])
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([customerId])
+  @@index([dueDate])
+}
+
+/// Append-only audit trail for a work order: creation, stage
+/// transitions (validated), notes and status changes (§9, §17).
+model WorkOrderEvent {
+  id             String    @id @default(cuid())
+  organizationId String
+  workOrderId    String
+  type           String // CREATED | STAGE_CHANGED | NOTE | STATUS_CHANGED
+  fromStageKey   String?
+  toStageKey     String?
+  message        String?   @db.Text
+  actorEmail     String?
+
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([workOrderId, createdAt])
 }
