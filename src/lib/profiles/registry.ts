@@ -112,6 +112,7 @@ const profileSchema = z.object({
       "deadlines",
       "pendingApprovals",
       "readyForDelivery",
+      "projects",
     ])
   ),
   website: z.object({
@@ -381,9 +382,12 @@ const PROFILE_LIST: ActivityProfile[] = [
     }),
     forms: [],
     workflows: [],
-    dashboardWidgets: ["revenue", "customers", "recentOrders", "topServices"],
+    dashboardWidgets: ["revenue", "customers", "recentOrders", "topServices", "projects"],
     website: { ctaMode: "inquiry" },
-    extensions: [],
+    // E2-3: generic is THE template for multi-day-job businesses
+    // (photographer, cleaner, consultant…) — the projects runtime
+    // ships with this phase, so the extension is enabled here.
+    extensions: ["projects"],
     catalog: { seedVerticalId: "generic" },
   },
 
@@ -463,9 +467,11 @@ const PROFILE_LIST: ActivityProfile[] = [
         ],
       },
     ],
-    dashboardWidgets: ["activeOrders", "deadlines", "pendingApprovals", "readyForDelivery", "revenue", "customers"],
+    dashboardWidgets: ["activeOrders", "deadlines", "pendingApprovals", "readyForDelivery", "revenue", "customers", "projects"],
     website: { ctaMode: "inquiry" },
-    extensions: ["body-measurements"],
+    // E2-3: custom tailoring is multi-day project work — the
+    // projects runtime ships with this phase.
+    extensions: ["body-measurements", "projects"],
     catalog: { seedVerticalId: "seamstress" },
   },
 

@@ -118,6 +118,7 @@ export type DashboardWidgetKey =
   | "deadlines"
   | "pendingApprovals"
   | "readyForDelivery"
+  | "projects" // E2-3 — multi-day jobs overview (projects extension)
 
 /** How the public site's primary CTA behaves for this activity. */
 export type WebsiteCtaMode = "booking" | "inquiry" | "order" | "quote"

@@ -105,6 +105,8 @@ model Organization {
   platformAuditLogs    PlatformAuditLog[]
   customDomains        CustomDomain[]
   stockMovements       StockMovement[]
+  projects             Project[]
+  projectTasks         ProjectTask[]
 
   @@index([slug])
   @@index([status])
@@ -245,6 +247,9 @@ model User {
 
   // Inventory ledger entries created by this user (E2-2)
   stockMovements StockMovement[]
+
+  // Projects created by this user (E2-3)
+  projectsCreated Project[] @relation("ProjectCreatedBy")
 
   @@index([email])
   @@index([role])
@@ -510,6 +515,7 @@ model Customer {
   workOrders       WorkOrder[]
   documents        Document[]
   extensionRecords ExtensionRecord[]
+  projects         Project[]
 
   @@index([userId])
   @@index([organizationId])
@@ -818,6 +824,7 @@ model WorkOrder {
   linkedRecord       ExtensionRecord?    @relation(fields: [linkedRecordId], references: [id], onDelete: SetNull)
   events             WorkOrderEvent[]
   documents          Document[]
+  projects           Project[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1113,4 +1120,89 @@ model StockMovement {
   @@index([organizationId, productId])
   @@index([productId])
   @@index([createdAt])
+}
+
+// ============================================================
+// PROJECTS & TASKS (EPIC #2 E2-3) — runtime for the `projects`
+// extension: multi-day jobs that are NOT one-off appointments
+// (photographer shoots, cleaning contracts, custom tailoring…).
+// Real models per the E2-2 precedent — runtime behavior (task
+// progress gating project completion, deadline warnings, work-
+// order links) needs real relations and aggregate queries;
+// static registry-only data stays in ExtensionRecord.
+// Strictly org-scoped; the client can never inject foreign ids
+// (same validation as every EPIC #1 action).
+// ============================================================
+
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ProjectTaskStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+}
+
+model Project {
+  id             String        @id @default(cuid())
+  organizationId String
+  name           String
+  status         ProjectStatus @default(PLANNING)
+
+  // Planning window — deadline drives overdue/due-soon warnings
+  startDate DateTime?
+  deadline  DateTime?
+  budget    Decimal?  @db.Decimal(10, 2)
+  notes     String?   @db.Text
+
+  // Optional links, validated same-org in actions:
+  //   customer   — the client the project is for;
+  //   workOrder  — „povezava na delovno naročilo“ (quotes/invoices
+  //                remain reachable through the work order).
+  customerId  String?
+  workOrderId String?
+
+  createdById String?
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  workOrder    WorkOrder?     @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
+  createdBy    User?          @relation("ProjectCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  tasks        ProjectTask[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([customerId])
+  @@index([workOrderId])
+  @@index([deadline])
+}
+
+model ProjectTask {
+  id             String            @id @default(cuid())
+  organizationId String
+  projectId      String
+  title          String
+  status         ProjectTaskStatus @default(OPEN)
+  dueDate        DateTime?
+  assigneeName   String?
+  hoursEst       Float?
+  notes          String?           @db.Text
+  position       Int               @default(0) // stable manual order within the project
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([projectId, position])
 }

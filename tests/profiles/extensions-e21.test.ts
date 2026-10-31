@@ -5,8 +5,11 @@
 //     (import itself asserts structural validity — fail fast);
 //   • dependency declarations reference only REAL universal
 //     capability keys (typed dependencies, z.enum at load);
-//   • NEW extensions are enabled by NO existing profile —
-//     every tenant keeps today's experience (default disabled);
+//   • extensions WITHOUT a shipped runtime are enabled by NO
+//     existing profile — every tenant keeps today's experience
+//     (default disabled); a runtime phase flips its own id to
+//     live and MOVES it out of DORMANT here (E2-2 suppliers,
+//     E2-3 projects);
 //   • referenced ⊆ defined + unique ids + non-empty entities.
 // ============================================================
 
@@ -32,9 +35,9 @@ describe("E2-1 — capability extension registry", () => {
 
   it("extensions without a shipped runtime are enabled by NO existing profile", () => {
     // E2-1 delivered the declarations; runtimes arrive phase by phase.
-    // `suppliers` became live in E2-2 (inventory runtime) — the rest
-    // must stay dormant until their phase references them.
-    const DORMANT = ["projects", "multi-location", "memberships", "delivery-runtime"] as const
+    // `suppliers` became live in E2-2 (inventory runtime), `projects`
+    // in E2-3 — the rest must stay dormant until their phase ships.
+    const DORMANT = ["multi-location", "memberships", "delivery-runtime"] as const
     for (const profile of listProfiles()) {
       for (const id of DORMANT) {
         expect(
@@ -144,6 +147,42 @@ describe("E2-2 — suppliers extension runtime enablement", () => {
         profile.extensions,
         `${profile.id} unexpectedly enables suppliers`
       ).not.toContain("suppliers")
+    }
+  })
+})
+
+describe("E2-3 — projects extension runtime enablement", () => {
+  // E2-3 ships the projects runtime and enables `projects` exactly on
+  // the profiles whose scenario is a multi-day job: `generic` (the
+  // photographer/cleaner/consultant template) and `seamstress`
+  // (custom tailoring). Every other profile keeps today's experience.
+  it("generic and seamstress enable the projects extension", () => {
+    for (const id of ["generic", "seamstress"]) {
+      const profile = listProfiles().find((p) => p.id === id)!
+      expect(
+        profile.extensions,
+        `${id} must enable "projects" (E2-3)`
+      ).toContain("projects")
+    }
+  })
+
+  it("profiles OTHER than generic/seamstress do not enable projects", () => {
+    for (const profile of listProfiles()) {
+      if (profile.id === "generic" || profile.id === "seamstress") continue
+      expect(
+        profile.extensions,
+        `${profile.id} unexpectedly enables projects`
+      ).not.toContain("projects")
+    }
+  })
+
+  it("projects-enabling profiles keep the extension's dependencies enabled", () => {
+    // The `projects` extension declares workOrders + customers as its
+    // dependencies — a profile enabling it must never disable them.
+    for (const profile of listProfiles()) {
+      if (!profile.extensions.includes("projects")) continue
+      expect(profile.capabilities.workOrders, profile.id).not.toBe("disabled")
+      expect(profile.capabilities.customers, profile.id).not.toBe("disabled")
     }
   })
 })

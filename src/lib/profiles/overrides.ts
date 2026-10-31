@@ -41,6 +41,7 @@ export const ALL_DASHBOARD_WIDGETS: DashboardWidgetKey[] = [
   "deadlines",
   "pendingApprovals",
   "readyForDelivery",
+  "projects",
 ]
 
 /** Bilingual labels for the widget configurator + capability matrix. */
@@ -55,6 +56,7 @@ export const DASHBOARD_WIDGET_LABELS: Record<DashboardWidgetKey, { sl: string; e
   deadlines: { sl: "Roki v 7 dneh", en: "Deadlines within 7 days" },
   pendingApprovals: { sl: "Čaka potrditev stranke", en: "Awaiting approval" },
   readyForDelivery: { sl: "Za predajo/dostavo", en: "Ready for delivery" },
+  projects: { sl: "Projekti (E2-3)", en: "Projects (E2-3)" },
 }
 
 const VALID_WIDGETS = new Set<string>(ALL_DASHBOARD_WIDGETS)

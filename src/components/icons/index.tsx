@@ -11,6 +11,7 @@ export { SearchIcon } from "./search-icon"
 export { FilterIcon } from "./filter-icon"
 export { SlidersIcon } from "./sliders-icon"
 export { StackIcon } from "./stack-icon"
+export { FolderIcon } from "./folder-icon"
 
 // User & Account
 export { UserIcon } from "./user-icon"

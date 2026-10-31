@@ -22,6 +22,7 @@ import {
 } from "@/app/actions/dashboard"
 import { getWorkOrdersOverview } from "@/app/actions/work-orders"
 import { getStockSummary } from "@/app/actions/inventory"
+import { listProjects } from "@/app/actions/projects"
 import { formatDistanceToNow } from "date-fns"
 import { formatSalonTime } from "@/lib/booking-time"
 import { getSessionSalonTimezone } from "@/lib/tenant"
@@ -75,6 +76,12 @@ export default async function AdminDashboard() {
   const inventoryEnabled = profile.capabilities.inventory !== "disabled"
   const stockSummary =
     inventoryEnabled && hasWidget("lowStock") ? await getStockSummary() : null
+
+  // Projects widget (E2-3) — only for profiles that enable the
+  // `projects` extension AND pick the widget (module-gated like the nav).
+  const projectsEnabled = profile.extensions.includes("projects")
+  const projectsOverview =
+    projectsEnabled && hasWidget("projects") ? await listProjects() : null
 
   return (
     <div className="space-y-8">
@@ -195,6 +202,28 @@ export default async function AdminDashboard() {
               <Card className="hover:border-primary/40 transition-colors">
                 <CardContent className="p-4">
                   <div className="text-2xl font-bold">{w.value}</div>
+                  <p className="text-muted-foreground mt-1 text-xs">{w.label}</p>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* Projects widget (E2-3) — module-gated + widget-gated; overdue is
+          red when non-zero, mirroring the work-order deadline card. */}
+      {projectsOverview && !("error" in projectsOverview) && (
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[
+            { key: "active", label: t.projects.statsActive, value: projectsOverview.stats.active, href: "/dashboard/projects", danger: false },
+            { key: "overdue", label: t.projects.statsOverdue, value: projectsOverview.stats.overdue, href: "/dashboard/projects", danger: projectsOverview.stats.overdue > 0 },
+            { key: "dueSoon", label: t.projects.statsDueSoon, value: projectsOverview.stats.dueSoon, href: "/dashboard/projects", danger: false },
+            { key: "completed", label: t.projects.statsCompleted, value: projectsOverview.stats.completedThisMonth, href: "/dashboard/projects", danger: false },
+          ].map((w) => (
+            <Link key={w.key} href={w.href}>
+              <Card className="hover:border-primary/40 transition-colors">
+                <CardContent className="p-4">
+                  <div className={`text-2xl font-bold ${w.danger ? "text-red-600 dark:text-red-400" : ""}`}>{w.value}</div>
                   <p className="text-muted-foreground mt-1 text-xs">{w.label}</p>
                 </CardContent>
               </Card>
