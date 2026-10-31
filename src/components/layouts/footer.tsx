@@ -6,6 +6,7 @@ import { orgPath } from "@/lib/org-path"
 import { formatOpeningHours } from "@/lib/site-content"
 import { term as profileTerm } from "@/lib/profiles/registry"
 import { resolveEffectiveProfile } from "@/lib/profiles/resolve"
+import { resolvePublishGate } from "@/lib/publish-gate"
 
 function truncate(text: string, max = 160): string {
   if (text.length <= max) return text
@@ -24,6 +25,14 @@ const Footer = async () => {
   const config = site?.config ?? null
   const content = site?.content ?? null
   const slug = org?.slug ?? null
+
+  // Publication gate (EPIC #3 E3-1): when the resolved tenant is not
+  // published and the viewer is not its owner, render NO footer — otherwise
+  // the platform footer would leak the draft tenant's name/contact/links
+  // (e.g. under the maintenance screen).
+  if (org && (await resolvePublishGate(org)) === "hidden") {
+    return null
+  }
 
   const aboutText = content?.about.paragraphs[0]
     ? truncate(content.about.paragraphs[0])

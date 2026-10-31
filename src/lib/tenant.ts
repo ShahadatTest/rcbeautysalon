@@ -29,8 +29,10 @@ export const getPublicOrg = cache(async (): Promise<Organization | null> => {
     const org = await getOrgBySlug(slug)
     if (org && org.status === "ACTIVE") return org
   }
+  // Platform-root fallback: only a PUBLISHED tenant may serve the bare domain
+  // (a DRAFT tenant's site is private — EPIC #3 E3-1).
   return prisma.organization.findFirst({
-    where: { status: "ACTIVE" },
+    where: { status: "ACTIVE", publishState: "PUBLISHED" },
     orderBy: { createdAt: "asc" },
   })
 })

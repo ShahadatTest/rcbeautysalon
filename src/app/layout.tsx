@@ -15,6 +15,7 @@ import { prisma } from "@/lib/prisma"
 import { paletteCssVars, PALETTES, type Palette } from "@/lib/verticals"
 import { mergeSiteContent } from "@/lib/site-content"
 import { CurrencyProvider } from "@/lib/currency"
+import { resolvePublishGate } from "@/lib/publish-gate"
 import type { Organization } from "@prisma/client"
 
 const rougeScript = Rouge_Script({
@@ -39,25 +40,30 @@ const inter = Inter({ variable: "--font-inter", subsets: ["latin", "latin-ext"],
 const lora = Lora({ variable: "--font-lora", subsets: ["latin", "latin-ext"], display: "swap" })
 
 /** Resolve which organization brands the current request:
- *  1. tenant from /s/[slug] (header set by proxy)
+ *  1. tenant from /s/[slug] (header set by proxy) — publish-gated: a draft
+ *     tenant brands the page only for its own owner (EPIC #3 E3-1), so guest
+ *     metadata/theme never leak an unpublished tenant
  *  2. signed-in user's organization (dashboard)
- *  3. default (first) organization (bare public routes, anonymous) */
+ *  3. default (first PUBLISHED) organization (bare public routes, anonymous) */
 async function resolveBrandOrg(): Promise<Organization | null> {
   try {
     const h = await headers()
     const slug = h.get("x-org-slug")
     if (slug) {
       const org = await getOrgBySlug(slug)
-      if (org) return org
+      if (org) {
+        const gate = await resolvePublishGate(org)
+        return gate === "hidden" ? null : org
+      }
     }
     const session = await auth()
     if (session?.user?.organizationId) {
       return await getOrgById(session.user.organizationId)
     }
     if (session?.user?.role === "ADMIN") {
-      return prisma.organization.findFirst({ where: { status: "ACTIVE" }, orderBy: { createdAt: "asc" } })
+      return prisma.organization.findFirst({ where: { status: "ACTIVE", publishState: "PUBLISHED" }, orderBy: { createdAt: "asc" } })
     }
-    return prisma.organization.findFirst({ where: { status: "ACTIVE" }, orderBy: { createdAt: "asc" } })
+    return prisma.organization.findFirst({ where: { status: "ACTIVE", publishState: "PUBLISHED" }, orderBy: { createdAt: "asc" } })
   } catch {
     return null
   }

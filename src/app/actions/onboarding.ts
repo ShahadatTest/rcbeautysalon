@@ -97,8 +97,10 @@ export async function createSalonOrganization(input: CreateSalonInput): Promise<
     const paletteOption = PALETTE_OPTIONS.find((p) => p.id === palette)
 
     // --- Tenant creation ---
+    // New tenants start UNPUBLISHED (EPIC #3 E3-1): the site is a private
+    // owner preview until they publish it from Settings.
     const org = await prisma.organization.create({
-      data: { slug, name, vertical: profile.id, palette },
+      data: { slug, name, vertical: profile.id, palette, publishState: "DRAFT" },
     })
 
     let userId: string | null = null

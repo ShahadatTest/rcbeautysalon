@@ -59,6 +59,13 @@ model Organization {
   profileVersion   String?
   profileOverrides Json?
 
+  // Publication lifecycle (EPIC #3 E3-1): DRAFT sites are private (visible to
+  // the owner as a preview, maintenance page for everyone else). Default
+  // PUBLISHED preserves the pre-E3-1 behavior for existing tenants verbatim;
+  // the onboarding flow explicitly creates new tenants as DRAFT.
+  publishState String    @default("PUBLISHED") // DRAFT | PUBLISHED | UNPUBLISHED
+  publishedAt  DateTime?
+
   // Owner-supplied Stripe integration (entered by the admin in Settings →
   // Plačila). Optional: when absent, payments fall back to env keys and
   // gracefully degrade when neither exists.
