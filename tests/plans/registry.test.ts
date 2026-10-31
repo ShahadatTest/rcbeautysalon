@@ -23,12 +23,12 @@ describe("plan registry invariants (E3-3)", () => {
     expect(listPlans()).toHaveLength(3)
   })
 
-  it("every plan carries positive limits or explicit null (unlimited)", () => {
+  it("every plan carries positive limits, 0 (resource not in plan) or explicit null (unlimited)", () => {
     for (const plan of Object.values(PLANS)) {
       for (const [resource, limit] of Object.entries(plan.limits)) {
         expect(
-          limit === null || (typeof limit === "number" && limit > 0),
-          `${plan.id}.${resource} must be null or a positive number`
+          limit === null || (typeof limit === "number" && limit >= 0),
+          `${plan.id}.${resource} must be null or a non-negative number`
         ).toBe(true)
       }
     }
@@ -40,7 +40,14 @@ describe("plan registry invariants (E3-3)", () => {
       products: null,
       staff: null,
       storageMb: null,
+      customDomains: null,
     })
+  })
+
+  it("custom domains are a PRO/SCALE entitlement (E3-6: FREE=0, PRO≥1)", () => {
+    expect(PLANS.free.limits.customDomains).toBe(0)
+    expect(PLANS.pro.limits.customDomains).toBeGreaterThanOrEqual(1)
+    expect(PLANS.scale.limits.customDomains).toBeNull()
   })
 
   it("FREE limits sit ABOVE the largest onboarding catalog seed", () => {

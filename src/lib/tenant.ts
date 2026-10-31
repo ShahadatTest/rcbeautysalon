@@ -6,6 +6,8 @@ import { auth } from "@/lib/auth/auth"
 import { requireAdmin, UnauthorizedError } from "@/lib/auth/guards"
 import type { Organization } from "@prisma/client"
 import { DEFAULT_SALON_TIMEZONE, safeTimezone } from "@/lib/booking-time"
+import { hostFromHostHeader, isPlatformHost } from "@/lib/domains/normalize"
+import { getPlatformHosts } from "@/lib/domains/provider"
 
 export const ORG_HEADER = "x-org-slug"
 
@@ -34,8 +36,27 @@ export const getPublicOrg = cache(async (): Promise<Organization | null> => {
       // back to another tenant's content under this URL.
       return null
     }
-    // Unknown slug → bare-domain default below.
+    // Unknown slug → custom-domain/platform-root fallback below.
   }
+
+  // ---- Custom domain resolution (EPIC #3 E3-6) ----
+  // On a custom hostname (a VERIFIED CustomDomain), serve that tenant.
+  // The same gates as path URLs apply: ACTIVE tenant, PUBLISHED site;
+  // anything else renders the maintenance screen (never another
+  // tenant's content). Platform hosts skip the lookup entirely.
+  const requestHost = hostFromHostHeader(h.get("host"))
+  if (requestHost && !isPlatformHost(requestHost, getPlatformHosts())) {
+    const matched = await prisma.customDomain.findFirst({
+      where: { domain: requestHost, status: "VERIFIED" },
+      select: { organization: true },
+    })
+    if (matched) {
+      const org = matched.organization
+      if (org.status === "ACTIVE" && org.publishState === "PUBLISHED") return org
+      return null
+    }
+  }
+
   // Platform-root fallback: only a PUBLISHED tenant may serve the bare domain
   // (a DRAFT tenant's site is private — EPIC #3 E3-1).
   return prisma.organization.findFirst({

@@ -42,20 +42,20 @@ model Session {
 // gets its own organization with own site at /s/[slug]
 // ============================================================
 model Organization {
-  id        String   @id @default(cuid())
-  slug      String   @unique // URL: /s/[slug] — validated against reserved routes
-  name      String
-  logo      String?
-  vertical  String   @default("beauty") // activity profile id (see src/lib/profiles/registry.ts)
-  palette   String   @default("rose") // theme palette key (see src/lib/verticals.ts)
-  plan      String   @default("free")
-  status    String   @default("ACTIVE") // ACTIVE | SUSPENDED
+  id              String    @id @default(cuid())
+  slug            String    @unique // URL: /s/[slug] — validated against reserved routes
+  name            String
+  logo            String?
+  vertical        String    @default("beauty") // activity profile id (see src/lib/profiles/registry.ts)
+  palette         String    @default("rose") // theme palette key (see src/lib/verticals.ts)
+  plan            String    @default("free")
+  status          String    @default("ACTIVE") // ACTIVE | SUSPENDED
   // Suspension context (EPIC #3 E3-5): the operator-supplied reason is
   // displayed to the owner; the full audit trail lives in PlatformAuditLog.
   suspendedAt     DateTime?
   suspendedReason String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   // Activity profile engine (EPIC #1): resolved profile version the tenant was
   // onboarded/materialized against, and tenant-level overrides that never mutate
@@ -82,27 +82,28 @@ model Organization {
   stripeWebhookSecret String?   @db.Text
   stripeConfiguredAt  DateTime?
 
-  users               User[]
-  salonConfig         SalonConfig?
-  categories          Category[]
-  services            Service[]
-  products            Product[]
-  staff               Staff[]
-  customers           Customer[]
-  appointments        Appointment[]
-  orders              Order[]
-  media               Media[]
-  formDefinitions     FormDefinition[]
-  formSubmissions     FormSubmission[]
-  workflowDefinitions WorkflowDefinition[]
-  workOrders          WorkOrder[]
-  packages            Package[]
-  documents           Document[]
-  productVariants     ProductVariant[]
-  extensionRecords    ExtensionRecord[]
+  users                User[]
+  salonConfig          SalonConfig?
+  categories           Category[]
+  services             Service[]
+  products             Product[]
+  staff                Staff[]
+  customers            Customer[]
+  appointments         Appointment[]
+  orders               Order[]
+  media                Media[]
+  formDefinitions      FormDefinition[]
+  formSubmissions      FormSubmission[]
+  workflowDefinitions  WorkflowDefinition[]
+  workOrders           WorkOrder[]
+  packages             Package[]
+  documents            Document[]
+  productVariants      ProductVariant[]
+  extensionRecords     ExtensionRecord[]
   platformSubscription PlatformSubscription?
-  billingEvents       PlatformBillingEvent[]
-  platformAuditLogs   PlatformAuditLog[]
+  billingEvents        PlatformBillingEvent[]
+  platformAuditLogs    PlatformAuditLog[]
+  customDomains        CustomDomain[]
 
   @@index([slug])
   @@index([status])
@@ -119,24 +120,24 @@ model Organization {
 // PLATFORM_STRIPE_* key the flow honestly reports "setup required".
 // ============================================================
 model PlatformSubscription {
-  id                   String    @id @default(cuid())
-  organizationId       String    @unique
+  id             String @id @default(cuid())
+  organizationId String @unique
 
   // Provider-side identifiers (null until a hosted checkout completes)
   stripeCustomerId     String?
-  stripeSubscriptionId String?   @unique
+  stripeSubscriptionId String? @unique
   stripePriceId        String?
 
   // Lifecycle mirrored from the provider:
   // INCOMPLETE | TRIALING | ACTIVE | PAST_DUE | CANCELED | UNPAID
-  status               String    @default("INCOMPLETE")
+  status String @default("INCOMPLETE")
   // Plan this subscription maps to (entitlements when ACTIVE/TRIALING)
-  plan                 String    @default("free")
+  plan   String @default("free")
 
-  currentPeriodStart   DateTime?
-  currentPeriodEnd     DateTime?
-  cancelAtPeriodEnd    Boolean   @default(false)
-  canceledAt           DateTime?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean   @default(false)
+  canceledAt         DateTime?
 
   // Pending hosted-checkout intent (recorded at checkout creation).
   // The PLAN change itself NEVER happens here — only the webhook
@@ -145,8 +146,8 @@ model PlatformSubscription {
   pendingPlanId            String?
   pendingAt                DateTime?
 
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   events       PlatformBillingEvent[]
@@ -499,11 +500,11 @@ model Customer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  appointments    Appointment[]
-  orders          Order[]
-  formSubmissions FormSubmission[]
-  workOrders      WorkOrder[]
-  documents       Document[]
+  appointments     Appointment[]
+  orders           Order[]
+  formSubmissions  FormSubmission[]
+  workOrders       WorkOrder[]
+  documents        Document[]
   extensionRecords ExtensionRecord[]
 
   @@index([userId])
@@ -859,7 +860,7 @@ model WorkOrderEvent {
 // ============================================================
 
 model ExtensionRecord {
-  id             String  @id @default(cuid())
+  id             String @id @default(cuid())
   organizationId String
   extensionId    String // extension registry id, e.g. "vehicle-workshop"
   entityKey      String // entity key inside the extension, e.g. "vehicle"
@@ -868,8 +869,8 @@ model ExtensionRecord {
 
   customerId String?
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer         Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
   linkedWorkOrders WorkOrder[]
 
   createdAt DateTime @default(now())
@@ -1011,4 +1012,38 @@ model DocumentItem {
 
   @@index([documentId])
   @@index([organizationId])
+}
+
+// ============================================================
+// CUSTOM DOMAIN (EPIC #3 E3-6) — a tenant-owned hostname pointed
+// at the platform. Status is driven EXCLUSIVELY by provider
+// confirmation (Vercel Domains API): the app NEVER marks a domain
+// connected/secure on its own — issue #3 §7. Without a configured
+// DOMAINS_VERCEL_* token the flow honestly reports "setup required"
+// and the record simply stays PENDING.
+// ============================================================
+model CustomDomain {
+  id             String @id @default(cuid())
+  organizationId String
+  domain         String @unique // normalized (lowercase, host only)
+
+  // PENDING | VERIFIED | FAILED — VERIFIED requires provider confirmation
+  status String @default("PENDING")
+
+  // Exactly one primary domain per tenant (only VERIFIED can be primary)
+  isPrimary Boolean @default(false)
+
+  // DNS guidance captured from the provider (JSON array of
+  // records: type, name, value, description?) — rendered in Settings.
+  dnsRecords    Json?
+  lastError     String?
+  lastCheckedAt DateTime?
+  verifiedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([organizationId, status])
 }

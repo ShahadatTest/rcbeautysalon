@@ -51,7 +51,7 @@ import { startPlanCheckout, cancelSubscription } from "@/app/actions/billing"
 
 export interface PlanUsageInitial {
   planId: PlanId
-  usage: { services: number; products: number; staff: number }
+  usage: { services: number; products: number; staff: number; customDomains: number }
 }
 
 /** Serializable billing data passed from the server page. */
@@ -80,7 +80,7 @@ interface PlanUsageCardProps {
 }
 
 type UsageRow = {
-  key: "services" | "products" | "staff"
+  key: "services" | "products" | "staff" | "customDomains"
   used: number
   limit: number | null
 }
@@ -151,11 +151,16 @@ export function PlanUsageCard({ initial, billing, billingFlag }: PlanUsageCardPr
   const hasActiveSubscription =
     subscription !== null && ["ACTIVE", "TRIALING", "PAST_DUE"].includes(subscription.status)
 
-  const rows: UsageRow[] = [
+  // A 0-limit resource means "not part of your plan" (e.g. custom
+  // domains on FREE) — hidden here and surfaced by its own card's
+  // upgrade hint instead of a misleading "0 / 0" over-limit row.
+  const rowsAll: UsageRow[] = [
     { key: "services", used: state.usage.services, limit: plan.limits.services },
     { key: "products", used: state.usage.products, limit: plan.limits.products },
     { key: "staff", used: state.usage.staff, limit: plan.limits.staff },
+    { key: "customDomains", used: state.usage.customDomains, limit: plan.limits.customDomains },
   ]
+  const rows = rowsAll.filter((r) => r.limit !== 0)
 
   const hasOverLimit = rows.some((r) => r.limit !== null && r.used >= r.limit)
   const hasNearLimit = rows.some(

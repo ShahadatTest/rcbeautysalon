@@ -13,9 +13,10 @@ interface SettingsTabsProps {
   modules?: ReactNode
   branding: ReactNode
   payments?: ReactNode
+  domains?: ReactNode
 }
 
-export function SettingsTabs({ basic, modules, branding, payments }: SettingsTabsProps) {
+export function SettingsTabs({ basic, modules, branding, payments, domains }: SettingsTabsProps) {
   const { t } = useI18n()
 
   return (
@@ -27,6 +28,7 @@ export function SettingsTabs({ basic, modules, branding, payments }: SettingsTab
         {payments && (
           <TabsTrigger value="payments">{t.settings.tabs.payments}</TabsTrigger>
         )}
+        {domains && <TabsTrigger value="domains">{t.settings.tabs.domains}</TabsTrigger>}
       </TabsList>
       <TabsContent value="basic" forceMount className="mt-6 data-[state=inactive]:hidden">
         {basic}
@@ -46,6 +48,11 @@ export function SettingsTabs({ basic, modules, branding, payments }: SettingsTab
           className="mt-6 data-[state=inactive]:hidden"
         >
           {payments}
+        </TabsContent>
+      )}
+      {domains && (
+        <TabsContent value="domains" forceMount className="mt-6 data-[state=inactive]:hidden">
+          {domains}
         </TabsContent>
       )}
     </Tabs>

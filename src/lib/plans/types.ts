@@ -15,8 +15,16 @@ export type PlanId = (typeof PLAN_IDS)[number]
  * Resources a plan can limit. `null` limit = unlimited.
  * storageMb is declared for completeness and displayed in the UI;
  * upload-route enforcement follows with metrics (E3-7), NOT here.
+ * customDomains = connected hostnames per tenant (E3-6); the
+ * count is derived from the CustomDomain table (no double
+ * bookkeeping), enforcement happens in the domains action.
  */
-export type LimitResource = "services" | "products" | "staff" | "storageMb"
+export type LimitResource =
+  | "services"
+  | "products"
+  | "staff"
+  | "storageMb"
+  | "customDomains"
 
 export type PlanLimits = Record<LimitResource, number | null>
 
@@ -62,10 +70,14 @@ export interface LimitCheckBlocked {
 export type LimitCheck = LimitCheckOk | LimitCheckBlocked
 
 /** Resource nouns used inside limit messages (genitive plural for sl). */
-export const RESOURCE_NOUNS: Record<Exclude<LimitResource, "storageMb">, { sl: string; en: string }> = {
+export const RESOURCE_NOUNS: Record<
+  Exclude<LimitResource, "storageMb">,
+  { sl: string; en: string }
+> = {
   services: { sl: "storitev", en: "services" },
   products: { sl: "izdelkov", en: "products" },
   staff: { sl: "zaposlenih", en: "team members" },
+  customDomains: { sl: "lastnih domen", en: "custom domains" },
 }
 
 /**

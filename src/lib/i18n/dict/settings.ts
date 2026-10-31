@@ -25,6 +25,7 @@ export const settingsSl = {
       services: "Storitve",
       products: "Izdelki",
       staff: "Zaposleni",
+      customDomains: "Lastne domene",
     },
     nearLimit: "Približuje se omejitev — razmislite o nadgradnji paketa.",
     overLimit:
@@ -115,6 +116,7 @@ export const settingsSl = {
     modules: "Moduli",
     branding: "Izgled in vsebina",
     payments: "Plačila",
+    domains: "Domene",
   },
   payments: {
     title: "Plačila (Stripe)",
@@ -463,6 +465,7 @@ export const settingsEn: SettingsDict = {
       services: "Services",
       products: "Products",
       staff: "Team members",
+      customDomains: "Custom domains",
     },
     nearLimit: "Approaching the limit — consider upgrading your plan.",
     overLimit:
@@ -552,6 +555,7 @@ export const settingsEn: SettingsDict = {
     modules: "Modules",
     branding: "Branding",
     payments: "Payments",
+    domains: "Domains",
   },
   payments: {
     title: "Payments (Stripe)",

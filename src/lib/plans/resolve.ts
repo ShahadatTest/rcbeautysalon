@@ -11,12 +11,14 @@ import { cache } from "react"
 import { prisma } from "@/lib/prisma"
 import { getSessionOrg } from "@/lib/tenant"
 import { getPlan } from "./registry"
-import { checkPlanLimit, type LimitCheck, type PlanDefinition, type PlanId } from "./types"
+import { checkPlanLimit, type LimitCheck, type LimitResource, type PlanDefinition, type PlanId } from "./types"
 
 export interface PlanUsage {
   services: number
   products: number
   staff: number
+  /** Connected custom hostnames (E3-6) — derived from CustomDomain rows. */
+  customDomains: number
 }
 
 export interface PlanContext {
@@ -32,6 +34,7 @@ const usageCounters = {
   services: (orgId: string) => prisma.service.count({ where: { organizationId: orgId } }),
   products: (orgId: string) => prisma.product.count({ where: { organizationId: orgId } }),
   staff: (orgId: string) => prisma.staff.count({ where: { organizationId: orgId } }),
+  customDomains: (orgId: string) => prisma.customDomain.count({ where: { organizationId: orgId } }),
 } as const
 
 /** Current plan + derived usage for the signed-in admin's org. */
@@ -49,10 +52,11 @@ export async function resolvePlanContext(
   planValue: string | null | undefined
 ): Promise<PlanContext> {
   const plan = getPlan(planValue)
-  const [services, products, staff] = await Promise.all([
+  const [services, products, staff, customDomains] = await Promise.all([
     usageCounters.services(orgId),
     usageCounters.products(orgId),
     usageCounters.staff(orgId),
+    usageCounters.customDomains(orgId),
   ])
   return {
     orgId,
@@ -60,7 +64,7 @@ export async function resolvePlanContext(
     orgName,
     planId: plan.id,
     plan,
-    usage: { services, products, staff },
+    usage: { services, products, staff, customDomains },
   }
 }
 
@@ -81,7 +85,7 @@ export type PlanLimitEnforcement =
  */
 export async function enforcePlanLimit(
   org: { id: string; plan: string | null | undefined },
-  resource: "services" | "products" | "staff",
+  resource: Exclude<LimitResource, "storageMb">,
   locale: "sl" | "en" = "sl"
 ): Promise<PlanLimitEnforcement> {
   const plan = getPlan(org.plan)

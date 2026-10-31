@@ -7,25 +7,28 @@ import { ProfileOverview } from "@/components/dashboard/profile-overview"
 import { ModulesConfigurator } from "@/components/dashboard/modules-configurator"
 import { PublicationCard } from "@/components/dashboard/publication-card"
 import { PlanUsageCard } from "@/components/dashboard/plan-usage-card"
+import { DomainsCard } from "@/components/dashboard/domains-card"
 import { SettingsTabs } from "@/components/dashboard/settings-tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getServerI18n } from "@/lib/i18n/server"
 import { getSessionOrg } from "@/lib/tenant"
 import { getSessionPlanContext } from "@/lib/plans/resolve"
 import { loadBillingOverview } from "@/lib/payments/billing-overview"
+import { getDomainsStatus } from "@/app/actions/domains"
 
 export default async function SettingsPage({
   searchParams,
 }: {
   searchParams: Promise<{ billing?: string }>
 }) {
-  const [{ t }, params, settings, publication, org, planContext] = await Promise.all([
+  const [{ t }, params, settings, publication, org, planContext, domains] = await Promise.all([
     getServerI18n(),
     searchParams,
     getSalonSettings(),
     getPublicationStatus(),
     getSessionOrg(),
     getSessionPlanContext(),
+    getDomainsStatus(),
   ])
 
   // Billing read model depends on the resolved tenant — one extra
@@ -85,6 +88,12 @@ export default async function SettingsPage({
       modules={<ModulesConfigurator />}
       branding={<BrandingEditor />}
       payments={<PaymentsSettings />}
+      domains={
+        <DomainsCard
+          initial={domains}
+          sitePath={org ? `/s/${org.slug}` : null}
+        />
+      }
     />
   )
 }

@@ -68,6 +68,7 @@ describe("prisma schema tenant isolation invariants (§3)", () => {
     "ExtensionRecord",
     "SalonConfig",
     "Staff",
+    "CustomDomain",
   ]
 
   it("parses the schema and finds all expected models", () => {
