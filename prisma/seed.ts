@@ -1,8 +1,27 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, Prisma } from '@prisma/client'
 import { hash } from 'bcryptjs'
 import { addDays, setHours, setMinutes } from 'date-fns'
 
 const prisma = new PrismaClient()
+
+/**
+ * Legacy demo seed helper — seeded services have no organization and the
+ * Service slug is now unique PER ORGANIZATION (EPIC #1: same-vertical tenants
+ * must not collide), so upsert manually by the nullable-org + slug pair.
+ */
+async function serviceUpsert(args: {
+  where: { slug: string }
+  update: Prisma.ServiceUncheckedUpdateInput
+  create: Prisma.ServiceUncheckedCreateInput
+}) {
+  const existing = await prisma.service.findFirst({
+    where: { slug: args.where.slug, organizationId: null },
+  })
+  if (existing) {
+    return prisma.service.update({ where: { id: existing.id }, data: args.update })
+  }
+  return prisma.service.create({ data: args.create })
+}
 
 async function main() {
   console.log('🌱 Seeding database...')
@@ -190,7 +209,7 @@ async function main() {
   // 4. SERVICES (Enhanced with images and featured)
   // ============================================
   console.log('\nCreating services...')
-  const haircut = await prisma.service.upsert({
+  const haircut = await serviceUpsert({
     where: { slug: 'haircut-style' },
     update: {
       imageUrl: 'https://res.cloudinary.com/caballerorandy/image/upload/v1763611761/Beauty%20Salon/services/classic-haircut_inzgrp.avif',
@@ -209,7 +228,7 @@ async function main() {
     },
   })
 
-  const coloring = await prisma.service.upsert({
+  const coloring = await serviceUpsert({
     where: { slug: 'hair-coloring' },
     update: {
       imageUrl: 'https://res.cloudinary.com/caballerorandy/image/upload/v1763538513/Beauty%20Salon/services/coloring_aiw6e3.avif',
@@ -228,7 +247,7 @@ async function main() {
     },
   })
 
-  const highlights = await prisma.service.upsert({
+  const highlights = await serviceUpsert({
     where: { slug: 'highlights' },
     update: {
       imageUrl: 'https://res.cloudinary.com/caballerorandy/image/upload/v1763612088/Beauty%20Salon/services/highlights_mrhaba.avif',
@@ -246,7 +265,7 @@ async function main() {
     },
   })
 
-  const keratin = await prisma.service.upsert({
+  const keratin = await serviceUpsert({
     where: { slug: 'keratin-treatment' },
     update: {
       imageUrl: 'https://res.cloudinary.com/caballerorandy/image/upload/v1763611939/Beauty%20Salon/services/hair-treatment_hs60yv.avif',
@@ -264,7 +283,7 @@ async function main() {
     },
   })
 
-  const manicure = await prisma.service.upsert({
+  const manicure = await serviceUpsert({
     where: { slug: 'manicure' },
     update: {
       imageUrl: 'https://res.cloudinary.com/caballerorandy/image/upload/v1763538512/Beauty%20Salon/services/manicure_hyudpf.avif',
@@ -283,7 +302,7 @@ async function main() {
     },
   })
 
-  const pedicure = await prisma.service.upsert({
+  const pedicure = await serviceUpsert({
     where: { slug: 'pedicure' },
     update: {
       imageUrl: 'https://res.cloudinary.com/caballerorandy/image/upload/v1763613172/Beauty%20Salon/services/spa-pedicure_fpbjgq.avif',
@@ -302,7 +321,7 @@ async function main() {
     },
   })
 
-  const gelNails = await prisma.service.upsert({
+  const gelNails = await serviceUpsert({
     where: { slug: 'gel-nails' },
     update: {
       imageUrl: 'https://res.cloudinary.com/caballerorandy/image/upload/v1763613072/Beauty%20Salon/services/gel-manicure_e7k2gb.avif',
@@ -320,7 +339,7 @@ async function main() {
     },
   })
 
-  const facial = await prisma.service.upsert({
+  const facial = await serviceUpsert({
     where: { slug: 'facial-treatment' },
     update: {
       imageUrl: 'https://res.cloudinary.com/caballerorandy/image/upload/v1763611175/Beauty%20Salon/services/deep-cleansing-facial_jzjp7l.avif',
@@ -339,7 +358,7 @@ async function main() {
     },
   })
 
-  const antiAging = await prisma.service.upsert({
+  const antiAging = await serviceUpsert({
     where: { slug: 'anti-aging-facial' },
     update: {
       imageUrl: 'https://res.cloudinary.com/caballerorandy/image/upload/v1763611000/Beauty%20Salon/services/anti-aging-facial_qgusgu.avif',
@@ -357,7 +376,7 @@ async function main() {
     },
   })
 
-  const microdermabrasion = await prisma.service.upsert({
+  const microdermabrasion = await serviceUpsert({
     where: { slug: 'microdermabrasion' },
     update: {
       imageUrl: 'https://res.cloudinary.com/caballerorandy/image/upload/v1763611296/Beauty%20Salon/services/hydrating-facial_sliwao.avif',
@@ -375,7 +394,7 @@ async function main() {
     },
   })
 
-  const massage = await prisma.service.upsert({
+  const massage = await serviceUpsert({
     where: { slug: 'relaxing-massage' },
     update: {
       imageUrl: 'https://res.cloudinary.com/caballerorandy/image/upload/v1763612585/Beauty%20Salon/services/swedish-massage_degn1f.avif',
@@ -393,7 +412,7 @@ async function main() {
     },
   })
 
-  const hotStone = await prisma.service.upsert({
+  const hotStone = await serviceUpsert({
     where: { slug: 'hot-stone-massage' },
     update: {
       imageUrl: 'https://res.cloudinary.com/caballerorandy/image/upload/v1763612414/Beauty%20Salon/services/hot-stone-massage_krxtkc.avif',

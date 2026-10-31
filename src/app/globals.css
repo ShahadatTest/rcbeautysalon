@@ -579,3 +579,25 @@ label[for], select, .cursor-pointer {
 .admin-sans-headings h3 {
   font-size: clamp(1.05rem, 1.5vw, 1.25rem);
 }
+
+/* ============================================================
+   PRINT (EPIC #1 Phase 4b — document printing, §13)
+   When printing, only the .print-area (the open document detail)
+   is visible; everything else is hidden for a clean quote/invoice.
+   ============================================================ */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0;
+    padding: 2rem;
+    background: white;
+    color: black;
+  }
+}

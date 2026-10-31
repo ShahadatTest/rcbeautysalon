@@ -22,8 +22,10 @@ import {
   UsersIcon,
   ScissorsIcon,
   PackageIcon,
+  ToteIcon,
   ShoppingBagIcon,
   ReceiptIcon,
+  FileTextIcon,
   SlidersIcon,
   UserCogIcon,
   SettingsIcon,
@@ -31,11 +33,13 @@ import {
 } from "@/components/icons"
 
 interface NavItem {
-  nameKey: "dashboard" | "analytics" | "appointments" | "customers" | "services" | "products" | "shopOrders" | "workOrders" | "forms" | "staff" | "settings"
+  nameKey: "dashboard" | "analytics" | "appointments" | "customers" | "services" | "products" | "packages" | "shopOrders" | "workOrders" | "documents" | "forms" | "staff" | "settings"
   href: string
   icon: React.ComponentType<{ size?: number; className?: string }>
   /** Capability that must not be "disabled" for this item to render. */
   capability?: CapabilityKey
+  /** Item renders when ANY of these capabilities is enabled (§11: packages combine services AND products). */
+  anyCapabilities?: CapabilityKey[]
   /** Terminology key overriding the generic dictionary label. */
   termKey?: "appointmentPlural" | "servicePlural" | "productPlural" | "orderPlural"
 }
@@ -47,8 +51,12 @@ const navigation: NavItem[] = [
   { nameKey: "customers", href: "/dashboard/users", icon: UsersIcon, capability: "customers" },
   { nameKey: "services", href: "/dashboard/services", icon: ScissorsIcon, capability: "services", termKey: "servicePlural" },
   { nameKey: "products", href: "/dashboard/products", icon: PackageIcon, capability: "shop", termKey: "productPlural" },
+  // Packages (bundles of services and/or products) — shown when either exists
+  { nameKey: "packages", href: "/dashboard/packages", icon: ToteIcon, anyCapabilities: ["shop", "services"] },
   // Work orders (workflow-driven jobs) — terminology comes from the profile
   { nameKey: "workOrders", href: "/dashboard/work-orders", icon: ReceiptIcon, capability: "workOrders", termKey: "orderPlural" },
+  // Documents (quotes/invoices) — gated by the documents capability (§13)
+  { nameKey: "documents", href: "/dashboard/documents", icon: FileTextIcon, capability: "documents" },
   // E-commerce shop orders — generic label, only for shop-capable tenants
   { nameKey: "shopOrders", href: "/dashboard/orders", icon: ShoppingBagIcon, capability: "shop" },
   { nameKey: "forms", href: "/dashboard/forms", icon: SlidersIcon, capability: "forms" },
@@ -66,6 +74,11 @@ function SidebarNav({ onNavigate }: SidebarNavProps) {
 
   // Capability-gated navigation (EPIC #1 §21): irrelevant modules never render.
   const visible = navigation.filter((item) => {
+    if (item.anyCapabilities?.length) {
+      return item.anyCapabilities.some(
+        (cap) => profile.capabilities[cap] !== "disabled"
+      )
+    }
     if (!item.capability) return true
     return profile.capabilities[item.capability] !== "disabled"
   })

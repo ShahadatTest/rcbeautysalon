@@ -80,6 +80,9 @@ model Organization {
   formSubmissions     FormSubmission[]
   workflowDefinitions WorkflowDefinition[]
   workOrders          WorkOrder[]
+  packages            Package[]
+  documents           Document[]
+  productVariants     ProductVariant[]
 
   @@index([slug])
   @@index([status])
@@ -226,7 +229,7 @@ model Category {
 model Service {
   id          String  @id @default(cuid())
   name        String
-  slug        String  @unique // For SEO-friendly URLs: /services/haircut-styling
+  slug        String // URL: /services/[slug] — unique PER ORGANIZATION (same-vertical tenants must not collide)
   description String? @db.Text
   duration    Int // minutes
   price       Decimal @db.Decimal(10, 2)
@@ -249,13 +252,13 @@ model Service {
   reviews             Review[]
   gallery             ServiceGallery[]
   faqs                ServiceFAQ[]
+  packageItems        PackageItem[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
   @@index([categoryId])
   @@index([isActive])
   @@index([isFeatured])
-  @@index([slug])
 }
 
 // Service Reviews/Testimonials
@@ -383,6 +386,7 @@ model Customer {
   orders          Order[]
   formSubmissions FormSubmission[]
   workOrders      WorkOrder[]
+  documents       Document[]
 
   @@index([userId])
   @@index([organizationId])
@@ -481,8 +485,10 @@ model Product {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  category   Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  orderItems OrderItem[]
+  category     Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  orderItems   OrderItem[]
+  variants     ProductVariant[]
+  packageItems PackageItem[]
 
   @@unique([organizationId, sku])
   @@index([organizationId])
@@ -560,16 +566,16 @@ enum OrderStatus {
 
 /// Reusable dynamic form template (fields + validation) owned by a tenant.
 model FormDefinition {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   organizationId String
   key            String // stable template key, e.g. "order-details", "vehicle-intake"
   name           String
   description    String?
-  version        Int      @default(1)
-  isActive       Boolean  @default(true)
+  version        Int     @default(1)
+  isActive       Boolean @default(true)
   fields         Json // ProfileFieldDef[] — validated server-side on read/write
 
-  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   submissions  FormSubmission[]
 
   createdAt DateTime @default(now())
@@ -584,11 +590,11 @@ model FormDefinition {
 /// (appointment, work order, vehicle, batch, …). customer is a real FK since
 /// customers are a universal primitive.
 model FormSubmission {
-  id               String   @id @default(cuid())
+  id               String  @id @default(cuid())
   organizationId   String
   formDefinitionId String
   data             Json
-  status           String   @default("NEW") // NEW | IN_REVIEW | PROCESSED
+  status           String  @default("NEW") // NEW | IN_REVIEW | PROCESSED
   customerId       String?
   contextType      String? // "appointment" | "order" | custom entity key
   contextId        String?
@@ -609,15 +615,15 @@ model FormSubmission {
 /// Configurable business process (e.g. seamstress production pipeline)
 /// owned by a tenant; stages define the allowed progression.
 model WorkflowDefinition {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   organizationId String
   key            String // stable key, e.g. "production-order"
   name           String
   entity         String // "order" | "appointment" | custom entity key
-  version        Int      @default(1)
-  isActive       Boolean  @default(true)
+  version        Int     @default(1)
+  isActive       Boolean @default(true)
 
-  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   stages       WorkflowStage[]
   workOrders   WorkOrder[]
 
@@ -657,12 +663,12 @@ model WorkflowStage {
 // ============================================================
 
 model WorkOrder {
-  id             String    @id @default(cuid())
+  id             String @id @default(cuid())
   organizationId String
   number         Int // human-friendly, sequential per tenant
   title          String
-  status         String    @default("OPEN") // OPEN | COMPLETED | CANCELLED
-  priority       String    @default("NORMAL") // LOW | NORMAL | HIGH | URGENT
+  status         String @default("OPEN") // OPEN | COMPLETED | CANCELLED
+  priority       String @default("NORMAL") // LOW | NORMAL | HIGH | URGENT
 
   // Workflow state (validated transitions, history in events)
   workflowDefinitionId String?
@@ -676,11 +682,12 @@ model WorkOrder {
   // Origin: the public form submission that produced this order (if any)
   sourceSubmissionId String? @unique
 
-  organization       Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  customer           Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer           Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
   customerId         String?
   workflowDefinition WorkflowDefinition? @relation(fields: [workflowDefinitionId], references: [id], onDelete: SetNull)
   events             WorkOrderEvent[]
+  documents          Document[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -695,13 +702,13 @@ model WorkOrder {
 /// Append-only audit trail for a work order: creation, stage
 /// transitions (validated), notes and status changes (§9, §17).
 model WorkOrderEvent {
-  id             String    @id @default(cuid())
+  id             String  @id @default(cuid())
   organizationId String
   workOrderId    String
   type           String // CREATED | STAGE_CHANGED | NOTE | STATUS_CHANGED
   fromStageKey   String?
   toStageKey     String?
-  message        String?   @db.Text
+  message        String? @db.Text
   actorEmail     String?
 
   workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
@@ -710,4 +717,137 @@ model WorkOrderEvent {
 
   @@index([organizationId])
   @@index([workOrderId, createdAt])
+}
+
+// ============================================================
+// CATALOG PACKAGES & VARIANTS (EPIC #1 Phase 4b, §11 universal
+// catalog). Variants: size/color/material variants of a product
+// with optional price/stock override. Packages: sellable bundles
+// combining services AND products at a package price — useful
+// for salons (treatment packages) as well as production
+// businesses (kits). All rows are strictly org-scoped.
+// ============================================================
+
+/// Variant of a product (e.g. "Velikost L / Temno modra").
+/// price null → the product's base price applies.
+model ProductVariant {
+  id             String   @id @default(cuid())
+  organizationId String
+  productId      String
+  name           String
+  sku            String?
+  price          Decimal? @db.Decimal(10, 2)
+  trackInventory Boolean  @default(true)
+  stockQuantity  Int      @default(0)
+  isActive       Boolean  @default(true)
+  position       Int      @default(0)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product      Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, sku])
+  @@index([organizationId])
+  @@index([productId])
+}
+
+/// Sellable package/bundle of services and/or products.
+model Package {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?  @db.Text
+  price          Decimal  @db.Decimal(10, 2)
+  compareAtPrice Decimal? @db.Decimal(10, 2)
+  isActive       Boolean  @default(true)
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  items        PackageItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([isActive])
+}
+
+/// One line of a package: either a service or a product with quantity.
+model PackageItem {
+  id        String  @id @default(cuid())
+  packageId String
+  itemType  String // "service" | "product"
+  serviceId String?
+  productId String?
+  quantity  Int     @default(1)
+  position  Int     @default(0)
+
+  package Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([packageId])
+  @@index([serviceId])
+  @@index([productId])
+}
+
+// ============================================================
+// DOCUMENTS (EPIC #1 Phase 4b, §13 documents capability).
+// Quotes (predračuni) and invoices (računi) with per-tenant
+// sequential numbering and printable line-item layout. Deliberately
+// generic (not Stripe-bound) so every profile can issue them;
+// optional links: customer (universal primitive) and work order.
+// All rows are strictly org-scoped.
+// ============================================================
+
+/// QUOTE statuses: DRAFT | SENT | ACCEPTED | REJECTED
+/// INVOICE statuses: DRAFT | ISSUED | PAID | CANCELLED
+model Document {
+  id             String @id @default(cuid())
+  organizationId String
+  type           String // QUOTE | INVOICE
+  number         Int // human-friendly, sequential per tenant AND type
+  status         String @default("DRAFT")
+
+  customerId  String?
+  workOrderId String?
+
+  issueDate DateTime  @default(now())
+  dueDate   DateTime?
+  total     Decimal   @db.Decimal(10, 2)
+  notes     String?   @db.Text
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  workOrder    WorkOrder?     @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
+  items        DocumentItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, type, number])
+  @@index([organizationId])
+  @@index([organizationId, type, status])
+  @@index([customerId])
+  @@index([workOrderId])
+}
+
+/// Printable line of a document (free description — catalog
+/// binding stays loose so documents never break when catalog
+/// items are renamed or deleted).
+model DocumentItem {
+  id             String  @id @default(cuid())
+  organizationId String
+  documentId     String
+  description    String
+  quantity       Decimal @default(1) @db.Decimal(10, 2)
+  unitPrice      Decimal @db.Decimal(10, 2)
+  total          Decimal @db.Decimal(10, 2)
+  position       Int     @default(0)
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([organizationId])
 }

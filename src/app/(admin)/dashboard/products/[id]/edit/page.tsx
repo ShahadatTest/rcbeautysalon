@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeftIcon } from "@/components/icons"
 import { ProductForm } from "@/components/dashboard/product-form"
+import { ProductVariantsCard } from "@/components/dashboard/product-variants-card"
 import { getProductById } from "@/app/actions/products"
 import { getAllCategories } from "@/app/actions/services"
 import { getServerI18n } from "@/lib/i18n/server"
@@ -45,6 +46,13 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         categories={categories}
         product={product}
         mode="edit"
+      />
+
+      {/* Variants (EPIC #1 Phase 4b, §11) */}
+      <ProductVariantsCard
+        productId={product.id}
+        productPrice={product.price}
+        labels={t.catalogDocs.variants}
       />
     </div>
   )

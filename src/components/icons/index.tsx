@@ -32,6 +32,8 @@ export { PackageIcon } from "./package-icon"
 export { ToteIcon } from "./tote-icon"
 export { StorefrontIcon } from "./storefront-icon"
 export { ReceiptIcon } from "./receipt-icon"
+export { FileTextIcon } from "./file-text-icon"
+export { PrinterIcon } from "./printer-icon"
 export { CreditCardIcon } from "./credit-card-icon"
 
 // Calendar & Time
