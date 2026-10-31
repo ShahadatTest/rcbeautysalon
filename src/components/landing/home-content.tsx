@@ -51,6 +51,8 @@ interface HomeContentProps {
   content: SiteContent
   /** Profile-resolved hero/CTA links (EPIC #1 §4) — falls back to content. */
   ctaLinks?: { primaryCta: CtaLink; secondaryCta: CtaLink | null }
+  /** Label on service cards — booking profiles say "Rezerviraj", others "Poglej". */
+  serviceCtaLabel?: string
   featuredServices: Service[]
   featuredProducts: Product[]
   featuredStaff: Staff[]
@@ -60,6 +62,7 @@ export function HomeContent({
   org,
   content,
   ctaLinks,
+  serviceCtaLabel = "Rezerviraj",
   featuredServices,
   featuredProducts,
   featuredStaff,
@@ -185,7 +188,7 @@ export function HomeContent({
                           </div>
                           <div className="mt-4 translate-y-2 transform opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
                             <div className="text-accent border-accent/50 hover:border-accent inline-flex items-center border-b-2 pb-1 text-sm font-medium">
-                              Rezerviraj
+                              {serviceCtaLabel}
                               <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                               </svg>

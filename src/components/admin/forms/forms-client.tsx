@@ -36,6 +36,7 @@ import {
   type AdminFormDefinition,
   type AdminFormSubmission,
 } from "@/app/actions/forms"
+import { FormEditorDialog, type FormEditorLabels } from "./form-editor-dialog"
 
 // ============================================================
 // FORMS ADMIN (client) — definition cards (activation toggle,
@@ -47,6 +48,7 @@ interface FormsClientProps {
   definitions: AdminFormDefinition[]
   submissions: AdminFormSubmission[]
   canWorkOrders: boolean
+  editorLabels: FormEditorLabels
   labels: {
     definitions: string
     active: string
@@ -84,6 +86,7 @@ export function FormsClient({
   definitions,
   submissions,
   canWorkOrders,
+  editorLabels,
   labels,
 }: FormsClientProps) {
   const router = useRouter()
@@ -170,6 +173,7 @@ export function FormsClient({
                   <span className="text-muted-foreground">
                     {def.submissionCount} {labels.submissions.toLowerCase()}
                   </span>
+                  <span className="text-muted-foreground">· v{def.version}</span>
                 </div>
                 <ul className="text-muted-foreground space-y-1 text-xs">
                   {def.fields.slice(0, 4).map((field) => (
@@ -189,6 +193,15 @@ export function FormsClient({
                     </li>
                   )}
                 </ul>
+                <div className="border-t pt-3">
+                  <FormEditorDialog
+                    definitionId={def.id}
+                    definitionName={def.name}
+                    initialName={def.name}
+                    initialFields={def.fields}
+                    labels={editorLabels}
+                  />
+                </div>
               </CardContent>
             </Card>
           ))}

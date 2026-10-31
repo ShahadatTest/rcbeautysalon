@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { z } from "zod"
 import { requireAdminOrg, requirePublicOrg } from "@/lib/tenant"
 import type { Prisma } from "@prisma/client"
 
@@ -345,6 +346,87 @@ export async function toggleFormDefinition(
   await prisma.formDefinition.update({ where: { id }, data: { isActive } })
   revalidatePath("/dashboard/forms")
   return { ok: true }
+}
+
+// ------------------------------------------------------------
+// Form definition editor (EPIC #1 §8 — Phase 5, owner customization)
+// ------------------------------------------------------------
+
+export interface UpdateFormResult {
+  ok: boolean
+  error?: string
+}
+
+const fieldSchema = z.object({
+  key: z
+    .string()
+    .min(1)
+    .max(60)
+    // Letters/digits with inner separators (dash or underscore) —
+    // materialized profile keys use underscores (e.g. garment_type).
+    .regex(/^[a-z0-9]+([_-][a-z0-9]+)*$/, "KEY_FORMAT"),
+  label: z.string().min(1).max(120),
+  type: z.enum(["text", "textarea", "number", "date", "select", "checkbox"]),
+  required: z.boolean(),
+  options: z.array(z.string().min(1).max(120)).max(30).optional(),
+  unit: z.string().max(20).optional(),
+  placeholder: z.string().max(200).optional(),
+})
+
+const updateFormSchema = z.object({
+  name: z.string().min(1).max(120).optional(),
+  fields: z.array(fieldSchema).min(1, "MIN_FIELDS").max(30, "MAX_FIELDS"),
+})
+
+/**
+ * Owner edit of a materialized form definition (no code needed).
+ * The definition is org-scoped (copy-on-write from the profile, so
+ * editing never mutates the shared profile). Every field is validated
+ * server-side; the version counter is bumped so owners can always see
+ * which revision is live.
+ */
+export async function updateFormDefinition(
+  id: string,
+  input: { name?: string; fields: unknown }
+): Promise<UpdateFormResult> {
+  try {
+    const { org } = await requireAdminOrg()
+    const parsed = updateFormSchema.safeParse(input)
+    if (!parsed.success) return { ok: false, error: "INVALID" }
+
+    const { name, fields } = parsed.data
+
+    // Unique field keys, select fields need ≥1 option.
+    const keys = new Set<string>()
+    for (const f of fields) {
+      if (keys.has(f.key)) return { ok: false, error: "DUPLICATE_KEY" }
+      keys.add(f.key)
+      if (f.type === "select" && (!f.options || f.options.length === 0)) {
+        return { ok: false, error: "SELECT_NEEDS_OPTIONS" }
+      }
+    }
+
+    const def = await prisma.formDefinition.findFirst({
+      where: { id, organizationId: org.id },
+      select: { id: true, version: true },
+    })
+    if (!def) return { ok: false, error: "NOT_FOUND" }
+
+    await prisma.formDefinition.update({
+      where: { id: def.id },
+      data: {
+        ...(name ? { name } : {}),
+        fields: fields as unknown as Prisma.InputJsonValue,
+        version: def.version + 1,
+      },
+    })
+
+    revalidatePath("/dashboard/forms")
+    return { ok: true }
+  } catch (error) {
+    console.error("updateFormDefinition error:", error)
+    return { ok: false, error: "GENERIC" }
+  }
 }
 
 export interface CreateFromSubmissionResult {

@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation"
 import { getResolvedOrg } from "@/lib/tenant"
 import { orgPath } from "@/lib/org-path"
-import { getProfile, term as profileTerm } from "@/lib/profiles/registry"
+import { term as profileTerm } from "@/lib/profiles/registry"
+import { resolveEffectiveProfile } from "@/lib/profiles/resolve"
 import { getPublicForms } from "@/app/actions/forms"
 import { PublicInquiryForm } from "@/components/public/public-inquiry-form"
 
@@ -20,7 +21,7 @@ export default async function InquiryPage() {
 
   // Booking-capable tenants keep their calendar; the inquiry page
   // is for inquiry/quote/order profiles (and a universal fallback).
-  const profile = getProfile(org?.vertical)
+  const profile = resolveEffectiveProfile(org)
   if (profile.website.ctaMode === "booking") {
     redirect(p("/"))
   }

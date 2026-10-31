@@ -8,7 +8,7 @@ export default async function PublicLayout({
   children: React.ReactNode
 }) {
   const org = await getPublicOrg()
-  const cta = resolvePublicCta(org?.vertical)
+  const cta = resolvePublicCta(org?.vertical, "sl", org?.profileOverrides)
 
   return (
     <>

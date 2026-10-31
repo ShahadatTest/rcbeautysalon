@@ -3,6 +3,7 @@ import { SettingsForm } from "@/components/dashboard/settings-form"
 import { BrandingEditor } from "@/components/dashboard/branding-editor"
 import { PaymentsSettings } from "@/components/dashboard/payments-settings"
 import { ProfileOverview } from "@/components/dashboard/profile-overview"
+import { ModulesConfigurator } from "@/components/dashboard/modules-configurator"
 import { SettingsTabs } from "@/components/dashboard/settings-tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getServerI18n } from "@/lib/i18n/server"
@@ -30,6 +31,7 @@ export default async function SettingsPage() {
           <SettingsForm initialSettings={settings} />
         </div>
       }
+      modules={<ModulesConfigurator />}
       branding={<BrandingEditor />}
       payments={<PaymentsSettings />}
     />

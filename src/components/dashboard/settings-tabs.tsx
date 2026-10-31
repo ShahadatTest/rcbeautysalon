@@ -10,17 +10,19 @@ import { useI18n } from "@/lib/i18n/provider"
 
 interface SettingsTabsProps {
   basic: ReactNode
+  modules?: ReactNode
   branding: ReactNode
   payments?: ReactNode
 }
 
-export function SettingsTabs({ basic, branding, payments }: SettingsTabsProps) {
+export function SettingsTabs({ basic, modules, branding, payments }: SettingsTabsProps) {
   const { t } = useI18n()
 
   return (
     <Tabs defaultValue="basic">
       <TabsList>
         <TabsTrigger value="basic">{t.settings.tabs.basic}</TabsTrigger>
+        {modules && <TabsTrigger value="modules">{t.settings.tabs.modules}</TabsTrigger>}
         <TabsTrigger value="branding">{t.settings.tabs.branding}</TabsTrigger>
         {payments && (
           <TabsTrigger value="payments">{t.settings.tabs.payments}</TabsTrigger>
@@ -29,6 +31,11 @@ export function SettingsTabs({ basic, branding, payments }: SettingsTabsProps) {
       <TabsContent value="basic" forceMount className="mt-6 data-[state=inactive]:hidden">
         {basic}
       </TabsContent>
+      {modules && (
+        <TabsContent value="modules" forceMount className="mt-6 data-[state=inactive]:hidden">
+          {modules}
+        </TabsContent>
+      )}
       <TabsContent value="branding" forceMount className="mt-6 data-[state=inactive]:hidden">
         {branding}
       </TabsContent>

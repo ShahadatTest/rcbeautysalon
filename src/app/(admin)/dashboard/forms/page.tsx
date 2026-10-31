@@ -1,7 +1,6 @@
 import { getServerI18n } from "@/lib/i18n/server"
 import { listFormDefinitions, listFormSubmissions } from "@/app/actions/forms"
-import { getSessionOrg } from "@/lib/tenant"
-import { getProfile } from "@/lib/profiles/registry"
+import { getSessionEffectiveProfile } from "@/lib/profiles/resolve"
 import { FormsClient } from "@/components/admin/forms/forms-client"
 
 // ============================================================
@@ -13,14 +12,13 @@ import { FormsClient } from "@/components/admin/forms/forms-client"
 // ============================================================
 
 export default async function FormsPage() {
-  const [{ t }, definitions, submissions, org] = await Promise.all([
+  const [{ t }, definitions, submissions] = await Promise.all([
     getServerI18n(),
     listFormDefinitions(),
     listFormSubmissions(),
-    getSessionOrg(),
   ])
   const f = t.workForms.forms
-  const canWorkOrders = getProfile(org?.vertical).capabilities.workOrders !== "disabled"
+  const canWorkOrders = (await getSessionEffectiveProfile()).capabilities.workOrders !== "disabled"
 
   return (
     <div className="space-y-8">
@@ -33,6 +31,7 @@ export default async function FormsPage() {
         definitions={definitions}
         submissions={submissions}
         canWorkOrders={canWorkOrders}
+        editorLabels={f.editor}
         labels={{
           definitions: f.definitions,
           active: f.active,

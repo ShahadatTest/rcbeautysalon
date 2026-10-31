@@ -14,11 +14,16 @@ export default async function AdminLayout({
   const locale = await getLocaleFromCookies()
   // Activity profile of the tenant — drives capability-gated navigation
   // and industry terminology across the dashboard (EPIC #1).
+  // Owner overrides (Phase 5) are applied on top of the shared profile.
   const org = await getSessionOrg()
   const profileId = org?.vertical
 
   return (
-    <AdminI18nProvider initialLocale={locale} profileId={profileId}>
+    <AdminI18nProvider
+      initialLocale={locale}
+      profileId={profileId}
+      profileOverrides={org?.profileOverrides}
+    >
       <div className="admin-sans-headings flex h-screen overflow-hidden bg-background">
         {/* Desktop Sidebar */}
         <AdminSidebar />

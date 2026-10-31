@@ -27,7 +27,7 @@ export default async function BookingPage(props: BookingPageProps) {
 
   // Profile guard (EPIC #1 §21): non-appointment businesses never see
   // a booking calendar — they are routed to the inquiry form instead.
-  if (!isBookingEnabled(org?.vertical)) {
+  if (!isBookingEnabled(org?.vertical, org?.profileOverrides)) {
     redirect(p("/inquiry"))
   }
 

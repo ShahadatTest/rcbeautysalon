@@ -10,6 +10,7 @@ import {
 import { getWorkOrdersOverview } from "@/app/actions/work-orders"
 import { getServerI18n } from "@/lib/i18n/server"
 import { WorkOrdersClient } from "@/components/admin/work-orders/work-orders-client"
+import { ProcessEditorDialog } from "@/components/admin/work-orders/process-editor-dialog"
 
 // ============================================================
 // WORK ORDERS PAGE (EPIC #1 §9/§10 — Phase 4)
@@ -40,6 +41,14 @@ export default async function WorkOrdersPage() {
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{w.title}</h1>
           <p className="text-muted-foreground">{w.subtitle}</p>
         </div>
+        {/* Owner workflow customization (EPIC #1 §9 — Phase 5) */}
+        {overview.definitions.length > 0 && (
+          <ProcessEditorDialog
+            definitionId={overview.definitions[0].id ?? ""}
+            stages={overview.definitions[0].stages}
+            labels={w.process}
+          />
+        )}
       </div>
 
       {/* Stats row */}

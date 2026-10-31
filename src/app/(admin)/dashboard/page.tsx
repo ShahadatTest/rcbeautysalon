@@ -27,7 +27,8 @@ import { getSessionSalonTimezone } from "@/lib/tenant"
 import { formatCurrency, formatChange } from "@/lib/utils/format"
 import { getServerI18n } from "@/lib/i18n/server"
 import { getSessionOrg } from "@/lib/tenant"
-import { getProfile, term as profileTerm } from "@/lib/profiles/registry"
+import { term as profileTerm } from "@/lib/profiles/registry"
+import { getSessionEffectiveProfile } from "@/lib/profiles/resolve"
 
 export default async function AdminDashboard() {
   const [{ t, locale, dateFnsLocale }, salonTz] = await Promise.all([
@@ -42,12 +43,23 @@ export default async function AdminDashboard() {
   ])
 
   // Capability-gated dashboard (EPIC #1 §21): irrelevant modules never render.
-  const profile = getProfile(org?.vertical)
+  // Phase 5: the EFFECTIVE profile (shared profile + owner overrides) drives gating.
+  const profile = await getSessionEffectiveProfile()
   const showAppointments = profile.capabilities.appointments !== "disabled"
   const workOrdersEnabled = profile.capabilities.workOrders !== "disabled"
   const ordersLabel = workOrdersEnabled
     ? profileTerm(profile, "orderPlural", locale)
     : t.dashboard.shopSales
+
+  // Widget configurator (Phase 5): the owner picks which widgets render.
+  const hasWidget = (k: (typeof profile.dashboardWidgets)[number]) =>
+    profile.dashboardWidgets.includes(k)
+  const statCardsVisible = [
+    hasWidget("revenue"),
+    showAppointments && hasWidget("todayAppointments"),
+    hasWidget("customers"),
+    hasWidget("recentOrders"),
+  ].filter(Boolean).length as number
 
   // Widget-driven work-order board data — only fetched for profiles whose
   // dashboardWidgets actually use it (salons skip the extra queries entirely).
@@ -72,8 +84,9 @@ export default async function AdminDashboard() {
         <p className="text-muted-foreground">{t.dashboard.welcome}</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className={`grid gap-4 md:grid-cols-2 ${showAppointments ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+      {/* Stats Cards — widget-configurable (Phase 5) */}
+      <div className={`grid gap-4 md:grid-cols-2 ${statCardsVisible >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+        {hasWidget("revenue") && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -99,8 +112,9 @@ export default async function AdminDashboard() {
             </p>
           </CardContent>
         </Card>
+        )}
 
-        {showAppointments && (
+        {showAppointments && hasWidget("todayAppointments") && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -119,6 +133,7 @@ export default async function AdminDashboard() {
         </Card>
         )}
 
+        {hasWidget("customers") && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -135,7 +150,9 @@ export default async function AdminDashboard() {
             </p>
           </CardContent>
         </Card>
+        )}
 
+        {hasWidget("recentOrders") && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -157,17 +174,18 @@ export default async function AdminDashboard() {
             </p>
           </CardContent>
         </Card>
+        )}
       </div>
 
-      {/* Work-order widgets — data-driven by profile.dashboardWidgets (§10) */}
+      {/* Work-order widgets — data-driven by profile.dashboardWidgets (§10 + Phase 5 configurator) */}
       {ww && (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {[
-            { label: t.workForms.workOrders.stats.active, value: ww.active, href: "/dashboard/work-orders" },
-            { label: t.workForms.workOrders.stats.dueSoon, value: ww.dueSoon, href: "/dashboard/work-orders" },
-            { label: t.workForms.workOrders.stats.pendingApprovals, value: ww.pendingApprovals, href: "/dashboard/work-orders" },
-            { label: t.workForms.workOrders.stats.readyForDelivery, value: ww.readyForDelivery, href: "/dashboard/work-orders" },
-          ].map((w) => (
+            { key: "activeOrders", label: t.workForms.workOrders.stats.active, value: ww.active, href: "/dashboard/work-orders" },
+            { key: "deadlines", label: t.workForms.workOrders.stats.dueSoon, value: ww.dueSoon, href: "/dashboard/work-orders" },
+            { key: "pendingApprovals", label: t.workForms.workOrders.stats.pendingApprovals, value: ww.pendingApprovals, href: "/dashboard/work-orders" },
+            { key: "readyForDelivery", label: t.workForms.workOrders.stats.readyForDelivery, value: ww.readyForDelivery, href: "/dashboard/work-orders" },
+          ].filter((w) => hasWidget(w.key as (typeof profile.dashboardWidgets)[number])).map((w) => (
             <Link key={w.label} href={w.href}>
               <Card className="hover:border-primary/40 transition-colors">
                 <CardContent className="p-4">
@@ -181,8 +199,8 @@ export default async function AdminDashboard() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        {/* Today's Appointments — only for appointment-capable profiles */}
-        {showAppointments && (
+        {/* Today's Appointments — only for appointment-capable profiles + widget enabled (Phase 5) */}
+        {showAppointments && hasWidget("todayAppointments") && (
         <Card className="col-span-4">
           <CardHeader>
             <CardTitle>{t.dashboard.todaysAppointments}</CardTitle>
@@ -242,8 +260,8 @@ export default async function AdminDashboard() {
         )}
 
         {/* Production deadlines — replaces the calendar for
-            appointment-less, work-order profiles (§10, §21) */}
-        {!showAppointments && workOrders && workOrders.orders.length > 0 && (
+            appointment-less, work-order profiles (§10, §21; widget-gated Phase 5) */}
+        {!showAppointments && hasWidget("deadlines") && workOrders && workOrders.orders.length > 0 && (
           <Card className="col-span-4">
             <CardHeader>
               <CardTitle>{t.workForms.workOrders.stats.dueSoon}</CardTitle>

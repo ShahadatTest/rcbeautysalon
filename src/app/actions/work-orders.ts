@@ -52,6 +52,7 @@ export interface WorkOrderStats {
 }
 
 export interface WorkflowStageInfo {
+  id: string
   key: string
   name: string
   order: number
@@ -195,6 +196,7 @@ export async function getWorkOrdersOverview(): Promise<WorkOrdersOverview> {
       name: d.name,
       entity: d.entity,
       stages: d.stages.map((s) => ({
+        id: s.id,
         key: s.key,
         name: s.name,
         order: s.order,
@@ -264,6 +266,7 @@ export async function getWorkOrderDetail(id: string): Promise<WorkOrderDetail | 
           name: order.workflowDefinition.name,
           entity: order.workflowDefinition.entity,
           stages: order.workflowDefinition.stages.map((s) => ({
+            id: s.id,
             key: s.key,
             name: s.name,
             order: s.order,
@@ -502,4 +505,162 @@ export async function listWorkOrderCustomers(): Promise<
     take: 200,
   })
   return customers
+}
+
+// ------------------------------------------------------------
+// Workflow stage editor (EPIC #1 §9 — Phase 5, owner customization)
+// ------------------------------------------------------------
+
+export interface UpdateStagesResult {
+  ok: boolean
+  error?: string
+}
+
+export interface StageInput {
+  /** Existing stage id — present = update, absent = create. */
+  id?: string
+  name: string
+  slaHours?: number | null
+}
+
+/**
+ * Owner edit of the tenant's workflow stages (no code needed):
+ * rename, add, remove and reorder stages. Safety rules:
+ *   • stages are org-scoped (copy-on-write definition);
+ *   • orders standing in a REMOVED stage are moved to the previous
+ *     stage in the new list (inside a transaction, with an audit
+ *     event per affected order);
+ *   • the last stage is always the final one (completes the order);
+ *   • the definition version is bumped on every save.
+ */
+export async function updateWorkflowStages(
+  definitionId: string,
+  stages: StageInput[]
+): Promise<UpdateStagesResult> {
+  try {
+    const { org } = await requireAdminOrg()
+
+    // Basic shape validation.
+    const clean = stages
+      .map((s) => ({ name: (s.name || "").trim().slice(0, 80), slaHours: s.slaHours ?? null }))
+      .filter((s) => s.name.length > 0)
+    if (clean.length < 1 || clean.length > 20) return { ok: false, error: "INVALID" }
+
+    const definition = await prisma.workflowDefinition.findFirst({
+      where: { id: definitionId, organizationId: org.id },
+      include: { stages: { orderBy: { order: "asc" } } },
+    })
+    if (!definition) return { ok: false, error: "NOT_FOUND" }
+
+    // Existing ids we keep = those sent by the client that exist on this definition.
+    const existingIds = new Set(definition.stages.map((s) => s.id))
+    const keepIds = stages
+      .map((s) => s.id)
+      .filter((id): id is string => typeof id === "string" && existingIds.has(id))
+
+    // Removed stages — orders reference stages by KEY, so keys matter here.
+    const removedStages = definition.stages.filter((s) => !keepIds.includes(s.id))
+    const removedKeys = removedStages.map((s) => s.key)
+
+    // Open orders standing in removed stages (key-based reference).
+    const affectedOrders =
+      removedKeys.length > 0
+        ? await prisma.workOrder.findMany({
+            where: {
+              organizationId: org.id,
+              workflowDefinitionId: definition.id,
+              currentStageKey: { in: removedKeys },
+              status: "OPEN",
+            },
+            select: { id: true, currentStageKey: true },
+          })
+        : []
+
+    // Map each removed stage's old position → fallback stage in the NEW list.
+    const newCount = clean.length
+    const fallbackKeyByOldKey = new Map<string, string>()
+    for (const removed of removedStages) {
+      const idx = Math.min(removed.order, newCount - 1)
+      if (idx >= 0 && clean[idx]) {
+        fallbackKeyByOldKey.set(removed.key, clean[idx].name)
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete removed stages.
+      const deleteIds = removedStages.map((s) => s.id)
+      if (deleteIds.length > 0) {
+        await tx.workflowStage.deleteMany({ where: { id: { in: deleteIds } } })
+      }
+
+      // 2. Update kept + create new stages in the submitted order.
+      for (let i = 0; i < stages.length; i++) {
+        const input = stages[i]
+        const name = (input.name || "").trim().slice(0, 80)
+        if (!name) continue
+        const sla = input.slaHours ?? null
+        const isFinal = i === stages.length - 1
+        if (input.id && existingIds.has(input.id)) {
+          await tx.workflowStage.update({
+            where: { id: input.id },
+            data: { name, order: i, slaHours: sla, isFinal },
+          })
+        } else {
+          await tx.workflowStage.create({
+            data: {
+              definitionId: definition.id,
+              key: `stage-${i + 1}-${Math.random().toString(36).slice(2, 8)}`,
+              name,
+              order: i,
+              slaHours: sla,
+              isFinal,
+            },
+          })
+        }
+      }
+
+      // 3. Move open orders standing in removed stages to the fallback
+      //    stage (same position), with an audit event per order.
+      if (affectedOrders.length > 0) {
+        const remaining = await tx.workflowStage.findMany({
+          where: { definitionId: definition.id },
+          orderBy: { order: "asc" },
+          select: { key: true, name: true },
+        })
+        for (const order of affectedOrders) {
+          if (!order.currentStageKey) continue
+          const fallbackName = fallbackKeyByOldKey.get(order.currentStageKey)
+          const fallback =
+            remaining.find((s) => s.name === fallbackName) ?? remaining[remaining.length - 1]
+          if (!fallback) continue
+          await tx.workOrder.update({
+            where: { id: order.id },
+            data: { currentStageKey: fallback.key },
+          })
+          await tx.workOrderEvent.create({
+            data: {
+              organizationId: org.id,
+              workOrderId: order.id,
+              type: "STAGE_MOVED",
+              message: `Stopnja je bila odstranjena iz procesa — naročilo je premaknjeno na „${fallback.name}".`,
+              actorEmail: "system",
+            },
+          })
+        }
+      }
+
+      // 4. Bump the definition version.
+      await tx.workflowDefinition.update({
+        where: { id: definition.id },
+        data: { version: { increment: 1 } },
+      })
+    })
+
+    revalidatePath("/dashboard/work-orders")
+    revalidatePath("/dashboard")
+    return { ok: true }
+  } catch (error) {
+    console.error("updateWorkflowStages error:", error)
+    return { ok: false, error: "GENERIC" }
+  }
 }

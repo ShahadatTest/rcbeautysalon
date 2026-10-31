@@ -4,7 +4,8 @@ import { Logo } from "@/components/ui/logo"
 import { getPublicSiteData } from "@/lib/public-site"
 import { orgPath } from "@/lib/org-path"
 import { formatOpeningHours } from "@/lib/site-content"
-import { getProfile, term as profileTerm } from "@/lib/profiles/registry"
+import { term as profileTerm } from "@/lib/profiles/registry"
+import { resolveEffectiveProfile } from "@/lib/profiles/resolve"
 
 function truncate(text: string, max = 160): string {
   if (text.length <= max) return text
@@ -29,7 +30,8 @@ const Footer = async () => {
     : "Vaš salon lepote — rezervacije terminov, storitve in izbrani izdelki na enem mestu."
 
   // Profile-aware footer links (EPIC #1 §21): irrelevant modules never render.
-  const profile = getProfile(org?.vertical)
+  // Phase 5: effective profile = shared profile + owner overrides.
+  const profile = resolveEffectiveProfile(org)
   const cap = (k: keyof typeof profile.capabilities) =>
     profile.capabilities[k] !== "disabled"
   const quickLinks = [

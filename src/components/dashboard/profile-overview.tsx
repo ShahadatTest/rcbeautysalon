@@ -126,6 +126,11 @@ export function ProfileOverview() {
                 {data.materializedVersion}
               </Badge>
             )}
+            {data.isOverridden && (
+              <Badge variant="secondary" className="text-xs">
+                {t.settings.profile.customized}
+              </Badge>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -135,8 +140,17 @@ export function ProfileOverview() {
           <h4 className="mb-2 text-sm font-semibold">{t.settings.profile.capabilities}</h4>
           <div className="flex flex-wrap gap-1.5">
             {enabled.map((c) => (
-              <Badge key={c.key} variant="outline" className={cn("font-normal", STATE_STYLE[c.state])}>
+              <Badge
+                key={c.key}
+                variant="outline"
+                className={cn(
+                  "font-normal",
+                  STATE_STYLE[c.state],
+                  c.overridden && "ring-1 ring-amber-400/60"
+                )}
+              >
                 {capLabel(c.key)} · {stateLabel(c.state)}
+                {c.overridden ? " ✻" : ""}
               </Badge>
             ))}
             {disabled.length > 0 && (

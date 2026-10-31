@@ -12,12 +12,13 @@ import { useRouter } from "next/navigation"
 import { LOCALE_COOKIE, Locale, localeLabels, locales } from "./config"
 import { Dictionary, getDictionary } from "./dictionaries"
 import { getProfile, term as profileTerm } from "@/lib/profiles/registry"
+import { applyOverrides, parseOverrides } from "@/lib/profiles/overrides"
 import type { ActivityProfile } from "@/lib/profiles/types"
 
 interface I18nContextValue {
   locale: Locale
   t: Dictionary
-  /** Resolved activity profile of the tenant (EPIC #1). */
+  /** Effective activity profile of the tenant (EPIC #1): shared profile + owner overrides. */
   profile: ActivityProfile
   /** Terminology lookup: industry-specific label for the current locale. */
   term: (key: keyof ActivityProfile["terminology"]) => string
@@ -30,12 +31,15 @@ interface AdminI18nProviderProps {
   initialLocale: Locale
   /** Activity profile id of the current tenant's organization. */
   profileId?: string
+  /** Owner overrides JSON stored on the organization (Phase 5). */
+  profileOverrides?: unknown
   children: React.ReactNode
 }
 
 export function AdminI18nProvider({
   initialLocale,
   profileId,
+  profileOverrides,
   children,
 }: AdminI18nProviderProps) {
   const [locale, setLocaleState] = useState<Locale>(initialLocale)
@@ -56,7 +60,11 @@ export function AdminI18nProvider({
   )
 
   const value = useMemo<I18nContextValue>(() => {
-    const profile = getProfile(profileId)
+    // Effective profile: shared profile + owner overrides (Phase 5).
+    const profile = applyOverrides(
+      getProfile(profileId),
+      parseOverrides(profileOverrides)
+    )
     return {
       locale,
       t: getDictionary(locale),
@@ -64,7 +72,7 @@ export function AdminI18nProvider({
       term: (key) => profileTerm(profile, key, locale),
       setLocale,
     }
-  }, [locale, setLocale, profileId])
+  }, [locale, setLocale, profileId, profileOverrides])
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
 }
