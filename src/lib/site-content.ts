@@ -112,6 +112,49 @@ function sections(all = true): SectionMeta[] {
   return SECTION_KEYS.map((key) => ({ key, visible: all }))
 }
 
+/**
+ * Tolerant normalization of the stored `sections` array (EPIC #3 E3-2):
+ * - valid entries keep THEIR STORED ORDER (owner-defined section order)
+ * - unknown keys are dropped, duplicates deduplicated (first wins)
+ * - missing keys are appended at the end (visible, so nothing disappears)
+ * Returns null when nothing valid is stored (caller keeps defaults).
+ */
+export function normalizeSections(input: unknown): SectionMeta[] | null {
+  if (!Array.isArray(input)) return null
+  const isObj = (v: unknown): v is Record<string, unknown> =>
+    !!v && typeof v === "object" && !Array.isArray(v)
+  const valid = (input as SectionMeta[]).filter(
+    (x) => isObj(x) && SECTION_KEYS.includes(x.key)
+  )
+  if (valid.length === 0) return null
+  const ordered: SectionMeta[] = []
+  const seen = new Set<SectionKey>()
+  for (const entry of valid) {
+    if (seen.has(entry.key)) continue
+    seen.add(entry.key)
+    ordered.push({ key: entry.key, visible: !!entry.visible })
+  }
+  for (const key of SECTION_KEYS) {
+    if (!seen.has(key)) {
+      seen.add(key)
+      ordered.push({ key, visible: true })
+    }
+  }
+  return ordered
+}
+
+/**
+ * Render order for the public home page (EPIC #3 E3-2): the stored order with
+ * two guarantees — hero is ALWAYS first when visible (it is the page header),
+ * and hidden sections never render. Pure so tests and the editor preview agree
+ * with the public renderer.
+ */
+export function homeSectionOrder(sectionsMeta: SectionMeta[]): SectionKey[] {
+  const visible = sectionsMeta.filter((s) => s.visible).map((s) => s.key)
+  if (!visible.includes("hero")) return visible
+  return ["hero", ...visible.filter((k) => k !== "hero")]
+}
+
 /** Default site content per vertical (Slovenian copy). */
 export function defaultSiteContent(vertical: string): SiteContent {
   const byVertical: Record<string, Partial<SiteContent>> = {
@@ -541,18 +584,10 @@ export function mergeSiteContent(stored: unknown, vertical: string): SiteContent
   if (isObj(s.social)) merged.social = { ...defaults.social, ...(s.social as SocialLinks) }
   if (isObj(s.seo)) merged.seo = { ...defaults.seo, ...(s.seo as SiteContent["seo"]) }
   if (Array.isArray(s.sections)) {
-    const valid = (s.sections as SectionMeta[]).filter(
-      (x) => isObj(x) && SECTION_KEYS.includes(x.key)
-    )
-    if (valid.length) {
-      // ensure every key exists exactly once
-      const seen = new Set<SectionKey>()
-      merged.sections = SECTION_KEYS.map((key) => {
-        const found = valid.find((v) => v.key === key)
-        if (found) seen.add(key)
-        return { key, visible: found ? !!found.visible : true }
-      })
-    }
+    // E3-2: keep the owner-defined section ORDER (tolerant: unknown keys
+    // dropped, duplicates deduped, missing keys appended visible).
+    const normalized = normalizeSections(s.sections)
+    if (normalized) merged.sections = normalized
   }
   return merged
 }

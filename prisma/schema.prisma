@@ -66,6 +66,11 @@ model Organization {
   publishState String    @default("PUBLISHED") // DRAFT | PUBLISHED | UNPUBLISHED
   publishedAt  DateTime?
 
+  // Site content versioning (EPIC #3 E3-2): incremented on every site content
+  // save. Compared against SalonConfig.publishedContentVersion to detect
+  // unpublished draft changes ("Objavi spremembe" / revert affordances).
+  contentVersion Int @default(1)
+
   // Owner-supplied Stripe integration (entered by the admin in Settings →
   // Plačila). Optional: when absent, payments fall back to env keys and
   // gracefully degrade when neither exists.
@@ -184,6 +189,13 @@ model SalonConfig {
   siteContent Json?
   // Theme overrides: { fontHeading?: string, fontBody?: string, radius?: string, colors?: {...} }
   theme       Json?
+
+  // Published content snapshot (EPIC #3 E3-2): the siteContent JSON exactly as
+  // it was at the last publish. The public site renders THIS (when present) so
+  // draft edits stay private until "Objavi". Null = pre-E3-2 tenant: the public
+  // site keeps rendering live siteContent (behavior unchanged).
+  publishedSiteContent    Json?
+  publishedContentVersion Int?
 
   // Branding colors
   primaryColor   String @default("#000000")

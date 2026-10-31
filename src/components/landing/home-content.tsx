@@ -1,12 +1,13 @@
 "use client"
 
-import { useEffect } from "react"
+import { Fragment, useEffect, type ReactNode } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { cloudinaryPresets } from "@/lib/utils/cloudinary"
 import { orgPath } from "@/lib/org-path"
 import type { CtaLink, SectionKey, SiteContent } from "@/lib/site-content"
+import { homeSectionOrder } from "@/lib/site-content"
 import { HeroVideo } from "@/components/landing/hero-video"
 import { HeroActions } from "@/components/landing/hero-actions"
 import { FeatureCards } from "@/components/landing/feature-cards"
@@ -88,10 +89,13 @@ export function HomeContent({
     return () => setActiveSection("")
   }, [setActiveSection])
 
-  return (
-    <div className="flex min-h-screen flex-col">
-      {/* Hero Section */}
-      {sectionVisible("hero") && (
+  /**
+   * E3-2: sections render in the owner-defined order — hero is always first
+   * when visible (it is the page header); hidden sections never render.
+   */
+  const sectionNodes: Partial<Record<SectionKey, ReactNode>> = {
+    /* Hero Section */
+    hero: sectionVisible("hero") && (
         <section className="relative overflow-hidden py-20 md:py-32">
           <HeroVideo
             imageUrl={content.hero.imageUrl}
@@ -127,10 +131,10 @@ export function HomeContent({
             </div>
           </div>
         </section>
-      )}
+      ),
 
-      {/* Features */}
-      {sectionVisible("features") && (
+    // Features
+    features: (
         <section className="from-muted/30 to-background border-primary/30 border-t bg-linear-to-b py-16">
           <div className="container mx-auto px-4">
             <FeatureCards
@@ -140,10 +144,10 @@ export function HomeContent({
             />
           </div>
         </section>
-      )}
+      ),
 
-      {/* Services Preview */}
-      {sectionVisible("services") && (
+    // Services Preview
+    services: (
         <SectionWrapper id="services" className="py-16">
           <div className="container mx-auto px-4">
             <div className="mb-12 text-center">
@@ -213,10 +217,10 @@ export function HomeContent({
             </div>
           </div>
         </SectionWrapper>
-      )}
+      ),
 
-      {/* About Our Salon */}
-      {sectionVisible("about") && (
+    // About Our Salon
+    about: (
         <SectionWrapper id="about" className="relative overflow-hidden py-20">
           <div className="container mx-auto px-4">
             <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
@@ -272,10 +276,10 @@ export function HomeContent({
             </div>
           </div>
         </SectionWrapper>
-      )}
+      ),
 
-      {/* Our Team */}
-      {sectionVisible("team") && (
+    // Our Team
+    team: (
         <SectionWrapper id="team" className="border-primary/30 border-t py-16">
           <div className="container mx-auto px-4">
             <div className="mb-12 text-center">
@@ -332,10 +336,10 @@ export function HomeContent({
             </div>
           </div>
         </SectionWrapper>
-      )}
+      ),
 
-      {/* Featured Products */}
-      {sectionVisible("shop") && (
+    // Featured Products
+    shop: (
         <SectionWrapper id="shop" className="border-primary/30 border-t py-16">
           <div className="container mx-auto px-4">
             <div className="mb-12 text-center">
@@ -369,10 +373,10 @@ export function HomeContent({
             </div>
           </div>
         </SectionWrapper>
-      )}
+      ),
 
-      {/* Contact / CTA Section */}
-      {sectionVisible("cta") && (
+    // Contact / CTA Section
+    cta: (
         <SectionWrapper id="contact" className="border-primary/30 relative overflow-hidden border-t py-20 md:py-32">
           <div className="absolute inset-0">
             <Image
@@ -399,7 +403,14 @@ export function HomeContent({
             </CTAButton>
           </div>
         </SectionWrapper>
-      )}
+      ),
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      {homeSectionOrder(content.sections).map((key) => (
+        <Fragment key={key}>{sectionNodes[key]}</Fragment>
+      ))}
     </div>
   )
 }

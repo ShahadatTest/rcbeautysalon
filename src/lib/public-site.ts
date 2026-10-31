@@ -5,6 +5,7 @@ import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { ORG_HEADER, getOrgBySlug, getSessionOrg } from "@/lib/tenant"
 import { mergeSiteContent, type SiteContent } from "@/lib/site-content"
+import { parsePublishState } from "@/lib/publication"
 import type { Organization, SalonConfig } from "@prisma/client"
 
 // ============================================================
@@ -47,7 +48,16 @@ export const getPublicSiteData = cache(
     const config = await prisma.salonConfig.findUnique({
       where: { organizationId: org.id },
     })
-    const content = mergeSiteContent(config?.siteContent, org.vertical)
+    // Content source (EPIC #3 E3-2):
+    // - PUBLISHED tenant WITH a snapshot renders the snapshot — the content
+    //   exactly as it was at the last publish, so draft edits stay private.
+    // - Tenant WITHOUT a snapshot (pre-E3-2 data, or never published) renders
+    //   the live siteContent — the original behavior, unchanged.
+    const published =
+      parsePublishState(org.publishState) === "PUBLISHED" &&
+      config?.publishedSiteContent != null
+    const rawContent = published ? config.publishedSiteContent : config?.siteContent
+    const content = mergeSiteContent(rawContent, org.vertical)
     return { org, config, content }
   }
 )

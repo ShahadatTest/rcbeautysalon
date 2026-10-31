@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
-import { Globe, GlobeLock, Eye, Rocket, Undo2 } from "lucide-react"
+import { Globe, GlobeLock, Eye, PencilRuler, Rocket, Undo2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -66,7 +66,12 @@ export function PublicationCard({ initial, siteHref }: PublicationCardProps) {
       try {
         const result = await publishSite()
         if (result.success) {
-          setStatus({ state: "PUBLISHED", publishedAt: new Date() })
+          setStatus({
+            state: "PUBLISHED",
+            publishedAt: new Date(),
+            hasUnpublishedChanges: false,
+            hasPublishedSnapshot: true,
+          })
           toast.success("Spletna stran je objavljena.")
         } else {
           setErrors(result.errors)
@@ -121,6 +126,16 @@ export function PublicationCard({ initial, siteHref }: PublicationCardProps) {
           </p>
         )}
 
+        {status.state === "PUBLISHED" && status.hasUnpublishedChanges && (
+          <div className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950 flex items-start gap-2 rounded-md border p-3 text-sm">
+            <PencilRuler className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+            <p className="text-amber-800 dark:text-amber-300">
+              Imate neobjavljene spremembe vsebine. Obiščevalci še vidijo zadnjo
+              objavljeno verzijo — objavite spremembe, da postanejo javne.
+            </p>
+          </div>
+        )}
+
         {errors.length > 0 && (
           <div
             role="alert"
@@ -136,10 +151,16 @@ export function PublicationCard({ initial, siteHref }: PublicationCardProps) {
         )}
 
         <div className="flex flex-wrap items-center gap-2">
-          {status.state !== "PUBLISHED" ? (
+          {status.state !== "PUBLISHED" ||
+          status.hasUnpublishedChanges ||
+          !status.hasPublishedSnapshot ? (
             <Button onClick={handlePublish} disabled={isPending} className="min-h-11">
               <Rocket className="size-4" aria-hidden="true" />
-              {isPending ? "Objavljanje …" : "Objavi stran"}
+              {isPending
+                ? "Objavljanje …"
+                : status.state === "PUBLISHED"
+                  ? "Objavi spremembe"
+                  : "Objavi stran"}
             </Button>
           ) : (
             <Button

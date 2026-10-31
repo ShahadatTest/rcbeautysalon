@@ -166,6 +166,12 @@ export const settingsSl = {
     title: "Izgled in vsebina",
     subtitle: "Uredite vsebine, ki jih obiskovalci vidijo na vaši javni strani.",
     viewSite: "Oglej si stran",
+    previewLink: "Predogled sprememb",
+    unpublishedBadge: "Neobjavljene spremembe",
+    publishSite: "Objavi stran",
+    publishChanges: "Objavi spremembe",
+    publishDone: "Vsebina je objavljena — javna stran je posodobljena",
+    publishFailed: "Objava ni uspela. Poskusite znova.",
     loadingSr: "Nalaganje urejevalnika izgleda in vsebine …",
     loadError: "Prilagoditev ni bilo mogoče naložiti.",
     loadErrorRetry: "Prilagoditev ni bilo mogoče naložiti. Poskusite znova.",
@@ -306,7 +312,22 @@ export const settingsSl = {
     },
     sections: {
       title: "Sekcije",
-      desc: "Izklopite sekcije, ki jih ne želite prikazovati na javni strani.",
+      desc:
+        "Izklopite sekcije, ki jih ne želite prikazovati, in uredite njihov vrstni red.",
+      pinned: "Vedno prva",
+      moveUpAria: (label: string) => `Premakni sekcijo ${label} navzgor`,
+      moveDownAria: (label: string) => `Premakni sekcijo ${label} navzdol`,
+      hint:
+        "Sekcijo dodate z vklopom prikaza, vrstni red pa spremenite s puščicami. Hero je vedno prva — to je glava strani. Spremembe postanejo javne, ko jih objavite.",
+    },
+    revert: {
+      button: "Povrni na objavljeno",
+      confirmTitle: "Povrniti na zadnjo objavljeno verzijo?",
+      confirmNote:
+        "Neshranjene in osnutkove spremembe bodo zavrene — vsebina bo povrnjena na stanje ob zadnji objavi. Javna stran se pri tem ne spremeni.",
+      cancel: "Prekliči",
+      done: "Vsebina je povrnjena na zadnjo objavljeno verzijo",
+      failed: "Povrnitev ni uspela. Poskusite znova.",
     },
     vertical: {
       title: "Panoga",
@@ -504,6 +525,12 @@ export const settingsEn: SettingsDict = {
     title: "Branding",
     subtitle: "Edit the content visitors see on your public site.",
     viewSite: "View site",
+    previewLink: "Preview changes",
+    unpublishedBadge: "Unpublished changes",
+    publishSite: "Publish site",
+    publishChanges: "Publish changes",
+    publishDone: "Content published — the public site is updated",
+    publishFailed: "Publishing failed. Please try again.",
     loadingSr: "Loading the appearance and content editor …",
     loadError: "Branding could not be loaded.",
     loadErrorRetry: "Branding could not be loaded. Please try again.",
@@ -644,7 +671,21 @@ export const settingsEn: SettingsDict = {
     },
     sections: {
       title: "Sections",
-      desc: "Turn off sections you don't want to show on the public site.",
+      desc: "Turn off sections you don't want to show and reorder them.",
+      pinned: "Always first",
+      moveUpAria: (label: string) => `Move the ${label} section up`,
+      moveDownAria: (label: string) => `Move the ${label} section down`,
+      hint:
+        "Add a section by turning it on and reorder it with the arrows. Hero is always first — it is the page header. Changes go public when you publish them.",
+    },
+    revert: {
+      button: "Revert to published",
+      confirmTitle: "Revert to the last published version?",
+      confirmNote:
+        "Draft changes will be discarded — the content returns to the state of the last publish. The public site is not affected.",
+      cancel: "Cancel",
+      done: "Content reverted to the last published version",
+      failed: "Reverting failed. Please try again.",
     },
     vertical: {
       title: "Industry",

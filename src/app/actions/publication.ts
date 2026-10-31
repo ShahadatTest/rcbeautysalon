@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { requireAdminOrg } from "@/lib/tenant"
 import { resolveEffectiveProfile } from "@/lib/profiles/resolve"
 import {
+  hasUnpublishedChanges,
   parsePublishState,
   validatePublishRequirements,
 } from "@/lib/publication"
@@ -12,14 +13,27 @@ import { revalidatePath } from "next/cache"
 export interface PublicationStatus {
   state: ReturnType<typeof parsePublishState>
   publishedAt: Date | null
+  /** True when the working content differs from the published snapshot (E3-2). */
+  hasUnpublishedChanges: boolean
+  /** True when a published snapshot exists (false = pre-E3-2 tenant). */
+  hasPublishedSnapshot: boolean
 }
 
 /** Current publication state for the Settings card. */
 export async function getPublicationStatus(): Promise<PublicationStatus> {
   const { org } = await requireAdminOrg()
+  const config = await prisma.salonConfig.findUnique({
+    where: { organizationId: org.id },
+    select: { publishedContentVersion: true },
+  })
   return {
     state: parsePublishState(org.publishState),
     publishedAt: org.publishedAt,
+    hasUnpublishedChanges: hasUnpublishedChanges(
+      org.contentVersion,
+      config?.publishedContentVersion ?? null
+    ),
+    hasPublishedSnapshot: config?.publishedContentVersion != null,
   }
 }
 
@@ -27,6 +41,11 @@ export async function getPublicationStatus(): Promise<PublicationStatus> {
  * Publish the tenant site. Runs the requirement gate FIRST: on failure the
  * publish state is untouched (a failed publish can never replace a working
  * site) and the caller receives actionable errors.
+ *
+ * A successful publish also SNAPSHOTS the current site content (E3-2): the
+ * public site renders the snapshot, so draft edits stay private until the next
+ * publish. Tenants without a stored snapshot keep rendering live content
+ * (pre-E3-2 behavior, unchanged).
  */
 export async function publishSite(): Promise<
   { success: true } | { success: false; errors: string[] }
@@ -36,7 +55,7 @@ export async function publishSite(): Promise<
   const [config, serviceCount, productCount] = await Promise.all([
     prisma.salonConfig.findUnique({
       where: { organizationId: org.id },
-      select: { email: true, phone: true },
+      select: { email: true, phone: true, siteContent: true },
     }),
     prisma.service.count({ where: { organizationId: org.id } }),
     prisma.product.count({ where: { organizationId: org.id } }),
@@ -57,10 +76,30 @@ export async function publishSite(): Promise<
 
   if (!validation.ok) return { success: false, errors: validation.errors }
 
-  await prisma.organization.update({
-    where: { id: org.id },
-    data: { publishState: "PUBLISHED", publishedAt: new Date() },
-  })
+  const snapshotVersion = org.contentVersion
+  const snapshotContent = config?.siteContent ?? undefined
+  await prisma.$transaction([
+    prisma.organization.update({
+      where: { id: org.id },
+      data: { publishState: "PUBLISHED", publishedAt: new Date() },
+    }),
+    // Freeze exactly the content that is now live. Null siteContent is fine —
+    // the public site falls back to the vertical defaults (as it always has).
+    prisma.salonConfig.upsert({
+      where: { organizationId: org.id },
+      create: {
+        organizationId: org.id,
+        name: org.name,
+        siteContent: snapshotContent,
+        publishedSiteContent: snapshotContent,
+        publishedContentVersion: snapshotVersion,
+      },
+      update: {
+        publishedSiteContent: snapshotContent,
+        publishedContentVersion: snapshotVersion,
+      },
+    }),
+  ])
 
   revalidatePath("/", "layout")
   return { success: true }

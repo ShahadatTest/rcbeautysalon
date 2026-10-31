@@ -115,8 +115,8 @@ const RESERVED = new Set([
   "api", "dashboard", "staff-portal", "my-account", "login", "register",
   "start", "booking", "shop", "services", "staff", "cart", "checkout",
   "my-orders", "my-reviews", "forgot-password", "reset-password",
-  "verify-email", "account", "about", "contact", "s", "admin", "sitemap.xml",
-  "robots.txt", "favicon.ico", "manifest.json", "_next", "static", "images",
+  "verify-email", "account", "about", "contact", "s", "admin", "preview",
+  "sitemap.xml", "robots.txt", "favicon.ico", "manifest.json", "_next", "static", "images",
 ])
 
 export function isReservedSlug(slug: string): boolean {

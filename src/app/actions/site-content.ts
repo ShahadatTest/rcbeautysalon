@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache"
 import { requireAdminOrg } from "@/lib/tenant"
 import { UnauthorizedError } from "@/lib/auth/guards"
 import { mergeSiteContent, type SiteContent } from "@/lib/site-content"
+import { computeRevert, hasUnpublishedChanges, parsePublishState } from "@/lib/publication"
+import type { PublicationStatus } from "@/app/actions/publication"
 import { PALETTES } from "@/lib/verticals"
 
 /** Full branding + content payload for the "Izgled in vsebina" editor. */
@@ -13,6 +15,10 @@ export async function getOrgBranding() {
     const { org } = await requireAdminOrg()
     const config = await prisma.salonConfig.findUnique({
       where: { organizationId: org.id },
+      select: {
+        siteContent: true,
+        publishedContentVersion: true,
+      },
     })
     return {
       success: true,
@@ -26,6 +32,15 @@ export async function getOrgBranding() {
         siteUrl: `/s/${org.slug}`,
       },
       siteContent: mergeSiteContent(config?.siteContent, org.vertical),
+      publication: {
+        state: parsePublishState(org.publishState),
+        publishedAt: org.publishedAt,
+        hasUnpublishedChanges: hasUnpublishedChanges(
+          org.contentVersion,
+          config?.publishedContentVersion ?? null
+        ),
+        hasPublishedSnapshot: config?.publishedContentVersion != null,
+      } satisfies PublicationStatus,
     }
   } catch (error) {
     if (error instanceof UnauthorizedError) {
@@ -36,7 +51,12 @@ export async function getOrgBranding() {
   }
 }
 
-/** Saves the whole site content JSON (hero, about, features, CTA, hours, social, SEO, sections). */
+/**
+ * Saves the whole site content JSON (hero, about, features, CTA, hours,
+ * social, SEO, sections). Every save creates a NEW content version (E3-2) —
+ * the working draft — while the published snapshot stays untouched, so the
+ * public site only changes when the owner publishes.
+ */
 export async function updateSiteContent(content: SiteContent) {
   try {
     const { org } = await requireAdminOrg()
@@ -47,15 +67,21 @@ export async function updateSiteContent(content: SiteContent) {
       return { success: false, error: "Hero naslov je obvezen." }
     }
 
-    await prisma.salonConfig.upsert({
-      where: { organizationId: org.id },
-      create: {
-        organizationId: org.id,
-        name: org.name,
-        siteContent: clean as unknown as object,
-      },
-      update: { siteContent: clean as unknown as object },
-    })
+    await prisma.$transaction([
+      prisma.salonConfig.upsert({
+        where: { organizationId: org.id },
+        create: {
+          organizationId: org.id,
+          name: org.name,
+          siteContent: clean as unknown as object,
+        },
+        update: { siteContent: clean as unknown as object },
+      }),
+      prisma.organization.update({
+        where: { id: org.id },
+        data: { contentVersion: { increment: 1 } },
+      }),
+    ])
 
     revalidatePath("/", "layout")
     return { success: true }
@@ -65,6 +91,58 @@ export async function updateSiteContent(content: SiteContent) {
     }
     console.error("Error updating site content:", error)
     return { success: false, error: "Failed to update site content." }
+  }
+}
+
+/**
+ * Discard draft edits: restore the working content to the last published
+ * snapshot (E3-2). The working version re-aligns with the published version,
+ * so drift detection does not report phantom "unpublished changes" for
+ * content that is byte-identical to the published JSON.
+ * Refuses (with a clear error) when the tenant has no published snapshot:
+ * there, the working content IS the live content and nothing can be reverted.
+ */
+export async function revertSiteContentToPublished(): Promise<
+  { success: true } | { success: false; error: string }
+> {
+  try {
+    const { org } = await requireAdminOrg()
+    const config = await prisma.salonConfig.findUnique({
+      where: { organizationId: org.id },
+      select: { publishedSiteContent: true, publishedContentVersion: true },
+    })
+
+    const revert = computeRevert({
+      contentVersion: org.contentVersion,
+      publishedSiteContent: config?.publishedSiteContent ?? null,
+      publishedContentVersion: config?.publishedContentVersion ?? null,
+    })
+    if (!revert.ok) {
+      return {
+        success: false,
+        error: "Ni shranjene objavljene verzije — trenutna vsebina je že objavljena.",
+      }
+    }
+
+    await prisma.$transaction([
+      prisma.salonConfig.update({
+        where: { organizationId: org.id },
+        data: { siteContent: revert.siteContent as object },
+      }),
+      prisma.organization.update({
+        where: { id: org.id },
+        data: { contentVersion: revert.contentVersion },
+      }),
+    ])
+
+    revalidatePath("/", "layout")
+    return { success: true }
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return { success: false, error: error.message }
+    }
+    console.error("Error reverting site content:", error)
+    return { success: false, error: "Failed to revert site content." }
   }
 }
 

@@ -15,6 +15,16 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Card,
   CardContent,
   CardDescription,
@@ -43,15 +53,19 @@ import {
   TrashIcon,
   WarningCircleIcon,
 } from "@/components/icons"
+import { ArrowDown, ArrowUp, Rocket, Undo2 } from "lucide-react"
 import {
   getOrgBranding,
+  revertSiteContentToPublished,
   updateOrgLogo,
   updateOrgPalette,
   updateOrgVertical,
   updateSiteContent,
 } from "@/app/actions/site-content"
+import { publishSite, type PublicationStatus } from "@/app/actions/publication"
 import {
   SECTION_KEYS,
+  normalizeSections,
   type FeatureContent,
   type OpeningHour,
   type SectionKey,
@@ -382,11 +396,15 @@ export function BrandingEditor() {
   const [org, setOrg] = useState<OrgInfo | null>(null)
   const [content, setContent] = useState<SiteContent | null>(null)
   const [dirty, setDirty] = useState(false)
+  const [publication, setPublication] = useState<PublicationStatus | null>(null)
 
   const [saving, setSaving] = useState(false)
   const [savingPalette, setSavingPalette] = useState<string | null>(null)
   const [uploading, setUploading] = useState<string | null>(null) // "logo" | "hero" | "about"
   const [savingLogo, setSavingLogo] = useState(false)
+  const [publishing, setPublishing] = useState(false)
+  const [revertOpen, setRevertOpen] = useState(false)
+  const [reverting, setReverting] = useState(false)
 
   const [vertical, setVertical] = useState("")
   const [reseed, setReseed] = useState(false)
@@ -401,6 +419,9 @@ export function BrandingEditor() {
         setOrg(res.org)
         setContent(res.siteContent)
         setVertical(res.org.vertical)
+        setPublication(
+          "publication" in res && res.publication ? res.publication : null
+        )
         setDirty(false)
       } else {
         setError(
@@ -601,11 +622,26 @@ export function BrandingEditor() {
 
   const toggleSection = (key: SectionKey, visible: boolean) => {
     if (!content) return
-    const sections = SECTION_KEYS.map((k) => ({
-      key: k,
-      visible: k === key ? visible : (content.sections.find((s) => s.key === k)?.visible ?? true),
-    }))
-    set("sections", sections)
+    // E3-2: preserve the owner-defined order — only visibility changes here.
+    const exists = content.sections.some((s) => s.key === key)
+    const next = exists
+      ? content.sections.map((s) => (s.key === key ? { ...s, visible } : s))
+      : [...content.sections, { key, visible }]
+    set("sections", normalizeSections(next) ?? [])
+  }
+
+  /** Swap a section with its neighbor (E3-2). Hero stays pinned first. */
+  const moveSection = (key: SectionKey, dir: -1 | 1) => {
+    if (!content) return
+    const list = [...content.sections]
+    const idx = list.findIndex((s) => s.key === key)
+    const target = idx + dir
+    if (idx < 0 || target < 0 || target >= list.length) return
+    // Hero is the page header — always first, never swapped.
+    if (key === "hero" || list[target].key === "hero") return
+    const [item] = list.splice(idx, 1)
+    list.splice(target, 0, item)
+    set("sections", list)
   }
 
   // ----------------------------------------------------------
@@ -645,10 +681,10 @@ export function BrandingEditor() {
           items: content.features.items.filter((i) => i.title.trim()),
         },
         openingHours: normalizeHours(content.openingHours),
-        sections: SECTION_KEYS.map((key) => ({
-          key,
-          visible: content.sections.find((s) => s.key === key)?.visible ?? true,
-        })),
+        // E3-2: keep the owner-defined section ORDER (not the canonical one).
+        sections:
+          normalizeSections(content.sections) ??
+          SECTION_KEYS.map((key) => ({ key, visible: true })),
       }
       const res = await updateSiteContent(payload)
       if ("error" in res && typeof res.error === "string") {
@@ -656,12 +692,65 @@ export function BrandingEditor() {
         return
       }
       setDirty(false)
+      // After a save the draft differs from the published snapshot — but only
+      // when a snapshot exists at all (pre-E3-2 tenants render live content).
+      setPublication((p) =>
+        p ? { ...p, hasUnpublishedChanges: p.hasPublishedSnapshot } : p
+      )
       toast.success(b.contentSaved)
       router.refresh()
     } catch {
       toast.error(b.saveFailed)
     } finally {
       setSaving(false)
+    }
+  }
+
+  // ----------------------------------------------------------
+  // Publish / revert (EPIC #3 E3-2)
+  // ----------------------------------------------------------
+
+  const handlePublish = async () => {
+    if (publishing) return
+    setPublishing(true)
+    try {
+      const res = await publishSite()
+      if (res.success) {
+        setPublication({
+          state: "PUBLISHED",
+          publishedAt: new Date(),
+          hasUnpublishedChanges: false,
+          hasPublishedSnapshot: true,
+        })
+        toast.success(b.publishDone)
+        router.refresh()
+      } else {
+        toast.error(res.errors.join(" "))
+      }
+    } catch {
+      toast.error(b.publishFailed)
+    } finally {
+      setPublishing(false)
+    }
+  }
+
+  const handleRevert = async () => {
+    if (reverting) return
+    setReverting(true)
+    try {
+      const res = await revertSiteContentToPublished()
+      if ("error" in res && typeof res.error === "string") {
+        toast.error(res.error)
+        return
+      }
+      setRevertOpen(false)
+      await load()
+      toast.success(b.revert.done)
+      router.refresh()
+    } catch {
+      toast.error(b.revert.failed)
+    } finally {
+      setReverting(false)
     }
   }
 
@@ -699,13 +788,26 @@ export function BrandingEditor() {
         <div>
           <h2 className="text-2xl font-bold">{b.title}</h2>
           <p className="text-muted-foreground">{b.subtitle}</p>
+          {publication?.hasUnpublishedChanges && (
+            <Badge className="mt-2 bg-amber-100 text-amber-800 hover:bg-amber-100 dark:bg-amber-950 dark:text-amber-300">
+              {b.unpublishedBadge}
+            </Badge>
+          )}
         </div>
-        <Button variant="outline" size="sm" asChild>
-          <a href={org.siteUrl} target="_blank" rel="noopener noreferrer">
-            <EyeIcon size={16} className="mr-2" />
-            {b.viewSite}
-          </a>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <a href={`/s/${org.slug}/preview`} target="_blank" rel="noopener noreferrer">
+              <EyeIcon size={16} className="mr-2" />
+              {b.previewLink}
+            </a>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <a href={org.siteUrl} target="_blank" rel="noopener noreferrer">
+              <EyeIcon size={16} className="mr-2" />
+              {b.viewSite}
+            </a>
+          </Button>
+        </div>
       </div>
 
       <div className="mt-6 space-y-6">
@@ -1195,26 +1297,63 @@ export function BrandingEditor() {
           title={b.sections.title}
           description={b.sections.desc}
         >
-          <div className="grid gap-2 sm:grid-cols-2">
-            {SECTION_KEYS.map((key) => {
-              const visible = content.sections.find((s) => s.key === key)?.visible ?? true
+          <div className="space-y-2">
+            {normalizeSections(content.sections)?.map((section, idx) => {
+              const key = section.key
+              const label = b.sectionLabels[key]
+              const pinned = key === "hero"
               return (
                 <div
                   key={key}
                   className="flex items-center justify-between gap-3 rounded-lg border p-3"
                 >
-                  <Label htmlFor={`section-${key}`} className="font-normal">
-                    {b.sectionLabels[key]}
-                  </Label>
-                  <Switch
-                    id={`section-${key}`}
-                    checked={visible}
-                    onCheckedChange={(v) => toggleSection(key, v)}
-                  />
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="text-muted-foreground w-5 text-center text-xs font-medium" aria-hidden>
+                      {idx + 1}
+                    </span>
+                    <Label htmlFor={`section-${key}`} className="truncate font-normal">
+                      {label}
+                    </Label>
+                    {pinned && (
+                      <Badge variant="secondary" className="shrink-0 text-[10px]">
+                        {b.sections.pinned}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-8"
+                      disabled={pinned || idx <= 1}
+                      onClick={() => moveSection(key, -1)}
+                      aria-label={b.sections.moveUpAria(label)}
+                    >
+                      <ArrowUp size={14} />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-8"
+                      disabled={pinned || idx >= (content.sections.length ?? 0) - 1}
+                      onClick={() => moveSection(key, 1)}
+                      aria-label={b.sections.moveDownAria(label)}
+                    >
+                      <ArrowDown size={14} />
+                    </Button>
+                    <Switch
+                      id={`section-${key}`}
+                      checked={section.visible}
+                      onCheckedChange={(v) => toggleSection(key, v)}
+                    />
+                  </div>
                 </div>
               )
             })}
           </div>
+          <p className="text-muted-foreground text-xs">{b.sections.hint}</p>
         </EditorCard>
 
         {/* l) Panoga (napredno) */}
@@ -1282,7 +1421,7 @@ export function BrandingEditor() {
 
       {/* Sticky save bar */}
       <div className="sticky bottom-4 z-20 mt-8">
-        <div className="flex items-center justify-between gap-4 rounded-xl border bg-card/95 p-4 shadow-lg backdrop-blur">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card/95 p-4 shadow-lg backdrop-blur">
           <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
             <span
               className={cn(
@@ -1293,12 +1432,67 @@ export function BrandingEditor() {
             />
             {dirty ? b.unsavedChanges : b.allSaved}
           </p>
-          <Button type="button" onClick={() => void handleSave()} disabled={saving}>
-            {saving && <SpinnerIcon size={16} className="mr-2 animate-spin" />}
-            {b.saveContent}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {publication?.hasPublishedSnapshot && publication.hasUnpublishedChanges && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-destructive hover:text-destructive"
+                onClick={() => setRevertOpen(true)}
+                disabled={saving || reverting || publishing}
+              >
+                <Undo2 size={16} className="mr-2" />
+                {b.revert.button}
+              </Button>
+            )}
+            {(!publication ||
+              publication.state !== "PUBLISHED" ||
+              publication.hasUnpublishedChanges ||
+              !publication.hasPublishedSnapshot) && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void handlePublish()}
+                disabled={saving || publishing || dirty}
+              >
+                {publishing ? (
+                  <SpinnerIcon size={16} className="mr-2 animate-spin" />
+                ) : (
+                  <Rocket size={16} className="mr-2" />
+                )}
+                {publication?.state === "PUBLISHED" ? b.publishChanges : b.publishSite}
+              </Button>
+            )}
+            <Button type="button" onClick={() => void handleSave()} disabled={saving}>
+              {saving && <SpinnerIcon size={16} className="mr-2 animate-spin" />}
+              {b.saveContent}
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* Revert confirmation (E3-2): discard draft, restore published content. */}
+      <AlertDialog open={revertOpen} onOpenChange={setRevertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{b.revert.confirmTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{b.revert.confirmNote}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{b.revert.cancel}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                setRevertOpen(false)
+                void handleRevert()
+              }}
+            >
+              <Undo2 size={16} className="mr-2" />
+              {b.revert.button}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
