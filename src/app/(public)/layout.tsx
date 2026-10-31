@@ -1,5 +1,6 @@
+import { headers } from "next/headers"
 import { PublicNavbar } from "@/components/layouts/public-navbar"
-import { getPublicOrg } from "@/lib/tenant"
+import { getPublicOrg, ORG_HEADER } from "@/lib/tenant"
 import { resolvePublicCta } from "@/lib/public-cta"
 import { resolvePublishGate } from "@/lib/publish-gate"
 import { MaintenanceScreen } from "@/components/public/maintenance-screen"
@@ -10,6 +11,15 @@ export default async function PublicLayout({
   children: React.ReactNode
 }) {
   const org = await getPublicOrg()
+
+  // Suspension gate (EPIC #3 E3-5): a SPECIFIC tenant site was requested
+  // (/s/[slug]) but its org is unavailable (SUSPENDED or otherwise
+  // inactive). Render the neutral maintenance screen — never another
+  // tenant's content under this URL, not even for the owner.
+  const slugHeader = (await headers()).get(ORG_HEADER)
+  if (slugHeader && !org) {
+    return <MaintenanceScreen />
+  }
 
   // Publication gate (EPIC #3 E3-1): non-published tenants are private.
   // The owner/staff of THIS tenant still sees the full site as a preview,

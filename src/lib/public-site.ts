@@ -30,7 +30,14 @@ async function resolveOrg(): Promise<Organization | null> {
   const slug = h.get(ORG_HEADER)
   if (slug) {
     const org = await getOrgBySlug(slug)
-    if (org && org.status === "ACTIVE") return org
+    if (org) {
+      if (org.status === "ACTIVE") return org
+      // SUSPENDED tenant (EPIC #3 E3-5): its site is OFF — return null so
+      // the maintenance screen renders. NEVER fall back to another
+      // tenant's content under this URL.
+      return null
+    }
+    // Unknown slug → bare-domain default below.
   }
   const sessionOrg = await getSessionOrg()
   if (sessionOrg) return sessionOrg

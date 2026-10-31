@@ -1,5 +1,6 @@
+import { headers } from "next/headers"
 import { PublicNavbar } from "@/components/layouts/public-navbar"
-import { getPublicOrg } from "@/lib/tenant"
+import { getPublicOrg, ORG_HEADER } from "@/lib/tenant"
 import { resolvePublicCta } from "@/lib/public-cta"
 import { resolvePublishGate } from "@/lib/publish-gate"
 import { MaintenanceScreen } from "@/components/public/maintenance-screen"
@@ -10,6 +11,14 @@ export default async function CustomerLayout({
   children: React.ReactNode
 }) {
   const org = await getPublicOrg()
+
+  // Suspension gate (EPIC #3 E3-5): same rule as the (public) layout —
+  // a requested tenant site that is unavailable (SUSPENDED) renders the
+  // neutral maintenance screen, never another tenant's content.
+  const slugHeader = (await headers()).get(ORG_HEADER)
+  if (slugHeader && !org) {
+    return <MaintenanceScreen />
+  }
 
   // Publication gate (EPIC #3 E3-1): same rule as the (public) layout —
   // drafts/unpublished tenants are private; owner sees a preview, everyone

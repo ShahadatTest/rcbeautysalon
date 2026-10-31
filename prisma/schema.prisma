@@ -50,6 +50,10 @@ model Organization {
   palette   String   @default("rose") // theme palette key (see src/lib/verticals.ts)
   plan      String   @default("free")
   status    String   @default("ACTIVE") // ACTIVE | SUSPENDED
+  // Suspension context (EPIC #3 E3-5): the operator-supplied reason is
+  // displayed to the owner; the full audit trail lives in PlatformAuditLog.
+  suspendedAt     DateTime?
+  suspendedReason String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -98,6 +102,7 @@ model Organization {
   extensionRecords    ExtensionRecord[]
   platformSubscription PlatformSubscription?
   billingEvents       PlatformBillingEvent[]
+  platformAuditLogs   PlatformAuditLog[]
 
   @@index([slug])
   @@index([status])
@@ -169,6 +174,28 @@ model PlatformBillingEvent {
   subscription PlatformSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, createdAt])
+}
+
+// ============================================================
+// PLATFORM AUDIT LOG (EPIC #3 E3-5) — append-only trail of
+// platform-operator actions (suspend/reactivate tenant, …).
+// Every operator action writes exactly one row BEFORE/AFTER the
+// state change: who (actorEmail), what (action), why (reason).
+// Rows are never updated or deleted (immutable history).
+// ============================================================
+model PlatformAuditLog {
+  id             String   @id @default(cuid())
+  organizationId String // tenant the action applies to (org-scoped by design)
+  actorEmail     String // authenticated operator email
+  action         String // PlatformAuditAction, e.g. TENANT_SUSPENDED
+  reason         String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@index([action, createdAt])
 }
 
 // Binary media storage (DB fallback when Cloudinary is not configured)
