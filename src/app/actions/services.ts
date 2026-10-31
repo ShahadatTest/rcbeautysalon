@@ -7,8 +7,7 @@ import { ServiceFilters } from "@/lib/interfaces"
 import { revalidatePath } from "next/cache"
 import { CreateServiceInput } from "@/lib/interfaces"
 import { UnauthorizedError } from "@/lib/auth/guards"
-import { auth } from "@/lib/auth/auth"
-import { getPublicOrg, getSessionOrg, requireAdminOrg, getResolvedOrg } from "@/lib/tenant"
+import { getPublicOrg, requireAdminOrg, getResolvedOrg } from "@/lib/tenant"
 
 export type UpdateServiceInput = Partial<CreateServiceInput>
 

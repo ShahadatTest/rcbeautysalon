@@ -26,7 +26,6 @@ import { formatSalonTime } from "@/lib/booking-time"
 import { getSessionSalonTimezone } from "@/lib/tenant"
 import { formatCurrency, formatChange } from "@/lib/utils/format"
 import { getServerI18n } from "@/lib/i18n/server"
-import { getSessionOrg } from "@/lib/tenant"
 import { term as profileTerm } from "@/lib/profiles/registry"
 import { getSessionEffectiveProfile } from "@/lib/profiles/resolve"
 
@@ -35,11 +34,10 @@ export default async function AdminDashboard() {
     getServerI18n(),
     getSessionSalonTimezone(),
   ])
-  const [stats, todaysAppointments, recentActivities, org] = await Promise.all([
+  const [stats, todaysAppointments, recentActivities] = await Promise.all([
     getDashboardStats(),
     getTodaysAppointments(),
     getRecentActivities(),
-    getSessionOrg(),
   ])
 
   // Capability-gated dashboard (EPIC #1 §21): irrelevant modules never render.
