@@ -44,7 +44,9 @@ describe("normalizeDomainInput — normalization", () => {
 
 describe("normalizeDomainInput — refusals", () => {
   it("refuses empty input", () => {
-    expect(normalizeDomainInput("").reason).toBe("EMPTY")
+    const refused = normalizeDomainInput("")
+    expect(refused.ok).toBe(false)
+    expect(!refused.ok && refused.reason).toBe("EMPTY")
     expect(normalizeDomainInput("   ").ok).toBe(false)
   })
 

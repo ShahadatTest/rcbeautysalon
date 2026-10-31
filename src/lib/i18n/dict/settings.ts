@@ -26,6 +26,8 @@ export const settingsSl = {
       products: "Izdelki",
       staff: "Zaposleni",
       customDomains: "Lastne domene",
+      storageMb: "Shramba",
+      orders: "Naročila (mesec)",
     },
     nearLimit: "Približuje se omejitev — razmislite o nadgradnji paketa.",
     overLimit:
@@ -466,6 +468,8 @@ export const settingsEn: SettingsDict = {
       products: "Products",
       staff: "Team members",
       customDomains: "Custom domains",
+      storageMb: "Storage",
+      orders: "Orders (month)",
     },
     nearLimit: "Approaching the limit — consider upgrading your plan.",
     overLimit:

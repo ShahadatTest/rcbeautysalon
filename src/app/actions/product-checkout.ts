@@ -5,6 +5,8 @@ import { auth } from "@/lib/auth/auth"
 import { prisma } from "@/lib/prisma"
 import { validateCartStock } from "./cart"
 import { getPublicOrg } from "@/lib/tenant"
+import { getPlan } from "@/lib/plans/registry"
+import { checkPlanLimit, monthStartUtc } from "@/lib/plans/types"
 import type { CartItem } from "@/store/cart-store"
 
 const TAX_RATE = 0.08
@@ -136,6 +138,23 @@ export async function createProductCheckoutSession(
         },
       })
       customerId = customer.id
+    }
+
+    // MONTHLY ORDERS LIMIT (E3-7): entitlements are enforced server-side
+    // (issue §7) — a tenant at/over its plan's monthly orders limit cannot
+    // receive NEW orders. The buyer sees a NEUTRAL message: end customers
+    // must never see the tenant's plan name or internal quota details.
+    // The tenant owner sees the real counter in Settings → Paket.
+    const monthOrders = await prisma.order.count({
+      where: { organizationId: org.id, createdAt: { gte: monthStartUtc() } },
+    })
+    const ordersGate = checkPlanLimit(getPlan(org.plan), "orders", monthOrders)
+    if (!ordersGate.ok) {
+      return {
+        success: false,
+        error:
+          "Trgovina trenutno ne sprejema novih naročil. Kontaktirajte salon in poskusite znova kasneje.",
+      }
     }
 
     // Create order in database with PENDING status

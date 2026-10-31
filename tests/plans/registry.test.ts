@@ -41,6 +41,7 @@ describe("plan registry invariants (E3-3)", () => {
       staff: null,
       storageMb: null,
       customDomains: null,
+      orders: null,
     })
   })
 

@@ -41,6 +41,9 @@ const planSchema = z.object({
     staff: limitValue,
     storageMb: limitValue,
     customDomains: limitValueOrZero,
+    // Monthly orders (E3-7) — a derived counter, so the same
+    // nullable-positive schema as other count limits applies.
+    orders: limitValue,
   }),
   features: z.array(localizedText).min(1),
 })
@@ -50,7 +53,9 @@ const planSchema = z.object({
 // ------------------------------------------------------------
 // FREE limits sit ABOVE the largest onboarding catalog seed
 // (10 services / 6 products / 1 staff) so a freshly onboarded
-// tenant is never immediately over-limit.
+// tenant is never immediately over-limit. Monthly orders limits
+// (E3-7) are derived Order rows per UTC month — presentation-phase
+// values, tunable here without code changes (registry decision).
 
 const PLAN_LIST: PlanDefinition[] = [
   {
@@ -61,7 +66,7 @@ const PLAN_LIST: PlanDefinition[] = [
       sl: "Za začetek in manjša podjetja — preizkusite platformo brez obveznosti.",
       en: "For getting started and small businesses — try the platform with no commitment.",
     },
-    limits: { services: 15, products: 20, staff: 3, storageMb: 500, customDomains: 0 },
+    limits: { services: 15, products: 20, staff: 3, storageMb: 500, customDomains: 0, orders: 50 },
     features: [
       { sl: "Do 15 storitev", en: "Up to 15 services" },
       { sl: "Do 20 izdelkov", en: "Up to 20 products" },
@@ -69,6 +74,7 @@ const PLAN_LIST: PlanDefinition[] = [
       { sl: "Javna spletna stran z urejevalnikom", en: "Public website with the no-code editor" },
       { sl: "Rezervacije ali povpraševanja po profilu dejavnosti", en: "Bookings or inquiries based on your activity profile" },
       { sl: "Spletna naslov na platformi (lastna domena v PRO)", en: "Address on the platform domain (custom domain in PRO)" },
+      { sl: "50 naročil mesečno", en: "50 orders per month" },
     ],
   },
   {
@@ -79,12 +85,13 @@ const PLAN_LIST: PlanDefinition[] = [
       sl: "Za rastoča podjetja — več prostora za katalog in ekipo.",
       en: "For growing businesses — more room for your catalog and team.",
     },
-    limits: { services: 100, products: 500, staff: 25, storageMb: 10_000, customDomains: 1 },
+    limits: { services: 100, products: 500, staff: 25, storageMb: 10_000, customDomains: 1, orders: 1000 },
     features: [
       { sl: "Do 100 storitev", en: "Up to 100 services" },
       { sl: "Do 500 izdelkov", en: "Up to 500 products" },
       { sl: "Do 25 zaposlenih", en: "Up to 25 team members" },
       { sl: "1 lastna domena", en: "1 custom domain" },
+      { sl: "1000 naročil mesečno", en: "1000 orders per month" },
       { sl: "Vse zmožnosti FREE paketa", en: "Everything in FREE" },
       { sl: "Prednostna podpora", en: "Priority support" },
     ],
@@ -97,11 +104,12 @@ const PLAN_LIST: PlanDefinition[] = [
       sl: "Za večje posle — brez omejitev vsebine in ekipe.",
       en: "For larger operations — no content or team limits.",
     },
-    limits: { services: null, products: null, staff: null, storageMb: null, customDomains: null },
+    limits: { services: null, products: null, staff: null, storageMb: null, customDomains: null, orders: null },
     features: [
       { sl: "Brez omejitev storitev in izdelkov", en: "Unlimited services and products" },
       { sl: "Brez omejitev zaposlenih", en: "Unlimited team members" },
       { sl: "Lastne domene brez omejitev", en: "Custom domains without limits" },
+      { sl: "Naročila brez omejitev", en: "Orders without limits" },
       { sl: "Vse zmožnosti PRO paketa", en: "Everything in PRO" },
     ],
   },

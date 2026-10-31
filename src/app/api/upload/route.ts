@@ -3,6 +3,10 @@ import { auth } from "@/lib/auth/auth"
 import { prisma } from "@/lib/prisma"
 import { v2 as cloudinary } from "cloudinary"
 import { getSessionOrg } from "@/lib/tenant"
+import { getLocaleFromCookies } from "@/lib/i18n/server"
+import { getPlan } from "@/lib/plans/registry"
+import { checkStorageLimit } from "@/lib/plans/types"
+import { getOrgStorageBytes } from "@/lib/plans/resolve"
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -113,6 +117,26 @@ export async function POST(request: NextRequest) {
     // --- Path B: DB-backed media storage (zero third-party keys needed) ---
     const bytes = await file.arrayBuffer()
     const base64 = Buffer.from(bytes).toString("base64")
+
+    // STORAGE QUOTA (E3-7): the plan's storageMb limit is enforced
+    // server-side on this DB-backed path before the row is written.
+    // Would-be usage = current org-scoped bytes + the incoming file;
+    // existing media is never removed when over quota (uploads stop).
+    // Tenant-less uploads (CLIENTE avatars) are platform storage, not
+    // tenant quota. Cloudinary (Path A) is metered externally.
+    if (org) {
+      const [currentBytes, locale] = await Promise.all([
+        getOrgStorageBytes(org.id),
+        getLocaleFromCookies(),
+      ])
+      const gate = checkStorageLimit(getPlan(org.plan), currentBytes + file.size)
+      if (!gate.ok) {
+        return NextResponse.json(
+          { error: locale === "en" ? gate.messageEn : gate.message },
+          { status: 429 }
+        )
+      }
+    }
 
     const media = await prisma.media.create({
       data: {

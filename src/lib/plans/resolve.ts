@@ -11,7 +11,14 @@ import { cache } from "react"
 import { prisma } from "@/lib/prisma"
 import { getSessionOrg } from "@/lib/tenant"
 import { getPlan } from "./registry"
-import { checkPlanLimit, type LimitCheck, type LimitResource, type PlanDefinition, type PlanId } from "./types"
+import {
+  checkPlanLimit,
+  monthStartUtc,
+  type LimitCheck,
+  type LimitResource,
+  type PlanDefinition,
+  type PlanId,
+} from "./types"
 
 export interface PlanUsage {
   services: number
@@ -19,6 +26,10 @@ export interface PlanUsage {
   staff: number
   /** Connected custom hostnames (E3-6) — derived from CustomDomain rows. */
   customDomains: number
+  /** Orders created this UTC month (E3-7) — derived from Order rows. */
+  orders: number
+  /** Org-scoped media bytes (E3-7) — derived from the Media table. */
+  storageBytes: number
 }
 
 export interface PlanContext {
@@ -35,6 +46,18 @@ const usageCounters = {
   products: (orgId: string) => prisma.product.count({ where: { organizationId: orgId } }),
   staff: (orgId: string) => prisma.staff.count({ where: { organizationId: orgId } }),
   customDomains: (orgId: string) => prisma.customDomain.count({ where: { organizationId: orgId } }),
+  // Monthly (UTC month) — derived from Order.createdAt, no double bookkeeping.
+  orders: (orgId: string) =>
+    prisma.order.count({ where: { organizationId: orgId, createdAt: { gte: monthStartUtc() } } }),
+  // Org-scoped storage (E3-7): Media rows owned by the tenant. Rows with
+  // organizationId null (anonymous avatars, legacy) belong to no tenant.
+  storageBytes: async (orgId: string) => {
+    const agg = await prisma.media.aggregate({
+      where: { organizationId: orgId },
+      _sum: { size: true },
+    })
+    return agg._sum.size ?? 0
+  },
 } as const
 
 /** Current plan + derived usage for the signed-in admin's org. */
@@ -52,11 +75,13 @@ export async function resolvePlanContext(
   planValue: string | null | undefined
 ): Promise<PlanContext> {
   const plan = getPlan(planValue)
-  const [services, products, staff, customDomains] = await Promise.all([
+  const [services, products, staff, customDomains, orders, storageBytes] = await Promise.all([
     usageCounters.services(orgId),
     usageCounters.products(orgId),
     usageCounters.staff(orgId),
     usageCounters.customDomains(orgId),
+    usageCounters.orders(orgId),
+    usageCounters.storageBytes(orgId),
   ])
   return {
     orgId,
@@ -64,13 +89,22 @@ export async function resolvePlanContext(
     orgName,
     planId: plan.id,
     plan,
-    usage: { services, products, staff, customDomains },
+    usage: { services, products, staff, customDomains, orders, storageBytes },
   }
 }
 
 export type PlanLimitEnforcement =
   | { ok: true }
   | { ok: false; code: "LIMIT_REACHED"; message: string; messageEn: string; limit: number }
+
+/**
+ * Current org-scoped storage usage in bytes (E3-7). Used by the
+ * DB-backed upload route to evaluate checkStorageLimit against the
+ * would-be size (existing bytes + incoming file).
+ */
+export function getOrgStorageBytes(orgId: string): Promise<number> {
+  return usageCounters.storageBytes(orgId)
+}
 
 /**
  * Server-side enforcement for content-creating actions. Call AFTER

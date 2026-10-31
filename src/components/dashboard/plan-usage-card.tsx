@@ -46,12 +46,22 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useI18n } from "@/lib/i18n/provider"
 import { getPlan, listPlans, type PlanId } from "@/lib/plans/registry"
+import { bytesToMb } from "@/lib/plans/types"
 import { changePlan, getPlanContext } from "@/app/actions/plans"
 import { startPlanCheckout, cancelSubscription } from "@/app/actions/billing"
 
 export interface PlanUsageInitial {
   planId: PlanId
-  usage: { services: number; products: number; staff: number; customDomains: number }
+  usage: {
+    services: number
+    products: number
+    staff: number
+    customDomains: number
+    /** Org media bytes (E3-7) — rendered as MB. */
+    storageBytes: number
+    /** Orders this UTC month (E3-7). */
+    orders: number
+  }
 }
 
 /** Serializable billing data passed from the server page. */
@@ -80,9 +90,11 @@ interface PlanUsageCardProps {
 }
 
 type UsageRow = {
-  key: "services" | "products" | "staff" | "customDomains"
+  key: "services" | "products" | "staff" | "customDomains" | "storageMb" | "orders"
   used: number
   limit: number | null
+  /** MB-formatted display for the storage row (E3-7). */
+  unit?: "MB"
 }
 
 type ConfirmMode = "demo-switch" | "checkout" | "cancel"
@@ -154,11 +166,15 @@ export function PlanUsageCard({ initial, billing, billingFlag }: PlanUsageCardPr
   // A 0-limit resource means "not part of your plan" (e.g. custom
   // domains on FREE) — hidden here and surfaced by its own card's
   // upgrade hint instead of a misleading "0 / 0" over-limit row.
+  // storageMb row (E3-7) shows derived MB from org media bytes;
+  // orders row (E3-7) counts orders created this UTC month.
   const rowsAll: UsageRow[] = [
     { key: "services", used: state.usage.services, limit: plan.limits.services },
     { key: "products", used: state.usage.products, limit: plan.limits.products },
     { key: "staff", used: state.usage.staff, limit: plan.limits.staff },
     { key: "customDomains", used: state.usage.customDomains, limit: plan.limits.customDomains },
+    { key: "storageMb", used: bytesToMb(state.usage.storageBytes), limit: plan.limits.storageMb, unit: "MB" },
+    { key: "orders", used: state.usage.orders, limit: plan.limits.orders },
   ]
   const rows = rowsAll.filter((r) => r.limit !== 0)
 
@@ -300,7 +316,8 @@ export function PlanUsageCard({ initial, billing, billingFlag }: PlanUsageCardPr
                           : "text-muted-foreground"
                     }
                   >
-                    {row.used} / {row.limit === null ? dict.unlimited : row.limit}
+                    {row.used}
+                    {row.unit ? ` ${row.unit}` : ""} / {row.limit === null ? dict.unlimited : `${row.limit}${row.unit ? ` ${row.unit}` : ""}`}
                   </span>
                 </div>
                 {row.limit !== null && (
@@ -309,7 +326,7 @@ export function PlanUsageCard({ initial, billing, billingFlag }: PlanUsageCardPr
                     aria-valuenow={row.used}
                     aria-valuemin={0}
                     aria-valuemax={row.limit}
-                    aria-label={`${dict.resources[row.key]}: ${row.used} / ${row.limit}`}
+                    aria-label={`${dict.resources[row.key]}: ${row.used}${row.unit ? ` ${row.unit}` : ""} / ${row.limit}${row.unit ? ` ${row.unit}` : ""}`}
                     className="bg-muted h-2 w-full overflow-hidden rounded-full"
                   >
                     <div
