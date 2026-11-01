@@ -343,6 +343,36 @@ export default function AdminAppointmentForm({
         )}
       </div>
 
+      {/* E2-7 (G7): optional workspace resource — rendered only when the org
+          profile enables workspace-resources + appointments and resources exist. */}
+      {resources.length > 0 && (
+        <div className="space-y-2">
+          <Label>{t.appointments.form.resourceLabel}</Label>
+          <Select
+            value={selectedResourceId ?? "none"}
+            onValueChange={(value) => {
+              // The slot set depends on the resource — clear a stale time.
+              setSelectedResourceId(value === "none" ? null : value)
+              setValue("time", "")
+            }}
+          >
+            <SelectTrigger className="sm:w-96">
+              <SelectValue placeholder={t.appointments.form.resourcePlaceholder} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">{t.appointments.form.resourceNone}</SelectItem>
+              {resources.map((r) => (
+                <SelectItem key={r.id} value={r.id}>
+                  {r.name}
+                  {r.kind ? ` — ${r.kind}` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">{t.appointments.form.resourceHint}</p>
+        </div>
+      )}
+
       {/* Date Selection */}
       <div className="space-y-2">
         <Label>{t.appointments.form.dateLabel}</Label>
