@@ -187,16 +187,10 @@ export function PaymentsSettings() {
               <div>
                 <dt className="text-muted-foreground">{tr.activeKey}</dt>
                 <dd>
-                  {settings.source === "settings" ? (
-                    <>
-                      {tr.yourKey}:{" "}
-                      <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
-                        {settings.maskedKey}
-                      </code>
-                    </>
-                  ) : (
-                    tr.platformKey
-                  )}
+                  {tr.yourKey}:{" "}
+                  <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+                    {settings.maskedKey}
+                  </code>
                 </dd>
               </div>
               {settings.configuredAt && (
@@ -216,11 +210,6 @@ export function PaymentsSettings() {
           {settings && !settings.active && (
             <Alert>
               <AlertDescription>{tr.statusDisabledHint}</AlertDescription>
-            </Alert>
-          )}
-          {settings?.source === "env" && (
-            <Alert>
-              <AlertDescription>{tr.statusEnvHint}</AlertDescription>
             </Alert>
           )}
         </CardContent>

@@ -5,18 +5,18 @@ import { revalidatePath } from "next/cache"
 import { UnauthorizedError } from "@/lib/auth/guards"
 import { requireAdminOrg } from "@/lib/tenant"
 import {
-  isStripeConfigured,
   maskSecretKey,
   stripeKeyMode,
   verifyStripeSecretKey,
 } from "@/lib/stripe"
 
 export interface PaymentsSettings {
-  /** True when payments are runnable right now (org key or env fallback). */
+  /** True when payments are runnable right now (the salon's own key). */
   active: boolean
-  /** Where the active key comes from: admin settings or environment. */
-  source: "settings" | "env" | "none"
-  /** "test" | "live" | "restricted" | "unknown" — of the ACTIVE key. */
+  /** Where the key comes from: admin settings only — the platform never
+   *  holds a key, so there is deliberately no "env" source (E4-3b). */
+  source: "settings" | "none"
+  /** "test" | "live" | "restricted" | "unknown" — of the salon's key. */
   mode: string
   /** Masked org key for display, e.g. "sk_live_••••ab12" (never the full key). */
   maskedKey: string | null
@@ -34,19 +34,15 @@ function buildPaymentsSettings(org: {
   stripeWebhookSecret: string | null
   stripeConfiguredAt: Date | null
 }): PaymentsSettings {
-  const activeKey = org.stripeSecretKey || process.env.STRIPE_SECRET_KEY || null
+  // Org key ONLY — no env fallback: the platform never holds the key (E4-3b).
+  const activeKey = org.stripeSecretKey
   return {
     active: Boolean(activeKey),
-    source: org.stripeSecretKey
-      ? "settings"
-      : process.env.STRIPE_SECRET_KEY
-        ? "env"
-        : "none",
+    source: org.stripeSecretKey ? "settings" : "none",
     mode: activeKey ? stripeKeyMode(activeKey) : "unknown",
     maskedKey: org.stripeSecretKey ? maskSecretKey(org.stripeSecretKey) : null,
     configuredAt: org.stripeConfiguredAt?.toISOString() ?? null,
-    webhookConfigured:
-      Boolean(org.stripeWebhookSecret) || Boolean(process.env.STRIPE_WEBHOOK_SECRET),
+    webhookConfigured: Boolean(org.stripeWebhookSecret),
     webhookUrl: `${process.env.NEXT_PUBLIC_APP_URL || ""}/api/webhooks/stripe`,
   }
 }
@@ -142,7 +138,8 @@ export async function saveStripeSettings(input: {
   }
 }
 
-/** Remove the salon's stored Stripe keys (falls back to env, if any). */
+/** Remove the salon's stored Stripe keys — online payments stop until the
+ *  owner enters a key again (there is no platform fallback). */
 export async function clearStripeSettings(): Promise<
   | { success: true; settings: PaymentsSettings }
   | { success: false; error: string }
@@ -172,9 +169,4 @@ export async function clearStripeSettings(): Promise<
     console.error("Error clearing Stripe settings:", error)
     return { success: false, error: "clear_failed" }
   }
-}
-
-/** Whether the platform-wide env key exists (informational for the admin). */
-export async function isEnvStripeConfigured(): Promise<boolean> {
-  return isStripeConfigured()
 }

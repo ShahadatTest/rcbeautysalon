@@ -1,6 +1,6 @@
 "use server"
 
-import { stripe, getStripeForOrg } from "@/lib/stripe"
+import { getStripeForOrg } from "@/lib/stripe"
 import { auth } from "@/lib/auth/auth"
 import { prisma } from "@/lib/prisma"
 import { addMinutes } from "date-fns"
@@ -32,7 +32,8 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
     }
 
     // Payments are an optional, salon-owned integration — the key comes
-    // from the organization (Settings → Plačila) or the platform env.
+    // ONLY from the organization (Settings → Plačila). The platform never
+    // holds a key (E4-3b): no env fallback exists.
     const stripeClient = getStripeForOrg(org)
     if (!stripeClient) {
       return {
@@ -163,8 +164,9 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
 export async function verifyAndCreateAppointment(sessionId: string) {
   try {
     // The checkout session can only be retrieved from the Stripe account that
-    // created it. Try candidates in order: default org key, session org key,
-    // every org with its own key, then the platform env key.
+    // created it. Try candidates in order: session org key, public org key,
+    // then every org with its own key. There is NO platform/env fallback —
+    // the platform never holds a tenant key (E4-3b).
     const [publicOrg, sessionOrg, keyedOrgs] = await Promise.all([
       getPublicOrg(),
       getSessionOrg(),
@@ -174,24 +176,23 @@ export async function verifyAndCreateAppointment(sessionId: string) {
     ])
 
     const candidates = [
-      publicOrg,
       sessionOrg,
+      publicOrg,
       ...keyedOrgs,
-      null, // null → env key via global client
-    ]
+    ].filter((candidate): candidate is NonNullable<typeof candidate> =>
+      Boolean(candidate?.stripeSecretKey)
+    )
 
     const seen = new Set<string>()
     let checkoutSession: Stripe.Checkout.Session | null = null
 
     for (const candidate of candidates) {
-      const key = candidate?.stripeSecretKey || (candidate === null ? process.env.STRIPE_SECRET_KEY : null)
-      if (!key) continue
-      const dedupeKey = candidate?.id ?? "__env__"
+      const dedupeKey = candidate.id
       if (seen.has(dedupeKey)) continue
       seen.add(dedupeKey)
 
       try {
-        const client = candidate ? getStripeForOrg(candidate) : stripe
+        const client = getStripeForOrg(candidate)
         if (!client) continue
         checkoutSession = await client.checkout.sessions.retrieve(sessionId, {
           expand: ["payment_intent"],
@@ -527,7 +528,8 @@ export async function createDepositCheckoutForAppointment(appointmentId: string)
       return { success: false, error: "Polog je že plačan" }
     }
 
-    // Payments are optional — the key comes from the appointment's org or env.
+    // Payments are optional — the key comes ONLY from the appointment's org
+    // (owner-entered); the platform never holds a key (E4-3b).
     const orgForPayments = appointment.organizationId
       ? await getOrgById(appointment.organizationId)
       : org

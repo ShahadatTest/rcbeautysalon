@@ -174,8 +174,6 @@ export const settingsSl = {
     statusDisabled: "Plačila niso nastavljena",
     statusDisabledHint:
       "Vnesite svoj skrivni ključ spodaj, da omogočite spletne plačile.",
-    statusEnvHint:
-      "Plačila trenutno delujejo s ključem platforme. Vnesite svoj ključ, da bodo plačila šla neposredno na vaš Stripe račun.",
     modeTest: "Testni način",
     modeLive: "Živi način",
     modeRestricted: "Omejen ključ",
@@ -183,7 +181,6 @@ export const settingsSl = {
     configuredAt: "Nastavljeno",
     activeKey: "Aktivni ključ",
     yourKey: "Vaš ključ",
-    platformKey: "Ključ platforme",
     formSection: "Vnesite svoj Stripe ključ",
     secretKey: "Skrivni ključ (Secret key)",
     secretKeyPlaceholder: "sk_live_… ali sk_test_…",
@@ -205,7 +202,7 @@ export const settingsSl = {
     saving: "Preverjam ključ …",
     remove: "Odstrani shranjen ključ",
     removeConfirm:
-      "Ali res želite odstraniti shranjen Stripe ključ? Spletne plačile ne bodo več delovale (razen če platforma ima svoj ključ).",
+      "Ali res želite odstraniti shranjen Stripe ključ? Spletne plačile ne bodo več delovale, dokler ne vnesete svoj ključ znova.",
     removed: "Stripe ključ je odstranjen",
     saved: "Stripe ključ je preverjen in shranjen — plačila so omogočena",
     errInvalidFormat:
@@ -220,7 +217,7 @@ export const settingsSl = {
     errUnexpected: "Prišlo je do nepričakovane napake",
     errLoadFailed: "Nastavitev plačil ni bilo mogoče naložiti.",
     securityNote:
-      "Varnost: ključ je viden samo lastniku salona, na strežniku se uporablja izključno za plačila in se nikoli ne pošlje v brskalnik.",
+      "Varnost: ključ vnaša salon sam in je viden samo lastniku; na strežniku se uporablja izključno za plačila tega salona in se nikoli ne pošlje v brskalnik. Platforma nima skupnega ključa — plačila vedno gredo neposredno na vaš Stripe račun.",
   },
   analyticsIntegration: {
     title: "Analitika obiskov (GA4)",
@@ -681,8 +678,6 @@ export const settingsEn: SettingsDict = {
     statusDisabled: "Payments are not set up",
     statusDisabledHint:
       "Enter your secret key below to enable online payments.",
-    statusEnvHint:
-      "Payments currently run on a platform key. Enter your own key so payments go directly to your Stripe account.",
     modeTest: "Test mode",
     modeLive: "Live mode",
     modeRestricted: "Restricted key",
@@ -690,7 +685,6 @@ export const settingsEn: SettingsDict = {
     configuredAt: "Configured",
     activeKey: "Active key",
     yourKey: "Your key",
-    platformKey: "Platform key",
     formSection: "Enter your Stripe key",
     secretKey: "Secret key",
     secretKeyPlaceholder: "sk_live_… or sk_test_…",
@@ -712,7 +706,7 @@ export const settingsEn: SettingsDict = {
     saving: "Verifying key …",
     remove: "Remove stored key",
     removeConfirm:
-      "Remove the stored Stripe key? Online payments will stop working (unless the platform has its own key).",
+      "Remove the stored Stripe key? Online payments will stop working until you enter your key again.",
     removed: "Stripe key removed",
     saved: "Stripe key verified and saved — payments are enabled",
     errInvalidFormat:
@@ -727,7 +721,7 @@ export const settingsEn: SettingsDict = {
     errUnexpected: "An unexpected error occurred",
     errLoadFailed: "Payment settings could not be loaded.",
     securityNote:
-      "Security: the key is visible only to the salon owner, used server-side for payments only, and never sent to the browser.",
+      "Security: the key is entered by the salon itself and visible only to the owner; server-side it is used for this salon's payments only and is never sent to the browser. The platform has no shared key — payments always go directly to your Stripe account.",
   },
   analyticsIntegration: {
     title: "Visit analytics (GA4)",

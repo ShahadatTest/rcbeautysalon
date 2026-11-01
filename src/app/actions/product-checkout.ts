@@ -1,6 +1,6 @@
 "use server"
 
-import { stripe, getStripeForOrg } from "@/lib/stripe"
+import { getStripeForOrg } from "@/lib/stripe"
 import { auth } from "@/lib/auth/auth"
 import { prisma } from "@/lib/prisma"
 import { validateCartStock } from "./cart"
@@ -49,7 +49,8 @@ export async function createProductCheckoutSession(
     }
 
     // Payments are an optional, salon-owned integration — the key comes
-    // from the organization (Settings → Plačila) or the platform env.
+    // ONLY from the organization (Settings → Plačila). The platform never
+    // holds a key (E4-3b): no env fallback exists.
     const stripeClient = getStripeForOrg(org)
     if (!stripeClient) {
       return {
@@ -258,8 +259,9 @@ export async function verifyProductOrder(sessionId: string) {
     }
 
     // The checkout session can only be retrieved from the Stripe account that
-    // created it. Try candidates: default org key, then every org with its own
-    // key, then the platform env key.
+    // created it. Try candidates: the salon's own key first, then every org
+    // with its own key. There is NO platform/env fallback — the platform
+    // never holds a tenant key (E4-3b).
     const [publicOrg, keyedOrgs] = await Promise.all([
       getPublicOrg(),
       prisma.organization.findMany({
@@ -267,21 +269,20 @@ export async function verifyProductOrder(sessionId: string) {
       }),
     ])
 
-    const candidates = [publicOrg, ...keyedOrgs, null]
+    const candidates = [publicOrg, ...keyedOrgs].filter(
+      (candidate): candidate is NonNullable<typeof candidate> =>
+        Boolean(candidate?.stripeSecretKey)
+    )
     const seen = new Set<string>()
     let checkoutSession: import("stripe").Stripe.Checkout.Session | null = null
 
     for (const candidate of candidates) {
-      const key =
-        candidate?.stripeSecretKey ||
-        (candidate === null ? process.env.STRIPE_SECRET_KEY : null)
-      if (!key) continue
-      const dedupeKey = candidate?.id ?? "__env__"
+      const dedupeKey = candidate.id
       if (seen.has(dedupeKey)) continue
       seen.add(dedupeKey)
 
       try {
-        const client = candidate ? getStripeForOrg(candidate) : stripe
+        const client = getStripeForOrg(candidate)
         if (!client) continue
         checkoutSession = await client.checkout.sessions.retrieve(sessionId, {
           expand: ["payment_intent"],

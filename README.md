@@ -33,7 +33,7 @@ Ena namestitev streže **več neodvisnim salonom** — vsak s svojo domeno (`/s/
 - **React 19 `action={}` obrazci (F1)** — kritični obrazci na React 19 vzorec z kontroliranimi polji in FormData pomočniki (`src/lib/forms/form-data.ts`)
 
 ### 📊 Analitika in zdravje (EPIC #4)
-Načrt ostankov po zaključku EPIC #3: platformna analitika v operaterski konzoli (E4-1: distribucija paketov, konverzija, odhod, prihodki, webhook zdravje — vse izpeljano iz obstoječih tabel), najemniška analitika (E4-2a: povpraševanja s poštenimi praznimi stanji; E4-2b: neobvezen lastni GA4 Measurement ID — skript izključno v objavljeni strani, platforma sama ne sledi), **webhook dnevnik napak (E4-3: vsaka neuspešna dostava vedno zabeležena, vidna v `/platform`, pošteno omejen zapisovalnik zoper zlorabe, idempotenca ostane)**, nadaljevanje namestitve (§2), health endpoint (§13) — [docs/EPIC-4/PLAN.md](docs/EPIC-4/PLAN.md)
+Načrt ostankov po zaključku EPIC #3: platformna analitika v operaterski konzoli (E4-1: distribucija paketov, konverzija, odhod, prihodki, webhook zdravje — vse izpeljano iz obstoječih tabel), najemniška analitika (E4-2a: povpraševanja s poštenimi praznimi stanji; E4-2b: neobvezen lastni GA4 Measurement ID — skript izključno v objavljeni strani, platforma sama ne sledi), **webhook dnevnik napak (E4-3: vsaka neuspešna dostava vedno zabeležena, vidna v `/platform`, pošteno omejen zapisovalnik zoper zlorabe, idempotenca ostane)**, **najemniški Stripe ključi izključno lastniški vnos (E4-3b: env fallback odstranjen — platforma ne more imeti ključa)**, nadaljevanje namestitve (§2), health endpoint (§13) — [docs/EPIC-4/PLAN.md](docs/EPIC-4/PLAN.md)
 
 ### 🏢 Večnajemniškost (multi-tenant)
 - Vsak salon dobi svojo javno stran pod `/s/[slug]` (npr. `/s/salon-luna/rezervacija`)
@@ -60,11 +60,10 @@ Ni treba urejati environment spremenljivk! Lastnik salona v **Nastavitve → Pla
 2. **Webhook skrivnost** (`whsec_…`) — za zanesljive potrditve plačil
 
 Varnost:
-- Ključ je vezan na organizacijo (multi-tenant) in se shrani le strežniško
+- Ključ vnaša salon sam in je vezan na organizacijo (multi-tenant); platforma **nima skupnega ključa** — plačila vedno gredo neposredno na salona lastni Stripe račun
 - Ključ se **nikoli** ne vrne brskalniku — samo maskiran prikaz (`sk_live_••••1234`)
-- Webhook preverja podpis za vse najemnike (env skrivnost + skrivnosti vseh organizacij)
-- Fallback: če organizacija nima ključa, se uporabi `STRIPE_SECRET_KEY` iz okolja
-- Plačila se elegantno degradirajo, ko ključ ni nastavljen (prijazno sporočilo, brez sesutja)
+- Webhook preverja podpis s skrivnostmi organizacij (vsak salon registrira endpoint v svojem Stripe računu) — brez platformne/env skrivnosti (E4-3b)
+- Fallback na okolje je **namenoma odstranjen** (E4-3b): brez lastnega ključa se plačila elegantno degradirajo (prijazno sporočilo, brez sesutja)
 
 ### 🈸 Dvojezičnost (i18n)
 - **Slovenščina (privzeto)** + angleščina, preklopnik v glavi
@@ -117,12 +116,12 @@ DATABASE_URL="postgresql://user:password@localhost:5432/beauty_salon"
 AUTH_SECRET=""              # openssl rand -base64 32
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
-# Stripe — NEOBVEZNO: admin lahko ključe vnese v Nastavitve → Plačila
-STRIPE_SECRET_KEY=""
-STRIPE_WEBHOOK_SECRET=""
+# Stripe — NEOBVEZNO in NEDOSTOJNO za najemniška plačila: ključe vnese
+# vsak salon lastnik v Nastavitve → Plačila (E4-3b: env fallback je odstranjen)
+# PLATFORM_STRIPE_* pa so izključno platformin lastni račun za naročnine SaaS
 ```
 
-> 💡 Stripe ključi v okolju so le platformni fallback. Priporočeno je, da vsak salon vnese svoje ključe prek nadzorne plošče — brez ponovnega deploya.
+> 💡 Najemniški Stripe ključi se VEDNO vnesejo prek nadzorne plošče (lastnik salona) — platforma ne hrani skupnega ključa. `PLATFORM_STRIPE_*` velja samo za platformin lastni račun za naročnine.
 
 ## 💳 Nastavitev Stripe (za lastnika salona)
 

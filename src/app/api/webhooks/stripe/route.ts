@@ -1,6 +1,6 @@
 import { headers } from "next/headers"
 import { NextResponse } from "next/server"
-import { stripe } from "@/lib/stripe"
+import { constructWebhookEvent } from "@/lib/stripe"
 import { prisma } from "@/lib/prisma"
 import { addMinutes } from "date-fns"
 import { after } from "next/server"
@@ -10,21 +10,17 @@ import { formatSalonTime, safeTimezone } from "@/lib/booking-time"
 import Stripe from "stripe"
 
 /**
- * Multi-tenant webhook signature verification. Each salon registers the SAME
- * endpoint URL in its own Stripe account, so every organization can have its
- * own signing secret. We try, in order:
- *   1. the platform env secret (legacy),
- *   2. every organization's stored webhook secret.
- * constructEvent never calls the API, so trying candidates is cheap.
+ * Multi-tenant webhook signature verification (E4-3b): each salon registers
+ * the SAME endpoint URL in its OWN Stripe account, so every organization has
+ * its own signing secret. We try every organization's stored webhook secret —
+ * there is deliberately NO platform/env secret: the platform cannot hold the
+ * key. constructEvent never calls the API, so trying candidates is cheap.
  */
 async function verifyStripeEvent(
   body: string,
   signature: string
 ): Promise<Stripe.Event | null> {
   const candidates: string[] = []
-  if (process.env.STRIPE_WEBHOOK_SECRET) {
-    candidates.push(process.env.STRIPE_WEBHOOK_SECRET)
-  }
 
   const orgsWithWebhook = await prisma.organization.findMany({
     where: { stripeWebhookSecret: { not: null } },
@@ -36,7 +32,7 @@ async function verifyStripeEvent(
 
   for (const secret of candidates) {
     try {
-      return stripe.webhooks.constructEvent(body, signature, secret)
+      return constructWebhookEvent(body, signature, secret)
     } catch {
       continue
     }

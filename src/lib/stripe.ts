@@ -1,27 +1,16 @@
 import Stripe from "stripe"
 
 /**
- * Stripe is an optional, salon-owned integration. Keys can come from:
- *  1. The Organization row (admin enters them in Settings → Plačila)
- *  2. Environment variables (legacy / platform-wide fallback)
- * The app must BUILD and RUN without them, so we never throw at import time.
- * All user-facing flows check configuration first and degrade gracefully
- * with a friendly message when no key is available.
+ * Stripe is an optional, SALON-OWNED integration (product decision, EPIC #4
+ * E4-3b): each salon owner pastes their own secret key in Settings → Plačila
+ * and it is stored on the Organization row. The platform NEVER holds a
+ * tenant Stripe key — there is deliberately NO environment fallback, so a
+ * shared/platform key can never silently collect a salon's payments.
+ * The app must BUILD and RUN without any key, so we never throw at import
+ * time; flows check configuration first and degrade gracefully.
  */
 
 const STRIPE_API_VERSION = "2025-10-29.clover"
-
-export const stripe = new Stripe(
-  process.env.STRIPE_SECRET_KEY || "sk_test_not_configured",
-  {
-    apiVersion: STRIPE_API_VERSION,
-    typescript: true,
-  }
-)
-
-/** Legacy check — environment key only. */
-export const isStripeConfigured = (): boolean =>
-  Boolean(process.env.STRIPE_SECRET_KEY)
 
 /** Minimal structural type so callers can pass full Organization rows. */
 interface OrganizationLike {
@@ -30,22 +19,21 @@ interface OrganizationLike {
 }
 
 /**
- * Resolve the Stripe secret key for an organization:
- * org key from the database first, environment variable as fallback.
+ * Resolve the Stripe secret key for an organization: the org's own key ONLY.
+ * There is intentionally no env fallback — the platform cannot hold the key.
  */
 export const getOrgStripeKey = (
   org: Pick<OrganizationLike, "stripeSecretKey"> | null | undefined
-): string | null => org?.stripeSecretKey || process.env.STRIPE_SECRET_KEY || null
+): string | null => org?.stripeSecretKey || null
 
-/** True when payments can run for this organization (org key or env key). */
+/** True when payments can run for this organization (org key present). */
 export const isOrgStripeConfigured = (
   org: Pick<OrganizationLike, "stripeSecretKey"> | null | undefined
 ): boolean => Boolean(getOrgStripeKey(org))
 
 /**
- * Stripe client scoped to an organization. Returns null when neither the
- * organization nor the environment provides a key, so callers can degrade
- * gracefully instead of crashing.
+ * Stripe client scoped to an organization. Returns null when the organization
+ * has no key of its own, so callers can degrade gracefully instead of crashing.
  */
 export const getStripeForOrg = (
   org: Pick<OrganizationLike, "stripeSecretKey"> | null | undefined
@@ -56,6 +44,28 @@ export const getStripeForOrg = (
     apiVersion: STRIPE_API_VERSION,
     typescript: true,
   })
+}
+
+/**
+ * Signature verification is a LOCAL HMAC check (constructEvent never calls
+ * the Stripe API), so a placeholder-key client is sufficient. The secrets
+ * tried are the tenants' own webhook secrets — the platform holds none.
+ */
+const webhookSignatureClient = new Stripe(
+  "whsec_verification_only_placeholder_no_api_calls",
+  {
+    apiVersion: STRIPE_API_VERSION,
+    typescript: true,
+  }
+)
+
+/** Verify a signed webhook delivery against one tenant-provided secret. */
+export function constructWebhookEvent(
+  body: string,
+  signature: string,
+  secret: string
+): Stripe.Event {
+  return webhookSignatureClient.webhooks.constructEvent(body, signature, secret)
 }
 
 /** "test" | "live" | "restricted" | "unknown" based on the key prefix. */
