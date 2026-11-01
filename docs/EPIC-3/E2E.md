@@ -30,7 +30,7 @@ izolirani bazi, 1 worker, deterministični vrstni red.
 | `e-saas-lifecycle.spec.ts` | E | zasebnost drafta → objava → domena (PENDING) → entitlementi → downgrade OB IZGUBI podatkov → operaterska konzola |
 | `idor.spec.ts` | E.8 | cross-tenant branje/urejanje (tuji id-i), /platform za najemniškega admina, mediji po neznanih id-jih |
 
-## Znana omejitev testnega okolja (pošteno dokumentirano)
+## Znana omejitev testnega okolja (pošteno dokumentirano) — RESENA z F1
 
 **Server actions iz RHF `<form onSubmit>` handlerjev se tiho obesijo**
 v produkcijskem buildu (lokalno IN na Vercelu): noben omrežni klic, noben
@@ -43,13 +43,27 @@ toast, `isSubmitting` ujame. Vzorec:
   `submitPublicForm`/`createProductCheckoutSession` — vse poklicane iz
   RHF `handleSubmit`
 
-Obvozna pot: kataloški podatki (storitve/izdelki/rezervacije/oddaje) so
-**fixture-i** prek PrismaClient neposredno v izolirano bazo; vsi tokovi
-okoli njih (objava, javna stran, delovni prostor, paketi, domene,
-operator, IDOR) so realni UI tokovi. Administratorski CRUD obrazci so
-verificirani ročno na produkcijskem UI. Spremljanje in migracija obrazcev
-na React 19 `action={}` vzorec je ločen follow-up.
-
 Zgodovina preiskave: `reactCompiler: true` je v produkcijskem buildu
 popolnoma odvezal form submit dogodke (v dev deluje!) — izklopljen v
 `next.config.ts` z regresijsko zaščito te E2E zbirke.
+
+**Rešitev (F1, `a96115c` + `cd98fed`)** — kritični obrazci migrirani na
+React 19 `<form action={}>` + `useActionState` (framework-blessed pot brez
+RHF dogodkovnega mehanizma): service-form, product-form, booking-form
+(obe poti: `createAppointment` + `createCheckoutSession`),
+public-inquiry-form. Strežniške akcije NESPREMENJENE.
+
+Ključno odkritje pri migraciji (vir `react-dom` `startHostTransition`):
+React zahteva **form reset PRED izvedbo akcije** — nekontrolirani vnosi se
+počistijo po VSAKI oddaji, ne glede na izid. Zato so vsa polja migriranih
+obrazcev **kontrolirana** (reset jih ne izgubi pri validacijski napaki),
+state-polja pa nosijo skriti `<input type="hidden">` nosilci. Validacija
+teče skozi iste zod sheme (`safeParse` v akciji), napake se mapirajo v iste
+inline slote, `clearErrors` ob popravku ohranja UX pariteto s starim
+resolverjem. Čisti FormData pomožniki: `src/lib/forms/form-data.ts`
+(10 testov, skupaj 286/286).
+
+Produkcijska preverba (browser E2E): prazna oddaja pokaže inline napake in
+ob popravku izginejo; service/product zapis v DB; booking pot pokaže
+iskreno „Spletna plačila še niso nastavljena" (brez Stripe ključev) namesto
+tihega obesanja; javni inquiry gost zapisan v DB z kontaktom in polji.
