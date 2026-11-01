@@ -9,7 +9,6 @@ import {
   getPublicFeaturedProducts,
   getPublicFeaturedServices,
   getPublicFeaturedStaff,
-  getPublicCatalogCounts,
 } from "@/lib/public-site"
 import { HomeContent } from "@/components/landing/home-content"
 import { resolveCtaLinks, resolveCtaSectionHref } from "@/lib/public-cta"
@@ -45,11 +44,10 @@ export default async function PreviewPage() {
 
   // ALWAYS the live working content — that is the point of the preview.
   const content = mergeSiteContent(config?.siteContent, org.vertical)
-  const [featuredServices, featuredProducts, featuredStaff, catalogCounts] = await Promise.all([
+  const [featuredServices, featuredProducts, featuredStaff] = await Promise.all([
     getPublicFeaturedServices(org.id),
     getPublicFeaturedProducts(org.id),
     getPublicFeaturedStaff(org.id),
-    getPublicCatalogCounts(org.id),
   ])
 
   const state = parsePublishState(org.publishState)
@@ -83,8 +81,8 @@ export default async function PreviewPage() {
           featuredServices={featuredServices}
           featuredProducts={featuredProducts}
           featuredStaff={featuredStaff}
-          hasServices={catalogCounts.services}
-          hasProducts={catalogCounts.products}
+          hasServices={featuredServices.length > 0}
+          hasProducts={featuredProducts.length > 0}
         />
       </main>
     </div>

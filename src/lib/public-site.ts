@@ -117,20 +117,6 @@ export async function getPublicFeaturedProducts(orgId: string) {
   }))
 }
 
-/**
- * Catalog presence counts for the landing page: sections whose ENTIRE
- * catalog is empty render no markup at all (product-only verticals like
- * beekeeping have zero services by design — an empty "Naše storitve"
- * heading with only a button reads as broken, EPIC #4 visual pass).
- */
-export async function getPublicCatalogCounts(orgId: string) {
-  const [services, products] = await Promise.all([
-    prisma.service.count({ where: { organizationId: orgId, isActive: true } }),
-    prisma.product.count({ where: { organizationId: orgId, isActive: true } }),
-  ])
-  return { services: services > 0, products: products > 0 }
-}
-
 /** Featured staff for the landing page. */
 export async function getPublicFeaturedStaff(orgId: string) {
   return prisma.staff.findMany({
