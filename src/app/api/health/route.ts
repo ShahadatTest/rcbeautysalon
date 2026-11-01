@@ -11,15 +11,14 @@
 
 import { NextResponse } from "next/server"
 import { publicHealthPayload } from "@/lib/health/health-report"
+import { version as APP_VERSION } from "../../../../package.json"
 
 export const dynamic = "force-dynamic"
 
 export function GET() {
-  const payload = publicHealthPayload(
-    process.env.npm_package_version ?? "unknown",
-    process.env.VERCEL_GIT_COMMIT_SHA ?? null,
-    new Date()
-  )
+  // Version is bundled at build time (Vercel's serverless runtime has
+  // no npm_package_version) — the commit SHA stays the precise deploy id.
+  const payload = publicHealthPayload(APP_VERSION, process.env.VERCEL_GIT_COMMIT_SHA ?? null, new Date())
   return NextResponse.json(payload, {
     headers: { "Cache-Control": "no-store" },
   })

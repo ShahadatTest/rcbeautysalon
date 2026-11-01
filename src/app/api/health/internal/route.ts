@@ -29,6 +29,7 @@ import {
   WEBHOOK_FAILURE_ALERT_THRESHOLD,
   type MigrationState,
 } from "@/lib/health/health-report"
+import { version as APP_VERSION } from "../../../../../package.json"
 
 export const dynamic = "force-dynamic"
 
@@ -44,7 +45,8 @@ export async function GET() {
     throw err
   }
 
-  const version = process.env.npm_package_version ?? "unknown"
+  // Version bundled at build time (serverless runtime has no npm_package_version).
+  const version = APP_VERSION
   const commit = process.env.VERCEL_GIT_COMMIT_SHA ?? null
 
   // ---- DB ping (measured) --------------------------------
