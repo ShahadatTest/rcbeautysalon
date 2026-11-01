@@ -2,8 +2,17 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { WarningCircleIcon, ArrowLeftIcon, CalendarIcon } from "@/components/icons"
+import { getPublicOrg } from "@/lib/tenant"
+import { orgPath } from "@/lib/org-path"
 
-export default function ServiceNotFound() {
+export default async function ServiceNotFound() {
+  // not-found.tsx is a server component rendered inside the same request as
+  // the page that threw notFound() — the org header is still available, so
+  // links can stay inside the tenant's site (/s/{slug}/...). Null org
+  // (unknown/suspended slug or bare platform route) falls back to bare paths.
+  const org = await getPublicOrg()
+  const orgSlug = org?.slug ?? null
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center">
       <div className="container mx-auto px-4">
@@ -39,7 +48,7 @@ export default function ServiceNotFound() {
 
             {/* Actions */}
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-              <Link href="/services" className="flex-1 sm:flex-initial">
+              <Link href={orgPath(orgSlug, "/services")} className="flex-1 sm:flex-initial">
                 <Button
                   size="lg"
                   className="from-primary to-accent w-full bg-linear-to-r hover:opacity-90"
@@ -48,7 +57,7 @@ export default function ServiceNotFound() {
                   Browse All Services
                 </Button>
               </Link>
-              <Link href="/" className="flex-1 sm:flex-initial">
+              <Link href={orgPath(orgSlug, "/")} className="flex-1 sm:flex-initial">
                 <Button
                   size="lg"
                   variant="outline"

@@ -324,7 +324,7 @@ export const VERTICALS: VerticalPreset[] = [
         { name: "Hot towel shave", description: "Tradicionalno britje z vročo brisačo", duration: 30, price: 20, imageUrl: IMG.barberHotTowel },
       ]},
       { name: "Paketi", slug: "paketi", services: [
-        { name: "Cut + brada", description: "Zasedka striženja in brade v enem terminu", duration: 60, price: 40, imageUrl: IMG.barberBeard, isFeatured: true },
+        { name: "Cut + brada", description: "Kombiniran termin za striženje in brado", duration: 60, price: 40, imageUrl: IMG.barberBeard, isFeatured: true },
       ]},
     ],
     siteContent: defaultSiteContent("barber"),

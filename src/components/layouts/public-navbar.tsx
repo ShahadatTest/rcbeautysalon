@@ -29,20 +29,34 @@ interface PublicNavbarProps {
   org: { slug: string | null; name: string; logo: string | null }
   /** Profile-resolved call-to-action; null → hidden (e.g. module disabled). */
   cta?: { label: string; href: string } | null
+  /**
+   * Which home-page sections actually exist (anchor targets). The home page
+   * renders #services/#shop only when featured content exists, so a missing
+   * section must not be linked (dead anchor). Absent → assumed available.
+   */
+  availableSections?: { services?: boolean; shop?: boolean }
 }
 
-export function PublicNavbar({ org, cta }: PublicNavbarProps) {
+export function PublicNavbar({ org, cta, availableSections }: PublicNavbarProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { data: session, status } = useSession()
   const { activeSection } = useNavigationStore()
 
   const homeHref = orgPath(org.slug, "/")
+  // #services/#shop are conditionally rendered — drop them when the tenant
+  // has no featured services/products (about/team/contact always render).
+  const showServices = availableSections?.services !== false
+  const showShop = availableSections?.shop !== false
   const navLinks: NavLinkItem[] = [
-    { href: `${homeHref}#services`, sectionId: "services", label: "Storitve" },
+    ...(showServices
+      ? [{ href: `${homeHref}#services`, sectionId: "services", label: "Storitve" }]
+      : []),
     { href: `${homeHref}#about`, sectionId: "about", label: "O nas" },
     { href: `${homeHref}#team`, sectionId: "team", label: "Ekipa" },
-    { href: `${homeHref}#shop`, sectionId: "shop", label: "Trgovina" },
+    ...(showShop
+      ? [{ href: `${homeHref}#shop`, sectionId: "shop", label: "Trgovina" }]
+      : []),
     { href: `${homeHref}#contact`, sectionId: "contact", label: "Kontakt" },
   ]
 

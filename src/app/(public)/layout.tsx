@@ -8,6 +8,26 @@ import { resolvePublishGate } from "@/lib/publish-gate"
 import { MaintenanceScreen } from "@/components/public/maintenance-screen"
 import { analyticsScriptIdFor } from "@/lib/analytics/measurement-id"
 
+/**
+ * Whether the tenant's home page will actually render the #services and
+ * #shop sections (both require featured + active content). The navbar uses
+ * this to drop anchors that would be dead — e.g. a product-only tenant
+ * has no services section to scroll to.
+ */
+async function resolveAvailableSections(
+  organizationId: string
+): Promise<{ services: boolean; shop: boolean }> {
+  const [featuredServices, featuredProducts] = await Promise.all([
+    prisma.service.count({
+      where: { organizationId, isActive: true, isFeatured: true },
+    }),
+    prisma.product.count({
+      where: { organizationId, isActive: true, isFeatured: true },
+    }),
+  ])
+  return { services: featuredServices > 0, shop: featuredProducts > 0 }
+}
+
 export default async function PublicLayout({
   children,
 }: {
@@ -45,6 +65,7 @@ export default async function PublicLayout({
             logo: org.logo,
           }}
           cta={null}
+          availableSections={await resolveAvailableSections(org.id)}
         />
         <div className="bg-amber-100 text-amber-950 border-b border-amber-200 px-4 py-2 text-center text-sm font-medium dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
           Predogled — ta stran še ni objavljena. Obiščevalci vidijo vzdrževalno
@@ -98,6 +119,7 @@ gtag('config', '${analyticsId}');`}
           logo: org?.logo ?? null,
         }}
         cta={cta.enabled ? { label: cta.label, href: cta.href } : null}
+        availableSections={org ? await resolveAvailableSections(org.id) : undefined}
       />
       <main>{children}</main>
     </>

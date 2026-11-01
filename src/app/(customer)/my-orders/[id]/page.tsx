@@ -19,6 +19,8 @@ import { auth } from "@/lib/auth/auth"
 import { redirect } from "next/navigation"
 import { getOrderByIdForCustomer } from "@/app/actions/orders"
 import { formatCurrency } from "@/lib/utils/format"
+import { getPublicOrg } from "@/lib/tenant"
+import { orgPath } from "@/lib/org-path"
 
 export const metadata: Metadata = {
   title: "Podrobnosti naročila | Poslovna platforma",
@@ -56,10 +58,14 @@ export default async function OrderDetailPage({
     redirect("/login?redirect=/my-orders")
   }
 
+  // Tenant prefix so back/help links (and the not-found fallback) stay
+  // inside /s/{slug} instead of falling back to the default org.
+  const org = await getPublicOrg()
+
   const order = await getOrderByIdForCustomer(id)
 
   if (!order) {
-    redirect("/my-orders")
+    redirect(orgPath(org?.slug, "/my-orders"))
   }
 
   return (
@@ -67,7 +73,7 @@ export default async function OrderDetailPage({
       <div className="container mx-auto max-w-4xl px-4">
         {/* Back Button */}
         <Button variant="ghost" className="mb-6 -ml-2" asChild>
-          <Link href="/my-orders">
+          <Link href={orgPath(org?.slug, "/my-orders")}>
             <ArrowLeftIcon size={18} className="mr-2" />
             Nazaj na naročila
           </Link>
@@ -258,7 +264,10 @@ export default async function OrderDetailPage({
                   Potrebujete pomoč z naročilom?
                 </p>
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/#contact">Kontaktirajte podporo</Link>
+                  {/* hash appended after the tenant-prefixed home URL */}
+                  <Link href={`${orgPath(org?.slug, "/")}#contact`}>
+                    Kontaktirajte podporo
+                  </Link>
                 </Button>
               </CardContent>
             </Card>

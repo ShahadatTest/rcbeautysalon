@@ -15,6 +15,8 @@ import { auth } from "@/lib/auth/auth"
 import { redirect } from "next/navigation"
 import { getCustomerOrders } from "@/app/actions/orders"
 import { formatCurrency } from "@/lib/utils/format"
+import { getPublicOrg } from "@/lib/tenant"
+import { orgPath } from "@/lib/org-path"
 
 export const metadata: Metadata = {
   title: "Moja naročila | Poslovna platforma",
@@ -45,6 +47,9 @@ export default async function MyOrdersPage() {
   }
 
   const orders = await getCustomerOrders()
+  // Tenant prefix so the empty-state CTA and per-order detail links stay
+  // inside /s/{slug} instead of falling back to the default org's store.
+  const org = await getPublicOrg()
 
   return (
     <div className="from-muted/30 via-background to-muted/20 min-h-screen bg-linear-to-b py-12">
@@ -72,7 +77,7 @@ export default async function MyOrdersPage() {
                 Ko opravite nakup, se bodo vaša naročila prikazala tukaj.
               </p>
               <Button asChild>
-                <Link href="/shop">Začnite z nakupovanjem</Link>
+                <Link href={orgPath(org?.slug, "/shop")}>Začnite z nakupovanjem</Link>
               </Button>
             </CardContent>
           </Card>
@@ -156,7 +161,7 @@ export default async function MyOrdersPage() {
                     </div>
 
                     <Button variant="outline" size="sm" asChild>
-                      <Link href={`/my-orders/${order.id}`}>
+                      <Link href={orgPath(org?.slug, `/my-orders/${order.id}`)}>
                         Podrobnosti
                         <ArrowRightIcon size={16} className="ml-2" />
                       </Link>

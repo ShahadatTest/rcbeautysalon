@@ -489,7 +489,7 @@ export function defaultSiteContent(vertical: string): SiteContent {
         eyebrow: "Čebelarstvo",
         title: "Med, kot ga daje narava",
         subtitle:
-          "Odvjet med iz lastnih panjskih postaj, propolis, vosek in drugi čebelji izdelki. Naročite izdelke s svežo žetvijo.",
+          "Odcejen med iz lastnih panjskih postaj, propolis, vosek in drugi čebelji izdelki. Naročite izdelke s svežo žetvijo.",
         primaryCta: { label: "Naroči izdelke", href: "/shop" },
         secondaryCta: { label: "Poglej izdelke", href: "/shop" },
       },

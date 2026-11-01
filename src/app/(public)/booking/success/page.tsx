@@ -85,7 +85,7 @@ async function BookingSuccessContent({
 
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Button asChild size="lg">
-            <Link href="/my-appointments">
+            <Link href={orgPath(orgSlug, "/my-appointments")}>
               <CalendarCheck size={20} className="mr-2" weight="regular" />
               Moji termini
             </Link>

@@ -109,6 +109,7 @@ export function HomeContent({
             imageUrl={content.hero.imageUrl}
             videoUrl={content.hero.videoUrl}
             posterUrl={content.hero.posterUrl}
+            alt={content.hero.title}
           />
           <div className="relative container mx-auto px-4">
             <div className="mx-auto max-w-3xl text-center">
@@ -405,7 +406,11 @@ export function HomeContent({
               {content.cta.text}
             </p>
             <CTAButton
-              href={ctaSectionHref ?? toHref(content.cta.buttonHref)}
+              // resolveCtaSectionHref returns a RAW path (never prefixed) —
+              // route it through toHref like every other internal href so the
+              // tenant prefix is applied (bare "/booking" otherwise falls back
+              // to the default tenant under /s/{slug}).
+              href={toHref(ctaSectionHref ?? content.cta.buttonHref)}
               className="from-primary to-primary/90 border-accent/30 group border-2 bg-linear-to-r text-white shadow-2xl transition-all duration-300 hover:scale-105 hover:opacity-90"
             >
               {content.cta.buttonLabel}

@@ -3,13 +3,19 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ShoppingCartIcon, StorefrontIcon } from "@/components/icons"
+import { getPublicOrg } from "@/lib/tenant"
+import { orgPath } from "@/lib/org-path"
 
 export const metadata: Metadata = {
   title: "Nakup preklican | Poslovna platforma",
   description: "Vaš nakup je bil preklican. Vaša košarica je še vedno shranjena.",
 }
 
-export default function CheckoutCancelPage() {
+export default async function CheckoutCancelPage() {
+  // Keep the "continue shopping" link inside the current tenant (/s/{slug}/shop)
+  // — a bare "/shop" on a tenant URL would fall back to the default org.
+  const org = await getPublicOrg()
+
   return (
     <div className="from-muted/30 via-background to-muted/20 flex min-h-screen items-center justify-center bg-linear-to-b px-4 py-12">
       <Card className="w-full max-w-md border-none shadow-xl">
@@ -30,24 +36,28 @@ export default function CheckoutCancelPage() {
           {/* Actions */}
           <div className="flex w-full flex-col gap-3">
             <Button asChild className="w-full">
-              <Link href="/cart">
+              <Link href={orgPath(org?.slug, "/cart")}>
                 <ShoppingCartIcon size={18} className="mr-2" />
                 Nazaj v košarico
               </Link>
             </Button>
 
             <Button variant="outline" asChild className="w-full">
-              <Link href="/shop">
+              <Link href={orgPath(org?.slug, "/shop")}>
                 <StorefrontIcon size={18} className="mr-2" />
                 Nadaljuj z nakupovanjem
               </Link>
             </Button>
           </div>
 
-          {/* Help Link */}
+          {/* Help Link — hash appended after the tenant-prefixed home URL
+              (orgPath(org?.slug, "/") → "/s/{slug}") */}
           <p className="text-muted-foreground mt-6 text-sm">
             Imate težave?{" "}
-            <Link href="/#contact" className="text-primary hover:underline">
+            <Link
+              href={`${orgPath(org?.slug, "/")}#contact`}
+              className="text-primary hover:underline"
+            >
               Kontaktirajte nas
             </Link>
           </p>

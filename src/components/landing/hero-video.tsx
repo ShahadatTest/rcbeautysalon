@@ -16,9 +16,11 @@ interface HeroVideoProps {
   imageUrl?: string | null
   videoUrl?: string | null
   posterUrl?: string | null
+  /** Accessible description of the fallback hero image (e.g. hero heading). */
+  alt?: string
 }
 
-export function HeroVideo({ imageUrl, videoUrl, posterUrl }: HeroVideoProps) {
+export function HeroVideo({ imageUrl, videoUrl, posterUrl, alt }: HeroVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const poster = posterUrl || imageUrl || DEFAULT_POSTER
 
@@ -62,7 +64,7 @@ export function HeroVideo({ imageUrl, videoUrl, posterUrl }: HeroVideoProps) {
         ) : imageUrl ? (
           <Image
             src={imageUrl}
-            alt=""
+            alt={alt ?? ""}
             fill
             priority
             className="h-full w-full object-cover will-change-transform"

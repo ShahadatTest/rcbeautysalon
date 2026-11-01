@@ -5,6 +5,8 @@ import { AppointmentsList } from "@/components/appointments/appointments-list"
 import { Button } from "@/components/ui/button"
 import { CalendarIcon } from "@/components/icons/calendar-icon"
 import Link from "next/link"
+import { getPublicOrg } from "@/lib/tenant"
+import { orgPath } from "@/lib/org-path"
 
 interface MyAppointmentsPageProps {
   searchParams: Promise<{ new?: string }>
@@ -22,6 +24,10 @@ export default async function MyAppointmentsPage(
   if (!session?.user) {
     redirect("/api/auth/signin?callbackUrl=/my-appointments")
   }
+
+  // Tenant prefix so the booking CTA stays inside /s/{slug}/services
+  // instead of falling back to the default org's catalog.
+  const org = await getPublicOrg()
 
   // Fetch user's appointments
   const appointments = await getUserAppointments()
@@ -76,7 +82,7 @@ export default async function MyAppointmentsPage(
 
         {/* Book New Appointment Button */}
         <div className="mt-8">
-          <Link href="/services">
+          <Link href={orgPath(org?.slug, "/services")}>
             <Button
               size="lg"
               className="w-full shadow-lg transition-all hover:scale-105 sm:w-auto"

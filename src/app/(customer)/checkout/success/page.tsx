@@ -14,11 +14,15 @@ import {
 import { CheckCircleIcon, ShoppingBagIcon, HouseIcon, SpinnerIcon, ReceiptIcon } from "@/components/icons"
 import { verifyProductOrder } from "@/app/actions/product-checkout"
 import { useCartStore } from "@/store/cart-store"
+import { useOrgPrefix } from "@/lib/org-path-hooks"
 
 export default function CheckoutSuccessPage() {
   const searchParams = useSearchParams()
   const sessionId = searchParams.get("session_id")
   const clearCart = useCartStore((state) => state.clearCart)
+  // Tenant prefix so cart / order-detail / home links stay inside
+  // /s/{slug} instead of falling back to the default org's surfaces.
+  const orgPrefix = useOrgPrefix()
 
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
   const [orderId, setOrderId] = useState<string | null>(null)
@@ -85,7 +89,7 @@ export default function CheckoutSuccessPage() {
           </CardContent>
           <CardFooter className="flex flex-col gap-3">
             <Button asChild className="w-full">
-              <Link href="/cart">Nazaj v košarico</Link>
+              <Link href={`${orgPrefix}/cart`}>Nazaj v košarico</Link>
             </Button>
           </CardFooter>
         </Card>
@@ -119,20 +123,21 @@ export default function CheckoutSuccessPage() {
         <CardFooter className="flex flex-col gap-3">
           {orderId && (
             <Button asChild className="w-full">
-              <Link href={`/my-orders/${orderId}`}>
+              <Link href={`${orgPrefix}/my-orders/${orderId}`}>
                 <ReceiptIcon className="mr-2 h-4 w-4" />
                 Podrobnosti naročila
               </Link>
             </Button>
           )}
           <Button variant={orderId ? "outline" : "default"} asChild className="w-full">
-            <Link href="/shop">
+            <Link href={`${orgPrefix}/shop`}>
               <ShoppingBagIcon className="mr-2 h-4 w-4" />
               Nadaljuj z nakupovanjem
             </Link>
           </Button>
           <Button variant="ghost" asChild className="w-full">
-            <Link href="/">
+            {/* "Home" = tenant home on /s/{slug}, platform root on bare routes */}
+            <Link href={orgPrefix || "/"}>
               <HouseIcon className="mr-2 h-4 w-4" />
               Nazaj domov
             </Link>

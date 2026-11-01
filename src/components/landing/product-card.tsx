@@ -76,7 +76,7 @@ export function ProductCard({ id, name, price, category, image, hrefPrefix = "" 
               variant="outline"
               className="w-full border-primary/50 hover:bg-primary hover:text-primary-foreground"
             >
-              See Details
+              Podrobnosti
             </Button>
           </Link>
           <Tooltip>
