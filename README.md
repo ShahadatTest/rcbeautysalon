@@ -188,7 +188,7 @@ Neon ✅ · Supabase · Railway — katerikoli PostgreSQL
 pnpm dev          # dev strežnik (Turbopack)
 pnpm build        # produkcijski build
 pnpm lint         # ESLint
-pnpm test         # vitest — profilni motor, razširitve, unija dejavnosti, zgodovina konfiguracije, guardraili (267 testov)
+pnpm test         # vitest — profilni motor, razširitve, unija dejavnosti, zgodovina konfiguracije, viri v razporejevalniku, guardraili (276 testov)
 DATABASE_URL=… bun scripts/verify-tenant-isolation.ts   # runtime preverba izolacije najemnikov
 pnpm format       # Prettier
 pnpm db:studio    # Prisma Studio (GUI za bazo)
