@@ -132,10 +132,30 @@ export function ServiceForm({
   // RHF's setValue types the field as required, hence the explicit cast.
   const numberValue = (raw: string) => (raw === "" ? undefined : Number(raw))
 
-  // Generate slug from name
+  // Transliterate diacritics BEFORE stripping non-ASCII — "Žensko
+  // striženje" must become "zensko-strizenje", not "ensko-stri-enje"
+  // (the old code deleted the letters instead of transliterating them).
+  // Runs after lowercase, so only lowercase keys are needed. Affects
+  // newly generated slugs only; existing data is untouched.
+  const TRANSLITERATE: Record<string, string> = {
+    č: "c", ć: "c",
+    š: "s",
+    ž: "z",
+    đ: "d",
+    ä: "a", á: "a", à: "a", â: "a",
+    é: "e", è: "e", ê: "e", ë: "e",
+    í: "i", ì: "i",
+    ó: "o", ò: "o", ö: "o",
+    ú: "u", ù: "u", ü: "u",
+    ñ: "n",
+  }
   const generateSlug = (name: string) => {
     return name
       .toLowerCase()
+      .replace(
+        /[čćšžđäáàâéèêëíìóòöúùüñ]/g,
+        (ch) => TRANSLITERATE[ch] ?? ch
+      )
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "")
   }

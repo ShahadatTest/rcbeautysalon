@@ -116,6 +116,17 @@ export default auth((req) => {
 
   // Redirect authenticated users from auth pages to their dashboard
   if (isLoggedIn && isAuthPage) {
+    // Respect a SAFE callbackUrl (e.g. the cart checkout round-trip):
+    // only same-origin relative paths are honored — reject protocol-relative
+    // "//host", backslash variants, and absolute URLs (open-redirect guard).
+    const callbackUrl = req.nextUrl.searchParams.get("callbackUrl")
+    if (
+      callbackUrl?.startsWith("/") &&
+      !callbackUrl.startsWith("//") &&
+      !callbackUrl.includes("\\")
+    ) {
+      return NextResponse.redirect(new URL(callbackUrl, req.url))
+    }
     if (userRole === "ADMIN") {
       return NextResponse.redirect(new URL("/dashboard", req.url))
     }

@@ -2,7 +2,7 @@
 
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { signIn } from "next-auth/react"
+import { signIn, useSession } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,6 +20,9 @@ export function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { t } = useI18n()
+  // update() re-fetches the session so the SessionProvider context matches
+  // the fresh cookie immediately (cart/checkout read it client-side).
+  const { update } = useSession()
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
 
   const {
@@ -54,6 +57,10 @@ export function LoginForm() {
         })
         return
       } else {
+        // Sync the SessionProvider context BEFORE navigating — without
+        // update() client consumers (useSession) stay unauthenticated and
+        // flows like the cart would bounce straight back to /login.
+        await update()
         toast.success(t.auth.login.toast.loginSuccess, {
           description: t.auth.login.toast.redirecting,
         })

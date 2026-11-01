@@ -180,6 +180,13 @@ export async function createProductCheckoutSession(
     // Get base URL for redirects
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
 
+    // Tenant prefix for post-payment redirects: success/cancel MUST return
+    // to the SAME tenant site (/s/[slug]) — verifyProductOrder resolves the
+    // org from the request, so a bare /checkout/success would compare the
+    // order against the DEFAULT tenant and fail ("Naročila ni mogoče najti").
+    // Defensive: org is guaranteed non-null above; keep bare URLs if not.
+    const tenantPrefix = org ? `/s/${org.slug}` : ""
+
     // Salon currency — charges follow the salon's configured currency
     const shopConfig = await prisma.salonConfig.findFirst({
       where: { organizationId: org.id },
@@ -228,8 +235,8 @@ export async function createProductCheckoutSession(
         type: "product_order",
         orgId: org.id,
       },
-      success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/checkout/cancel`,
+      success_url: `${baseUrl}${tenantPrefix}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}${tenantPrefix}/checkout/cancel`,
     })
 
     return {

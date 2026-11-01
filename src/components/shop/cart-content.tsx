@@ -27,11 +27,16 @@ import { useCartStore } from "@/store/cart-store"
 import { CartItem } from "@/components/shop/cart-item"
 import { toast } from "sonner"
 import { createProductCheckoutSession } from "@/app/actions/product-checkout"
+import { useOrgPrefix } from "@/lib/org-path-hooks"
 
 export function CartContent() {
   const fmt = useFormatPrice()
   const router = useRouter()
   const { data: session, status } = useSession()
+  // Tenant-aware cart path: "/s/[slug]/cart" on tenant sites, "/cart" on
+  // bare routes — so the login round-trip returns to the SAME tenant cart.
+  const orgPrefix = useOrgPrefix()
+  const cartPath = `${orgPrefix}/cart`
   const { items, getTotalPrice, getTotalItems, clearCart } = useCartStore()
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [showClearDialog, setShowClearDialog] = useState(false)
@@ -48,11 +53,13 @@ export function CartContent() {
   }
 
   const handleCheckout = async () => {
+    // The button is disabled while the session is loading (see JSX below);
+    // this guard remains as a belt-and-braces fallback for programmatic calls.
     if (status === "loading") return
 
     if (!session) {
       toast.error("Za zaključek nakupa se prijavite")
-      router.push("/login?callbackUrl=/cart")
+      router.push(`/login?callbackUrl=${encodeURIComponent(cartPath)}`)
       return
     }
 
@@ -201,7 +208,9 @@ export function CartContent() {
               <Button
                 className="w-full shadow-md"
                 size="lg"
-                disabled={items.length === 0 || isCheckingOut}
+                disabled={
+                  items.length === 0 || isCheckingOut || status === "loading"
+                }
                 onClick={handleCheckout}
               >
                 {isCheckingOut ? (

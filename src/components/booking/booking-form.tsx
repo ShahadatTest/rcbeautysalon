@@ -10,6 +10,7 @@ import {
 import { createCheckoutSession } from "@/app/actions/stripe"
 import { createAppointment, listBookingResources, type BookingResource } from "@/app/actions/appointments"
 import { ServiceStep } from "./steps/service-step"
+import { toast } from "sonner"
 import { ServiceSelectionStep } from "./steps/service-selection-step"
 import { StaffStep } from "./steps/staff-step"
 import { StaffDisplayStep } from "./steps/staff-display-step"
@@ -132,6 +133,9 @@ export function BookingForm(props: BookingFormProps) {
       const rawDate = fdStr(formData, "date")
       if (!rawDate) {
         setFlowError("Izberite datum")
+        // Global feedback: the inline summary error is easy to miss when the
+        // submit button is off-screen (mobile) — toast regardless.
+        toast.error("Izberite termin pred potrditvijo.")
         return { ok: false }
       }
 
@@ -147,6 +151,14 @@ export function BookingForm(props: BookingFormProps) {
         email: fdStr(formData, "email"),
         phone: fdStr(formData, "phone"),
         notes: fdOptStr(formData, "notes"),
+      }
+
+      // Missing staff: keep the inline StaffStep error (same message as the
+      // schema) AND toast, so the failure is visible next to the button too.
+      if (!parsedValues.staffId) {
+        setError("staffId", { message: "Izberite osebo za termin" })
+        toast.error("Izberite osebo pred potrditvijo.")
+        return { ok: false }
       }
 
       const parsed = schema.safeParse(parsedValues)
