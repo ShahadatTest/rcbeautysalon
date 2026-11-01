@@ -8,6 +8,7 @@ import {
   TopService,
   TopProduct,
   AppointmentsByStatus,
+  EnquiriesByStatus,
   StaffPerformance,
   PeriodType,
   AnalyticsPeriod,
@@ -105,6 +106,14 @@ export async function getKPIData(period: PeriodType = "30d"): Promise<KPIData> {
     }
   })
 
+  // Total enquiries (form submissions) — E4-2a, derived only
+  const totalEnquiries = await prisma.formSubmission.count({
+    where: {
+      organizationId: org.id,
+      createdAt: { gte: startDate, lte: endDate }
+    }
+  })
+
   // Total orders pagadas
   const totalOrders = await prisma.order.count({
     where: {
@@ -178,6 +187,14 @@ export async function getKPIData(period: PeriodType = "30d"): Promise<KPIData> {
     }
   })
 
+  // Previous-period enquiries — E4-2a
+  const prevTotalEnquiries = await prisma.formSubmission.count({
+    where: {
+      organizationId: org.id,
+      createdAt: { gte: previousStartDate, lte: previousEndDate }
+    }
+  })
+
   const [prevAppointmentCustomers, prevOrderCustomers] = await Promise.all([
     prisma.appointment.findMany({
       where: {
@@ -221,10 +238,12 @@ export async function getKPIData(period: PeriodType = "30d"): Promise<KPIData> {
     totalAppointments,
     totalOrders,
     totalCustomers,
+    totalEnquiries,
     revenueChange: calculateChange(currentRevenue, previousRevenue),
     appointmentsChange: calculateChange(totalAppointments, prevTotalAppointments),
     ordersChange: calculateChange(totalOrders, prevTotalOrders),
     customersChange: calculateChange(totalCustomers, prevTotalCustomers),
+    enquiriesChange: calculateChange(totalEnquiries, prevTotalEnquiries),
   }
 }
 
@@ -473,4 +492,37 @@ export async function getStaffPerformance(period: PeriodType = "30d"): Promise<S
     .sort((a, b) => b.appointments - a.appointments)
 
   return result
+}
+
+// E4-2a — enquiries (form submissions) by workflow status for the
+// selected period. Derived only: a groupBy over existing rows, no
+// counters are written. Org-scoped via requireAdminOrg.
+export async function getEnquiriesByStatus(
+  period: PeriodType = "30d"
+): Promise<EnquiriesByStatus[]> {
+  const { org } = await requireAdminOrg()
+
+  const { startDate, endDate } = getAnalyticsPeriod(period)
+
+  const statusCounts = await prisma.formSubmission.groupBy({
+    by: ["status"],
+    where: {
+      organizationId: org.id,
+      createdAt: { gte: startDate, lte: endDate }
+    },
+    _count: { _all: true }
+  })
+
+  const ORDER = ["NEW", "IN_REVIEW", "PROCESSED"]
+  return statusCounts
+    .map(row => ({ status: row.status, count: row._count._all }))
+    .sort((a, b) => {
+      const ia = ORDER.indexOf(a.status)
+      const ib = ORDER.indexOf(b.status)
+      // unknown statuses keep last, alphabetical
+      if (ia === -1 && ib === -1) return a.status.localeCompare(b.status)
+      if (ia === -1) return 1
+      if (ib === -1) return -1
+      return ia - ib
+    })
 }

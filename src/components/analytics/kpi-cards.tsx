@@ -12,10 +12,12 @@ import {
   ShoppingBagIcon,
   UsersIcon,
   TrendingUpIcon,
+  EnvelopeIcon,
 } from "@/components/icons"
 import { KPIData } from "@/lib/interfaces"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/lib/i18n/provider"
+import { enquiryChangeDisplay } from "@/lib/analytics/trends"
 
 interface KPICardsProps {
   data: KPIData
@@ -23,7 +25,16 @@ interface KPICardsProps {
 
 export function KPICards({ data }: KPICardsProps) {
   const { t } = useI18n()
-  const cards = [
+  const enquiryDisplay = enquiryChangeDisplay(data.enquiriesChange, data.totalEnquiries)
+  const cards: {
+    title: string
+    metric: string
+    change: number
+    noData?: boolean
+    icon: typeof CurrencyDollarIcon
+    color: string
+    bgColor: string
+  }[] = [
     {
       title: t.analytics.kpi.totalRevenue,
       metric: `€${data.totalRevenue.toLocaleString("sl-SI", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
@@ -56,10 +67,19 @@ export function KPICards({ data }: KPICardsProps) {
       color: "text-purple-600 dark:text-purple-400",
       bgColor: "bg-purple-100 dark:bg-purple-900/30",
     },
+    {
+      title: t.analytics.kpi.enquiries,
+      metric: data.totalEnquiries.toLocaleString(),
+      change: data.enquiriesChange,
+      noData: enquiryDisplay.kind === "no-data",
+      icon: EnvelopeIcon,
+      color: "text-teal-600 dark:text-teal-400",
+      bgColor: "bg-teal-100 dark:bg-teal-900/30",
+    },
   ]
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
       {cards.map((card) => (
         <Card key={card.title} className="overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -72,35 +92,57 @@ export function KPICards({ data }: KPICardsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold tracking-tight">{card.metric}</div>
-            <div className="mt-2 flex items-center gap-1 text-sm">
-              <TrendingUpIcon
-                size={14}
-                className={cn(
-                  card.change > 0
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : card.change < 0
-                      ? "text-red-600 dark:text-red-400 rotate-180"
-                      : "text-muted-foreground"
-                )}
-              />
-              <span
-                className={cn(
-                  "font-medium",
-                  card.change > 0
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : card.change < 0
-                      ? "text-red-600 dark:text-red-400"
-                      : "text-muted-foreground"
-                )}
-              >
-                {card.change > 0 ? "+" : ""}
-                {card.change.toFixed(1)}%
-              </span>
-              <span className="text-muted-foreground">{t.analytics.kpi.vsLastPeriod}</span>
-            </div>
+            <ChangeBadge change={card.change} noData={card.noData} />
           </CardContent>
         </Card>
       ))}
+    </div>
+  )
+}
+
+function ChangeBadge({
+  change,
+  noData = false,
+}: {
+  change: number
+  noData?: boolean
+}) {
+  const { t } = useI18n()
+
+  if (noData) {
+    return (
+      <div className="mt-2 text-sm text-muted-foreground">
+        {t.analytics.kpi.noEnquiryData}
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-2 flex items-center gap-1 text-sm">
+      <TrendingUpIcon
+        size={14}
+        className={cn(
+          change > 0
+            ? "text-emerald-600 dark:text-emerald-400"
+            : change < 0
+              ? "text-red-600 dark:text-red-400 rotate-180"
+              : "text-muted-foreground"
+        )}
+      />
+      <span
+        className={cn(
+          "font-medium",
+          change > 0
+            ? "text-emerald-600 dark:text-emerald-400"
+            : change < 0
+              ? "text-red-600 dark:text-red-400"
+              : "text-muted-foreground"
+        )}
+      >
+        {change > 0 ? "+" : ""}
+        {change.toFixed(1)}%
+      </span>
+      <span className="text-muted-foreground">{t.analytics.kpi.vsLastPeriod}</span>
     </div>
   )
 }

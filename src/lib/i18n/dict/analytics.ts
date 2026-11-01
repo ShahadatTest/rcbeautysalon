@@ -7,7 +7,9 @@ export const analyticsSl = {
     appointments: "Termini",
     productOrders: "Naročila izdelkov",
     customers: "Stranke",
+    enquiries: "Povpraševanja",
     vsLastPeriod: "v primerjavi s prejšnjim obdobjem",
+    noEnquiryData: "Ni povpraševanj v tem obdobju",
   },
   period: {
     label: "Obdobje",
@@ -48,6 +50,15 @@ export const analyticsSl = {
     NO_SHOW: "Ni se pojavil",
     PENDING: "V čakanju",
   },
+  enquiries: {
+    title: "Status",
+    titleAccent: "povpraševanj",
+    description: "Povpraševanja po obdelavi (iz obstoječih vnosov obrazcev)",
+    noData: "Ni povpraševanj v tem obdobju",
+    NEW: "Novo",
+    IN_REVIEW: "V obravnavi",
+    PROCESSED: "Obdelano",
+  },
   staffPerformance: {
     title: "Uspešnost",
     titleAccent: "osebja",
@@ -70,7 +81,9 @@ export const analyticsEn: AnalyticsDict = {
     appointments: "Appointments",
     productOrders: "Product Orders",
     customers: "Customers",
+    enquiries: "Enquiries",
     vsLastPeriod: "vs last period",
+    noEnquiryData: "No enquiries in this period",
   },
   period: {
     label: "Period",
@@ -110,6 +123,15 @@ export const analyticsEn: AnalyticsDict = {
     CANCELLED: "Cancelled",
     NO_SHOW: "No Show",
     PENDING: "Pending",
+  },
+  enquiries: {
+    title: "Enquiries",
+    titleAccent: "Status",
+    description: "Enquiry workflow stages (derived from form submissions)",
+    noData: "No enquiries in this period",
+    NEW: "New",
+    IN_REVIEW: "In review",
+    PROCESSED: "Processed",
   },
   staffPerformance: {
     title: "Staff",

@@ -6,6 +6,7 @@ import {
   getTopServices,
   getTopProducts,
   getAppointmentsByStatus,
+  getEnquiriesByStatus,
   getStaffPerformance,
 } from "@/app/actions/analytics"
 import { PeriodType } from "@/lib/interfaces"
@@ -29,13 +30,14 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
   const validPeriod = validPeriods.includes(period) ? period : "30d"
 
   // Fetch all data in parallel on the server
-  const [kpi, revenue, topServices, topProducts, appointmentsStatus, staffPerformance] =
+  const [kpi, revenue, topServices, topProducts, appointmentsStatus, enquiriesStatus, staffPerformance] =
     await Promise.all([
       getKPIData(validPeriod),
       getRevenueChartData(validPeriod),
       getTopServices(validPeriod),
       getTopProducts(validPeriod),
       getAppointmentsByStatus(validPeriod),
+      getEnquiriesByStatus(validPeriod),
       getStaffPerformance(validPeriod),
     ])
 
@@ -49,6 +51,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
             topServices,
             topProducts,
             appointmentsStatus,
+            enquiriesStatus,
             staffPerformance,
           }}
           period={validPeriod}

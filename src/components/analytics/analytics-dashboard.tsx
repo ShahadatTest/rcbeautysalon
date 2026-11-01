@@ -5,6 +5,7 @@ import { RevenueChart } from "./revenue-chart"
 import { TopServicesChart } from "./top-services-chart"
 import { TopProductsChart } from "./top-products-chart"
 import { AppointmentsStatusChart } from "./appointments-status-chart"
+import { EnquiriesStatusChart } from "./enquiries-status-chart"
 import { StaffPerformanceChart } from "./staff-performance-chart"
 import { PeriodSelector } from "./period-selector"
 import {
@@ -13,6 +14,7 @@ import {
   TopService,
   TopProduct,
   AppointmentsByStatus,
+  EnquiriesByStatus,
   StaffPerformance,
   PeriodType,
 } from "@/lib/interfaces"
@@ -25,6 +27,7 @@ interface AnalyticsDashboardProps {
     topServices: TopService[]
     topProducts: TopProduct[]
     appointmentsStatus: AppointmentsByStatus[]
+    enquiriesStatus: EnquiriesByStatus[]
     staffPerformance: StaffPerformance[]
   }
   period: PeriodType
@@ -63,6 +66,12 @@ export function AnalyticsDashboard({ data, period }: AnalyticsDashboardProps) {
         <div className="md:col-span-2 xl:col-span-1">
           <AppointmentsStatusChart data={data.appointmentsStatus} />
         </div>
+      </div>
+
+      {/* Enquiries status (E4-2a) - half width on desktop */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <EnquiriesStatusChart data={data.enquiriesStatus} />
+        <div className="hidden xl:block" />
       </div>
 
       {/* Staff Performance - Full Width */}

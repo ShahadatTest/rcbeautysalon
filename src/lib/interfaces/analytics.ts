@@ -5,11 +5,14 @@ export interface KPIData {
   totalAppointments: number
   totalOrders: number
   totalCustomers: number
+  // Form submissions (enquiries/quote requests) — E4-2a
+  totalEnquiries: number
   // Comparisons with previous period (percentage change)
   revenueChange: number
   appointmentsChange: number
   ordersChange: number
   customersChange: number
+  enquiriesChange: number
 }
 
 export interface RevenueDataPoint {
@@ -31,6 +34,12 @@ export interface TopProduct {
 }
 
 export interface AppointmentsByStatus {
+  status: string
+  count: number
+}
+
+/** Form submissions by workflow status (E4-2a: NEW | IN_REVIEW | PROCESSED). */
+export interface EnquiriesByStatus {
   status: string
   count: number
 }
