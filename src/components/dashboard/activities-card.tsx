@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useI18n } from "@/lib/i18n/provider"
+import { EXTENSIONS } from "@/lib/profiles/extensions"
 import {
   getOrgActivities,
   setOrgSecondaryVertical,
@@ -198,7 +199,7 @@ export function ActivitiesCard() {
               ))}
               {data.contribution.extensions.map((ext) => (
                 <Badge key={ext} variant="outline">
-                  {ext}
+                  {EXTENSIONS[ext]?.name ?? ext}
                 </Badge>
               ))}
             </div>
