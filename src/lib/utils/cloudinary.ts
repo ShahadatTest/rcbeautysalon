@@ -61,6 +61,13 @@ export function getCloudinaryUrl(
     return `https://res.cloudinary.com/${cloudName}/image/upload/${transformString}${versionString}${publicId}`
   }
 
+  // Pass-through: local/app paths ("/img/...", "/api/media/...") and
+  // non-Cloudinary external URLs are returned unchanged — resize
+  // transformations only make sense for Cloudinary-hosted assets.
+  if (imageUrl.startsWith('/') || /^https?:\/\//.test(imageUrl)) {
+    return imageUrl
+  }
+
   // It's a publicId - construct the URL
   return `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${transformString}${imageUrl}`
 }

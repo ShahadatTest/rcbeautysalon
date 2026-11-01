@@ -115,6 +115,54 @@ const IMG = {
   deepClean: "https://res.cloudinary.com/caballerorandy/image/upload/v1763611175/Beauty%20Salon/services/deep-cleansing-facial_jzjp7l.avif",
   massage: "https://res.cloudinary.com/caballerorandy/image/upload/v1763612585/Beauty%20Salon/services/swedish-massage_degn1f.avif",
   hotStone: "https://res.cloudinary.com/caballerorandy/image/upload/v1763612414/Beauty%20Salon/services/hot-stone-massage_krxtkc.avif",
+
+  // ----------------------------------------------------------
+  // Local preset imagery (ships with the app in /public) —
+  // photorealistic test/demo photos for verticals whose presets
+  // previously had no imagery at all (EPIC #4 test data).
+  // Local paths bypass Cloudinary transforms (see cloudinary.ts
+  // pass-through) and carry no third-party CDN dependency.
+  // ----------------------------------------------------------
+  barberBeard: "/img/presets/beard.jpg",
+  barberHotTowel: "/img/presets/hottowel.jpg",
+  makeup: "/img/presets/makeup.jpg",
+  sportMassage: "/img/presets/sportmassage.jpg",
+  aromaTherapy: "/img/presets/aroma.jpg",
+  reflexology: "/img/presets/reflexology.jpg",
+  laser: "/img/presets/laser.jpg",
+  wax: "/img/presets/wax.jpg",
+  sewing: "/img/presets/sewing.jpg",
+  zipper: "/img/presets/zipper.jpg",
+  customDress: "/img/presets/dress.jpg",
+  tireChange: "/img/presets/tirechange.jpg",
+  oilChange: "/img/presets/oilchange.jpg",
+  brakes: "/img/presets/brakes.jpg",
+  diagnostics: "/img/presets/diagnostics.jpg",
+  honeyJars: "/img/presets/honey.jpg",
+  propolis: "/img/presets/propolis.jpg",
+  honeycomb: "/img/presets/honeycomb.jpg",
+
+  // Per-vertical hero imagery (wide shots)
+  heroBarber: "/img/presets/hero-barber.jpg",
+  heroSpa: "/img/presets/hero-spa.jpg",
+  heroLaser: "/img/presets/hero-laser.jpg",
+  heroAtelier: "/img/presets/hero-atelier.jpg",
+  heroGarage: "/img/presets/hero-garage.jpg",
+  heroApiary: "/img/presets/hero-apiary.jpg",
+}
+
+/**
+ * Vertical-specific site imagery overrides (hero/about/cta). Verticals
+ * not listed keep the generic beauty-salon imagery — appropriate for
+ * the remaining profiles (beauty, frizer, nails, cosmetica, generic).
+ */
+const VERTICAL_IMAGERY: Record<string, { hero?: string; about?: string; cta?: string }> = {
+  barber: { hero: IMG.heroBarber, about: IMG.barberBeard, cta: IMG.barberHotTowel },
+  massage: { hero: IMG.heroSpa, about: IMG.massage, cta: IMG.hotStone },
+  epilation: { hero: IMG.heroLaser, about: IMG.laser, cta: IMG.wax },
+  seamstress: { hero: IMG.heroAtelier, about: IMG.sewing, cta: IMG.customDress },
+  "tire-service": { hero: IMG.heroGarage, about: IMG.tireChange, cta: IMG.oilChange },
+  beekeeping: { hero: IMG.heroApiary, about: IMG.honeycomb, cta: IMG.honeyJars },
 }
 
 export interface PresetService {
@@ -137,6 +185,7 @@ export interface PresetProduct {
   description: string
   price: number
   stockQuantity: number
+  imageUrl?: string
   trackInventory?: boolean
   isFeatured?: boolean
 }
@@ -156,14 +205,15 @@ export interface VerticalPreset {
 }
 
 function withImages(vertical: string, content: SiteContent, aboutImage?: string): SiteContent {
+  const imagery = VERTICAL_IMAGERY[vertical]
   const hero = vertical === "beauty"
     ? { ...content.hero, videoUrl: IMG.heroVideo, posterUrl: IMG.heroPoster }
-    : { ...content.hero, imageUrl: IMG.heroImage }
+    : { ...content.hero, imageUrl: imagery?.hero ?? IMG.heroImage }
   return {
     ...content,
     hero,
-    about: { ...content.about, imageUrl: aboutImage ?? IMG.salonInterior },
-    cta: { ...content.cta, imageUrl: IMG.transform },
+    about: { ...content.about, imageUrl: imagery?.about ?? aboutImage ?? IMG.salonInterior },
+    cta: { ...content.cta, imageUrl: imagery?.cta ?? IMG.transform },
   }
 }
 
@@ -208,11 +258,11 @@ export const VERTICALS: VerticalPreset[] = [
       ]},
       { name: "Moško striženje", slug: "mosko-strizenje", services: [
         { name: "Moški haircut", description: "Klasično in sodobno moško striženje", duration: 30, price: 20, imageUrl: IMG.haircut, isFeatured: true },
-        { name: "Oblikovanje brade", description: "Trim in oblikovanje brade", duration: 20, price: 12 },
+        { name: "Oblikovanje brade", description: "Trim in oblikovanje brade", duration: 20, price: 12, imageUrl: IMG.barberBeard },
       ]},
       { name: "Nega las", slug: "nega-las", services: [
         { name: "Regeneracijski tretmaj", description: "Globinska regeneracija z ampulami", duration: 40, price: 25, imageUrl: IMG.hairTreatment },
-        { name: "Keratin glajenje", description: "Trajno glajenje in sijaj", duration: 120, price: 110 },
+        { name: "Keratin glajenje", description: "Trajno glajenje in sijaj", duration: 120, price: 110, imageUrl: IMG.hairTreatment },
       ]},
     ],
     siteContent: defaultSiteContent("frizer"),
@@ -231,11 +281,11 @@ export const VERTICALS: VerticalPreset[] = [
         { name: "Skin fade", description: "Precizen fade po tvoji želji", duration: 45, price: 28, imageUrl: IMG.highlights, isFeatured: true },
       ]},
       { name: "Brada", slug: "brada", services: [
-        { name: "Beard trim", description: "Oblikovanje in negovanje brade", duration: 20, price: 14, isFeatured: true },
-        { name: "Hot towel shave", description: "Tradicionalno britje z vročo brisačo", duration: 30, price: 20 },
+        { name: "Beard trim", description: "Oblikovanje in negovanje brade", duration: 20, price: 14, imageUrl: IMG.barberBeard, isFeatured: true },
+        { name: "Hot towel shave", description: "Tradicionalno britje z vročo brisačo", duration: 30, price: 20, imageUrl: IMG.barberHotTowel },
       ]},
       { name: "Paketi", slug: "paketi", services: [
-        { name: "Cut + brada", description: "Zasedka striženja in brade v enem terminu", duration: 60, price: 40, isFeatured: true },
+        { name: "Cut + brada", description: "Zasedka striženja in brade v enem terminu", duration: 60, price: 40, imageUrl: IMG.barberBeard, isFeatured: true },
       ]},
     ],
     siteContent: defaultSiteContent("barber"),
@@ -279,8 +329,8 @@ export const VERTICALS: VerticalPreset[] = [
         { name: "Anti-aging tretmaj", description: "Zgladitev gub in dvig kontur", duration: 75, price: 60, imageUrl: IMG.antiAging },
       ]},
       { name: "Make-up", slug: "make-up", services: [
-        { name: "Dnevni make-up", description: "Naraven izgled za vsak dan", duration: 45, price: 30 },
-        { name: "Večerni / poročni make-up", description: "Trajen make-up za posebne priložnosti", duration: 75, price: 55 },
+        { name: "Dnevni make-up", description: "Naraven izgled za vsak dan", duration: 45, price: 30, imageUrl: IMG.makeup },
+        { name: "Večerni / poročni make-up", description: "Trajen make-up za posebne priložnosti", duration: 75, price: 55, imageUrl: IMG.makeup },
       ]},
     ],
     siteContent: defaultSiteContent("cosmetica"),
@@ -296,12 +346,12 @@ export const VERTICALS: VerticalPreset[] = [
     categories: [
       { name: "Masaže", slug: "masaze", services: [
         { name: "Relax masaža", description: "Celočasovna sprostitvena masaža telesa", duration: 60, price: 45, imageUrl: IMG.massage, isFeatured: true },
-        { name: "Športna masaža", description: "Regeneracija po vadbi", duration: 60, price: 55, isFeatured: true },
+        { name: "Športna masaža", description: "Regeneracija po vadbi", duration: 60, price: 55, imageUrl: IMG.sportMassage, isFeatured: true },
         { name: "Hot stone masaža", description: "Terapija z ogrevanimi kamni", duration: 75, price: 65, imageUrl: IMG.hotStone },
       ]},
       { name: "Wellness", slug: "wellness", services: [
-        { name: "Aromaterapija", description: "Masaža z eteričnimi olji po izbiri", duration: 60, price: 50 },
-        { name: "Refleksologija stopal", description: "Terapija pritiskov na refleksovnih točkah", duration: 45, price: 40 },
+        { name: "Aromaterapija", description: "Masaža z eteričnimi olji po izbiri", duration: 60, price: 50, imageUrl: IMG.aromaTherapy },
+        { name: "Refleksologija stopal", description: "Terapija pritiskov na refleksovnih točkah", duration: 45, price: 40, imageUrl: IMG.reflexology },
       ]},
     ],
     siteContent: defaultSiteContent("massage"),
@@ -316,13 +366,13 @@ export const VERTICALS: VerticalPreset[] = [
     timezone: "Europe/Ljubljana",
     categories: [
       { name: "Laser epilacija", slug: "laser-epilacija", services: [
-        { name: "Laser — zgornja ustnica", description: "Trajna odstranitev dlak", duration: 15, price: 20, isFeatured: true },
-        { name: "Laser — noge (celotne)", description: "Hitra in učinkovita laser epilacija nog", duration: 45, price: 60, isFeatured: true },
-        { name: "Laser — pazusiha", description: "Gladke pazusihe brez britja", duration: 15, price: 25 },
+        { name: "Laser — zgornja ustnica", description: "Trajna odstranitev dlak", duration: 15, price: 20, imageUrl: IMG.laser, isFeatured: true },
+        { name: "Laser — noge (celotne)", description: "Hitra in učinkovita laser epilacija nog", duration: 45, price: 60, imageUrl: IMG.laser, isFeatured: true },
+        { name: "Laser — pazusiha", description: "Gladke pazusihe brez britja", duration: 15, price: 25, imageUrl: IMG.laser },
       ]},
       { name: "Voščanje", slug: "voscanje", services: [
-        { name: "Noge — voščanje", description: "Gladke noge do 4 tedne", duration: 40, price: 30 },
-        { name: "Brazilsko voščanje", description: "Profesionalno in higienično", duration: 30, price: 35 },
+        { name: "Noge — voščanje", description: "Gladke noge do 4 tedne", duration: 40, price: 30, imageUrl: IMG.wax },
+        { name: "Brazilsko voščanje", description: "Profesionalno in higienično", duration: 30, price: 35, imageUrl: IMG.wax },
       ]},
     ],
     siteContent: defaultSiteContent("epilation"),
@@ -337,8 +387,8 @@ export const VERTICALS: VerticalPreset[] = [
     timezone: "Europe/Ljubljana",
     categories: [
       { name: "Storitve", slug: "storitve", services: [
-        { name: "Uvodni posvet", description: "Pogovor o vaših željah in pričakovanjih", duration: 30, price: 0, isFeatured: true },
-        { name: "Storitev po meri", description: "Dopolni s svojimi storitvami v urejevalniku", duration: 60, price: 50, isFeatured: true },
+        { name: "Uvodni posvet", description: "Pogovor o vaših željah in pričakovanjih", duration: 30, price: 0, imageUrl: IMG.salonInterior, isFeatured: true },
+        { name: "Storitev po meri", description: "Dopolni s svojimi storitvami v urejevalniku", duration: 60, price: 50, imageUrl: IMG.transform, isFeatured: true },
       ]},
     ],
     siteContent: defaultSiteContent("beauty"),
@@ -355,17 +405,17 @@ export const VERTICALS: VerticalPreset[] = [
     timezone: "Europe/Ljubljana",
     categories: [
       { name: "Spremembe oblačil", slug: "spremembe-oblacil", services: [
-        { name: "Krajšanje hlač", description: "Krajšanje hlač z ohranitvijo originalnega roba", duration: 30, price: 12, isFeatured: true },
-        { name: "Prižemanje v pasu", description: "Prižemanje hlač, sukjenj in jakn v pasu", duration: 45, price: 18, isFeatured: true },
-        { name: "Krajšanje rokavov", description: "Krajšanje rokavov pri jaknah in srajcah", duration: 40, price: 15 },
+        { name: "Krajšanje hlač", description: "Krajšanje hlač z ohranitvijo originalnega roba", duration: 30, price: 12, imageUrl: IMG.sewing, isFeatured: true },
+        { name: "Prižemanje v pasu", description: "Prižemanje hlač, sukjenj in jakn v pasu", duration: 45, price: 18, imageUrl: IMG.sewing, isFeatured: true },
+        { name: "Krajšanje rokavov", description: "Krajšanje rokavov pri jaknah in srajcah", duration: 40, price: 15, imageUrl: IMG.sewing },
       ]},
       { name: "Popravila", slug: "popravila", services: [
-        { name: "Zamenjava zadrgle", description: "Zamenjava zadrgle na oblačilih in torbah", duration: 45, price: 15, isFeatured: true },
-        { name: "Popravilo prekinitve", description: "Skrivanje in popravilo prekinitvenih mest", duration: 30, price: 10 },
+        { name: "Zamenjava zadrgle", description: "Zamenjava zadrgle na oblačilih in torbah", duration: 45, price: 15, imageUrl: IMG.zipper, isFeatured: true },
+        { name: "Popravilo prekinitve", description: "Skrivanje in popravilo prekinitvenih mest", duration: 30, price: 10, imageUrl: IMG.zipper },
       ]},
       { name: "Šivanje po meri", slug: "sivanje-po-meri", services: [
-        { name: "Posvet in snemanje mer", description: "Svetovanje o materialih in snemanje merilnega lista", duration: 45, price: 0 },
-        { name: "Obleka po meri", description: "Šivanje obleke po merilnem listu (cena od, glede na material)", duration: 240, price: 180 },
+        { name: "Posvet in snemanje mer", description: "Svetovanje o materialih in snemanje merilnega lista", duration: 45, price: 0, imageUrl: IMG.sewing },
+        { name: "Obleka po meri", description: "Šivanje obleke po merilnem listu (cena od, glede na material)", duration: 240, price: 180, imageUrl: IMG.customDress },
       ]},
     ],
     siteContent: defaultSiteContent("seamstress"),
@@ -380,14 +430,14 @@ export const VERTICALS: VerticalPreset[] = [
     timezone: "Europe/Ljubljana",
     categories: [
       { name: "Vulkanizerija", slug: "vulkanizerija", services: [
-        { name: "Menjava gum (komplet)", description: "Demontaža, montaža in balansiranje štirih gum", duration: 60, price: 40, isFeatured: true },
-        { name: "Balansiranje", description: "Balansiranje kolesa s svinčenimi utežmi", duration: 20, price: 10 },
-        { name: "Popravilo punkture", description: "Popravilo preboja z vstavljanjem gumene zamaške", duration: 30, price: 15 },
+        { name: "Menjava gum (komplet)", description: "Demontaža, montaža in balansiranje štirih gum", duration: 60, price: 40, imageUrl: IMG.tireChange, isFeatured: true },
+        { name: "Balansiranje", description: "Balansiranje kolesa s svinčenimi utežmi", duration: 20, price: 10, imageUrl: IMG.tireChange },
+        { name: "Popravilo punkture", description: "Popravilo preboja z vstavljanjem gumene zamaške", duration: 30, price: 15, imageUrl: IMG.tireChange },
       ]},
       { name: "Servis vozil", slug: "servis-vozil", services: [
-        { name: "Menjava olja in filtra", description: "Menjava motornega olja in oljnega filtra", duration: 45, price: 55, isFeatured: true },
-        { name: "Diagnostika napak", description: "Pregled z diagnostično napravo in razlaga napak", duration: 30, price: 25 },
-        { name: "Menjava zavorških blazinic", description: "Menjava zavorških blazinic na eni osi", duration: 60, price: 45 },
+        { name: "Menjava olja in filtra", description: "Menjava motornega olja in oljnega filtra", duration: 45, price: 55, imageUrl: IMG.oilChange, isFeatured: true },
+        { name: "Diagnostika napak", description: "Pregled z diagnostično napravo in razlaga napak", duration: 30, price: 25, imageUrl: IMG.diagnostics },
+        { name: "Menjava zavorških blazinic", description: "Menjava zavorških blazinic na eni osi", duration: 60, price: 45, imageUrl: IMG.brakes },
       ]},
     ],
     siteContent: defaultSiteContent("tire-service"),
@@ -402,12 +452,12 @@ export const VERTICALS: VerticalPreset[] = [
     timezone: "Europe/Ljubljana",
     categories: [],
     products: [
-      { name: "Cvetlični med 500 g", description: "Odcejen cvetlični med iz lastnih panjskih postaj.", price: 9, stockQuantity: 120, isFeatured: true },
-      { name: "Lipov med 500 g", description: "Aromaten lipov med — priljubljen za prehladne dni.", price: 11, stockQuantity: 80, isFeatured: true },
-      { name: "Gozdni med 500 g", description: "Temni gozdni med z izrazito mineralno noto.", price: 12, stockQuantity: 60 },
-      { name: "Akačijski med 500 g", description: "Bister, blag akačijski med, ki ostane tekoč dlje časa.", price: 13, stockQuantity: 40 },
-      { name: "Propolisna tinktura 30 ml", description: "Naravna propolisna tinktura lastne proizvodnje.", price: 14, stockQuantity: 35 },
-      { name: "Čebelji vosek — sveča", description: "Ročno vlita sveča iz čistega čebeljega voska.", price: 6, stockQuantity: 90 },
+      { name: "Cvetlični med 500 g", description: "Odcejen cvetlični med iz lastnih panjskih postaj.", price: 9, stockQuantity: 120, imageUrl: IMG.honeyJars, isFeatured: true },
+      { name: "Lipov med 500 g", description: "Aromaten lipov med — priljubljen za prehladne dni.", price: 11, stockQuantity: 80, imageUrl: IMG.honeyJars, isFeatured: true },
+      { name: "Gozdni med 500 g", description: "Temni gozdni med z izrazito mineralno noto.", price: 12, stockQuantity: 60, imageUrl: IMG.honeycomb },
+      { name: "Akačijski med 500 g", description: "Bister, blag akačijski med, ki ostane tekoč dlje časa.", price: 13, stockQuantity: 40, imageUrl: IMG.honeyJars },
+      { name: "Propolisna tinktura 30 ml", description: "Naravna propolisna tinktura lastne proizvodnje.", price: 14, stockQuantity: 35, imageUrl: IMG.propolis },
+      { name: "Čebelji vosek — sveča", description: "Ročno vlita sveča iz čistega čebeljega voska.", price: 6, stockQuantity: 90, imageUrl: IMG.propolis },
     ],
     siteContent: defaultSiteContent("beekeeping"),
   },
@@ -465,7 +515,7 @@ export async function seedOrganizationCatalog(orgId: string, verticalId: string)
           price: p.price,
           trackInventory: p.trackInventory ?? true,
           stockQuantity: p.stockQuantity,
-          images: [],
+          images: p.imageUrl ? [p.imageUrl] : [],
           isActive: true,
           isFeatured: !!p.isFeatured,
           organizationId: orgId,
