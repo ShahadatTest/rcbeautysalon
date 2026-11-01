@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -9,7 +9,7 @@ import {
   authenticatedBookingSchema,
 } from "@/lib/validations/booking"
 import { createCheckoutSession } from "@/app/actions/stripe"
-import { createAppointment } from "@/app/actions/appointments"
+import { createAppointment, listBookingResources, type BookingResource } from "@/app/actions/appointments"
 import { ServiceStep } from "./steps/service-step"
 import { ServiceSelectionStep } from "./steps/service-selection-step"
 import { StaffStep } from "./steps/staff-step"
@@ -35,6 +35,22 @@ export function BookingForm(props: BookingFormProps) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedServiceId, setSelectedServiceId] = useState<string>("")
+  // E2-7 (G7): optional workspace resources (empty for non-capable orgs —
+  // the selector then never renders).
+  const [resources, setResources] = useState<BookingResource[]>([])
+  const [selectedResourceId, setSelectedResourceId] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    listBookingResources()
+      .then((res) => {
+        if (!cancelled) setResources(res)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Determine mode
   const isStaffFirst = props.mode === "staff-first"
@@ -119,6 +135,7 @@ export function BookingForm(props: BookingFormProps) {
           guestPhone: data.phone || undefined,
           notes: data.notes || undefined,
           isEmployee: true, // Apply 20% discount, no deposit
+          resourceRecordId: selectedResourceId,
         })
 
         if (result.success && result.appointmentId) {
@@ -138,6 +155,7 @@ export function BookingForm(props: BookingFormProps) {
         startTime: bookingDate, // legacy field — server prefers bookingDate/bookingTime
         bookingDate,
         bookingTime,
+        resourceRecordId: selectedResourceId,
         guestName: !isAuthenticated
           ? `${data.firstName} ${data.lastName}`
           : undefined,
@@ -229,6 +247,14 @@ export function BookingForm(props: BookingFormProps) {
             onSelectTime={(time) =>
               setValue("time", time, { shouldValidate: true })
             }
+            resources={resources}
+            selectedResourceId={selectedResourceId}
+            onSelectResource={(id) => {
+              // The slot set depends on the resource — clear a stale time
+              // (same reason as the day-change fix above).
+              setSelectedResourceId(id)
+              if (selectedTime) setValue("time", "")
+            }}
             maxBookingAdvance={salonConfig.maxBookingAdvance}
             dateError={errors.date?.message}
             timeError={errors.time?.message}

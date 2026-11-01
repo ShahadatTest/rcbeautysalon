@@ -10,6 +10,14 @@ import { format, addDays } from "date-fns"
 import { sl } from "date-fns/locale"
 import { getAvailableTimeSlots } from "@/app/actions/appointments"
 import { TimeSlot } from "@/lib/interfaces"
+import type { BookingResource } from "@/app/actions/appointments"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface DateTimeStepProps {
   selectedStaffId: string
@@ -21,6 +29,12 @@ interface DateTimeStepProps {
   maxBookingAdvance: number
   dateError?: string
   timeError?: string
+  // E2-7 (G7): optional workspace resources — rendered ONLY when the org
+  // profile enables workspace-resources + appointments AND at least one
+  // resource exists. Empty for everyone else (no visual change).
+  resources?: BookingResource[]
+  selectedResourceId?: string | null
+  onSelectResource?: (id: string | null) => void
 }
 
 export function DateTimeStep({
@@ -33,6 +47,9 @@ export function DateTimeStep({
   maxBookingAdvance,
   dateError,
   timeError,
+  resources = [],
+  selectedResourceId = null,
+  onSelectResource,
 }: DateTimeStepProps) {
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
@@ -50,7 +67,12 @@ export function DateTimeStep({
         // Send a plain "yyyy-MM-dd" key — the server interprets it in the
         // salon's timezone (never the server's own clock).
         const dateKey = format(selectedDate, "yyyy-MM-dd")
-        const slots = await getAvailableTimeSlots(selectedStaffId, dateKey, serviceDuration)
+        const slots = await getAvailableTimeSlots(
+          selectedStaffId,
+          dateKey,
+          serviceDuration,
+          selectedResourceId
+        )
         setAvailableSlots(slots)
       } catch (err) {
         console.error("Error loading time slots:", err)
@@ -61,7 +83,7 @@ export function DateTimeStep({
     }
 
     loadTimeSlots()
-  }, [selectedStaffId, selectedDate, serviceDuration])
+  }, [selectedStaffId, selectedDate, serviceDuration, selectedResourceId])
 
   return (
     <Card className="shadow-lg">
@@ -98,6 +120,36 @@ export function DateTimeStep({
               </div>
               {dateError && <p className="text-center text-sm text-destructive">{dateError}</p>}
             </div>
+
+            {/* E2-7 (G7): optional resource differentiator — only when the
+                profile offers workspace resources and at least one exists. */}
+            {resources.length > 0 && onSelectResource && (
+              <div className="space-y-2">
+                <Label htmlFor="booking-resource" className="block text-sm font-medium">
+                  Prostor / vir (neobvezno)
+                </Label>
+                <Select
+                  value={selectedResourceId ?? "none"}
+                  onValueChange={(v) => onSelectResource(v === "none" ? null : v)}
+                >
+                  <SelectTrigger id="booking-resource" className="w-full sm:w-72">
+                    <SelectValue placeholder="Izberite prostor ali vir" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Brez posebnega prostora</SelectItem>
+                    {resources.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.name}
+                        {r.kind ? ` — ${r.kind}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Termin bo rezerviran tudi za izbrani prostor — preverjamo, da je prost prost.
+                </p>
+              </div>
+            )}
 
             {selectedDate && (
               <div className="space-y-2">

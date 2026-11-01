@@ -317,12 +317,49 @@ export async function POST(req: Request) {
         return NextResponse.json({ received: true })
       }
 
+      // E2-7 (G7): optional workspace resource from checkout metadata —
+      // validated org-scoped; the conflict was checked at checkout time and
+      // is re-checked here (webhook may arrive after other bookings).
+      let resourceRecordId: string | null = null
+      const rawResourceId = metadata.resourceRecordId || ""
+      if (rawResourceId) {
+        const resourceRecord = await prisma.extensionRecord.findFirst({
+          where: {
+            id: rawResourceId,
+            organizationId: org.id,
+            extensionId: "workspace-resources",
+            entityKey: "workspace",
+          },
+          select: { id: true },
+        })
+        if (resourceRecord) {
+          const resourceBusy = await prisma.appointment.findMany({
+            where: {
+              resourceRecordId: resourceRecord.id,
+              organizationId: org.id,
+              startTime: { lt: endTime },
+              endTime: { gt: startTime },
+              status: { in: ["PENDING", "CONFIRMED"] },
+            },
+            select: { startTime: true, endTime: true },
+          })
+          const conflict = resourceBusy.some(
+            (w) => startTime < new Date(w.endTime) && endTime > new Date(w.startTime)
+          )
+          // On conflict the paid booking still gets created — WITHOUT the
+          // resource (never lose the payment record; the salon sees the
+          // missing resource in the dashboard and resolves it).
+          if (!conflict) resourceRecordId = resourceRecord.id
+        }
+      }
+
       // Create the appointment
       const appointment = await prisma.appointment.create({
         data: {
           organizationId: org.id,
           staffId,
           customerId,
+          resourceRecordId,
           guestName: !customerId ? guestName : null,
           guestEmail: !customerId ? guestEmail : null,
           guestPhone: !customerId ? guestPhone : null,

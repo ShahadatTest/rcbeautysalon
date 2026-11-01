@@ -549,6 +549,14 @@ model Appointment {
   status    AppointmentStatus @default(PENDING)
   notes     String?           @db.Text
 
+  // Optional physical resource (E2-7, G7): a `workspace` ExtensionRecord
+  // (extensionId "workspace-resources") acting as the room/chair/station
+  // for this appointment. Only offered when the org profile enables the
+  // `workspace-resources` extension AND `appointments`. Conflict-checked
+  // server-side: one booking per resource at a time. SetNull on delete —
+  // removing a resource never deletes appointments.
+  resourceRecordId String?
+
   // Payment ($50 non-refundable deposit)
   totalPrice      Decimal @db.Decimal(10, 2)
   depositAmount   Decimal @default(50.00) @db.Decimal(10, 2)
@@ -567,6 +575,7 @@ model Appointment {
 
   staff    Staff                @relation(fields: [staffId], references: [id], onDelete: Restrict)
   customer Customer?            @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  resource ExtensionRecord?     @relation("AppointmentResource", fields: [resourceRecordId], references: [id], onDelete: SetNull)
   services AppointmentService[]
 
   @@index([staffId])
@@ -907,6 +916,8 @@ model ExtensionRecord {
   @@index([organizationId])
   @@index([organizationId, entityKey])
   @@index([customerId])
+  // E2-7 (G7): appointments booked into this workspace resource.
+  resourceAppointments Appointment[] @relation("AppointmentResource")
 }
 
 // ============================================================

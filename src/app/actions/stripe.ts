@@ -9,6 +9,7 @@ import { getServicesForBooking, getSalonConfig, getOrgTimezone } from "./appoint
 import { instantFromParts, formatSalonTime } from "@/lib/booking-time"
 import { getPublicOrg, getSessionOrg, getOrgById } from "@/lib/tenant"
 import { CreateCheckoutSessionData } from "@/lib/interfaces"
+import { hasResourceConflict } from "@/lib/booking/resources"
 import { sendAppointmentConfirmationEmail } from "@/lib/email/appointment-confirmation"
 import Stripe from "stripe"
 
@@ -137,6 +138,9 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
         userId: session?.user?.id || "",
         customerName,
         isEmployee: isEmployeeBooking ? "true" : "false",
+        // E2-7 (G7): optional workspace resource — validated + conflict-
+        // checked again in the webhook before the appointment is created.
+        resourceRecordId: data.resourceRecordId || "",
       },
       success_url: `${baseUrl}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/booking/cancel`,
@@ -273,6 +277,22 @@ export async function verifyAndCreateAppointment(sessionId: string) {
     const notes = metadata.notes || null
     const userId = metadata.userId || null
     const customerName = metadata.customerName || "Customer"
+    // E2-7 (G7): optional workspace resource from checkout metadata —
+    // validated org-scoped; conflicts make the fallback refuse creation.
+    const rawResourceId = metadata.resourceRecordId || ""
+    let resourceRecordId: string | null = null
+    if (rawResourceId) {
+      const resourceRecord = await prisma.extensionRecord.findFirst({
+        where: {
+          id: rawResourceId,
+          organizationId: org.id,
+          extensionId: "workspace-resources",
+          entityKey: "workspace",
+        },
+        select: { id: true },
+      })
+      if (resourceRecord) resourceRecordId = resourceRecord.id
+    }
 
     // Get services for duration calculation (scoped to this organization)
     const services = await prisma.service.findMany({
@@ -312,6 +332,28 @@ export async function verifyAndCreateAppointment(sessionId: string) {
         success: false,
         error:
           "Ta termin ni več prost. Kontaktirajte salon za prestavitev rezervacije ali vračilo plačila.",
+      }
+    }
+
+    // E2-7 (G7): re-check the resource conflict too (same race protection
+    // as the staff slot check above).
+    if (resourceRecordId) {
+      const resourceBusy = await prisma.appointment.findMany({
+        where: {
+          resourceRecordId,
+          organizationId: org.id,
+          startTime: { lt: endTime },
+          endTime: { gt: startTime },
+          status: { in: ["PENDING", "CONFIRMED"] },
+        },
+        select: { startTime: true, endTime: true },
+      })
+      if (hasResourceConflict(resourceBusy, startTime, endTime)) {
+        return {
+          success: false,
+          error:
+            "Izbrani prostor/vir je v tem času že zaseden. Kontaktirajte salon za prestavitev ali vračilo plačila.",
+        }
       }
     }
 
@@ -386,6 +428,7 @@ export async function verifyAndCreateAppointment(sessionId: string) {
       data: {
         organizationId: org.id,
         staffId,
+          resourceRecordId,
         customerId,
         guestName: !customerId ? guestName : null,
         guestEmail: !customerId ? guestEmail : null,

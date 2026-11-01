@@ -32,6 +32,13 @@ import { sendAppointmentCancelledEmail } from "@/lib/email/appointment-cancelled
 import { sendAppointmentRescheduledEmail } from "@/lib/email/appointment-rescheduled"
 import { sendAppointmentExpiredEmail } from "@/lib/email/appointment-expired"
 import { getSessionOrg, requireAdminOrg, getResolvedOrg } from "@/lib/tenant"
+import { resolveEffectiveProfile } from "@/lib/profiles/resolve"
+import {
+  WORKSPACE_ENTITY_KEY,
+  WORKSPACE_RESOURCES_EXTENSION_ID,
+  hasResourceConflict,
+  canUseWorkspaceResources,
+} from "@/lib/booking/resources"
 
 /**
  * Resolve the organization for the current request: admins/staff act within
@@ -42,6 +49,57 @@ async function resolveRequestOrg() {
   // Tenant header (/s/[slug]) always wins over the session to avoid
   // cross-tenant leakage when a signed-in admin browses another salon.
   return getResolvedOrg()
+}
+
+// ------------------------------------------------------------
+// Workspace resources (E2-7, G7) — optional physical differentiator
+// for bookings. Only exposed when the org's effective profile enables
+// the `workspace-resources` extension AND `appointments`.
+// ------------------------------------------------------------
+
+export interface BookingResource {
+  id: string
+  name: string
+  kind: string | null
+}
+
+/**
+ * Workspace resources of the current (request) org, for the booking and
+ * admin appointment forms. Empty list for non-capable orgs — the UI then
+ * renders NO selector (non-booking/resource-less profiles see no change).
+ */
+export async function listBookingResources(): Promise<BookingResource[]> {
+  try {
+    const org = await resolveRequestOrg()
+    if (!org) return []
+    const profile = resolveEffectiveProfile({
+      vertical: org.vertical,
+      secondaryVertical: org.secondaryVertical,
+      profileOverrides: org.profileOverrides,
+    })
+    if (!canUseWorkspaceResources(profile)) return []
+
+    const records = await prisma.extensionRecord.findMany({
+      where: {
+        organizationId: org.id,
+        extensionId: WORKSPACE_RESOURCES_EXTENSION_ID,
+        entityKey: WORKSPACE_ENTITY_KEY,
+      },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, data: true },
+    })
+    return records.map((r) => {
+      const data = (r.data ?? {}) as Record<string, unknown>
+      return {
+        id: r.id,
+        name: typeof data.name === "string" ? data.name : "(vir)",
+        kind: typeof data.kind === "string" ? data.kind : null,
+      }
+    })
+  } catch (error) {
+    console.error("listBookingResources error:", error)
+    return []
+  }
 }
 
 /** Salon timezone for an organization (falls back to the platform default). */
@@ -191,7 +249,8 @@ export async function getStaffForBooking(staffId: string) {
 export async function getAvailableTimeSlots(
   staffId: string,
   date: Date | string,
-  serviceDuration: number
+  serviceDuration: number,
+  resourceRecordId?: string | null
 ): Promise<TimeSlot[]> {
   const org = await resolveRequestOrg()
   if (!org) return []
@@ -247,6 +306,33 @@ export async function getAvailableTimeSlots(
   const workStartMin = sh * 60 + sm
   const workEndMin = eh * 60 + em
 
+  // E2-7: when a workspace resource is selected, its busy windows are
+  // fetched ONCE (across ALL staff of this org for the day). Fail-safe:
+  // an unknown/invalid resource id simply skips the extra check.
+  let resourceBusy: { startTime: Date; endTime: Date }[] = []
+  if (resourceRecordId) {
+    const resourceRecord = await prisma.extensionRecord.findFirst({
+      where: {
+        id: resourceRecordId,
+        organizationId: org.id,
+        extensionId: WORKSPACE_RESOURCES_EXTENSION_ID,
+        entityKey: WORKSPACE_ENTITY_KEY,
+      },
+      select: { id: true },
+    })
+    if (resourceRecord) {
+      resourceBusy = await prisma.appointment.findMany({
+        where: {
+          resourceRecordId: resourceRecord.id,
+          organizationId: org.id,
+          startTime: { gte: bounds.start, lte: bounds.end },
+          status: { in: ["PENDING", "CONFIRMED"] },
+        },
+        select: { startTime: true, endTime: true },
+      })
+    }
+  }
+
   const slots: TimeSlot[] = []
 
   // Loop through working hours creating 30-minute slots
@@ -267,7 +353,7 @@ export async function getAvailableTimeSlots(
       return slotStart < aptEnd && slotEnd > aptStart
     })
 
-    // Check if slot is in the past
+  // Check if slot is in the past
     const isPast = slotStart.getTime() <= Date.now()
 
     const time = minutesToTime(startMin)
@@ -278,6 +364,18 @@ export async function getAvailableTimeSlots(
       formattedTime: time, // 24-hour format (Slovenian convention)
       available: !hasConflict && !isPast,
     })
+  }
+
+  // E2-7: second pass — mark slots blocked by the chosen resource. Kept as a
+  // separate loop so the staff logic above remains byte-identical.
+  if (resourceRecordId && resourceBusy.length > 0) {
+    for (const slot of slots) {
+      if (!slot.available) continue
+      const slotStart = instantFromParts(dateKey, slot.time, tz)
+      if (!slotStart) continue
+      const slotEnd = new Date(slotStart.getTime() + serviceDuration * 60000)
+      if (hasResourceConflict(resourceBusy, slotStart, slotEnd)) slot.available = false
+    }
   }
 
   return slots
@@ -459,6 +557,53 @@ export async function createAppointment(
       }
     }
 
+    // E2-7 (G7): optional workspace resource — validate org-scoped record and
+    // re-check the resource conflict server-side (one booking per resource).
+    let resourceRecordId: string | null = null
+    if (data.resourceRecordId) {
+      // Gate against the REQUEST org's effective profile (guest bookings have
+      // no session — the public tenant must decide, not the signer).
+      const profile = resolveEffectiveProfile({
+        vertical: org.vertical,
+        secondaryVertical: org.secondaryVertical,
+        profileOverrides: org.profileOverrides,
+      })
+      const capable = canUseWorkspaceResources(profile)
+      if (capable) {
+        const resourceRecord = await prisma.extensionRecord.findFirst({
+          where: {
+            id: data.resourceRecordId,
+            organizationId: org.id,
+            extensionId: WORKSPACE_RESOURCES_EXTENSION_ID,
+            entityKey: WORKSPACE_ENTITY_KEY,
+          },
+          select: { id: true },
+        })
+        if (!resourceRecord) {
+          return { success: false, error: "Izbrani prostor/vir ni več na voljo." }
+        }
+        const resourceBusy = await prisma.appointment.findMany({
+          where: {
+            resourceRecordId: resourceRecord.id,
+            organizationId: org.id,
+            startTime: { lt: endTime },
+            endTime: { gt: startInstant },
+            status: { in: ["PENDING", "CONFIRMED"] },
+          },
+          select: { startTime: true, endTime: true },
+        })
+        if (hasResourceConflict(resourceBusy, startInstant, endTime)) {
+          return {
+            success: false,
+            error:
+              "Izbrani prostor/vir je v tem času že zaseden. Izberite drugi termin ali prostor.",
+          }
+        }
+        resourceRecordId = resourceRecord.id
+      }
+      // Not capable → the id is silently dropped (fail-safe, no crash).
+    }
+
     // Handle customer creation/retrieval
     let customerId: string | null = null
 
@@ -532,6 +677,7 @@ export async function createAppointment(
         organizationId: org.id,
         staffId: data.staffId,
         customerId,
+        resourceRecordId,
         // Guest info only used for non-authenticated bookings
         guestName: !customerId ? data.guestName : null,
         guestEmail: !customerId ? data.guestEmail : null,

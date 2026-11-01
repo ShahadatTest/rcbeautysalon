@@ -34,6 +34,8 @@ import {
   getAvailableStaff,
   getAvailableTimeSlots,
   createAppointment,
+  listBookingResources,
+  type BookingResource,
 } from "@/app/actions/appointments"
 import { TimeSlot, AvailableStaffMember } from "@/lib/interfaces"
 import { AdminAppointmentFormProps } from "@/lib/interfaces"
@@ -52,6 +54,21 @@ export default function AdminAppointmentForm({
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([])
   const [loadingStaff, setLoadingStaff] = useState(false)
   const [loadingSlots, setLoadingSlots] = useState(false)
+  // E2-7 (G7): optional workspace resources (empty = selector hidden).
+  const [resources, setResources] = useState<BookingResource[]>([])
+  const [selectedResourceId, setSelectedResourceId] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    listBookingResources()
+      .then((res) => {
+        if (!cancelled) setResources(res)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const {
     register,
@@ -121,7 +138,8 @@ export default function AdminAppointmentForm({
         const slots = await getAvailableTimeSlots(
           selectedStaffId,
           format(selectedDate, "yyyy-MM-dd"),
-          serviceDuration
+          serviceDuration,
+          selectedResourceId
         )
         setAvailableSlots(slots)
         setValue("time", "")
@@ -138,6 +156,7 @@ export default function AdminAppointmentForm({
     selectedDate,
     selectedServiceId,
     serviceDuration,
+    selectedResourceId,
     setValue,
   ])
 
@@ -171,6 +190,7 @@ export default function AdminAppointmentForm({
         guestEmail: data.customerEmail || undefined,
         guestPhone: data.customerPhone,
         notes: data.notes,
+        resourceRecordId: selectedResourceId,
       })
 
       if (result.success) {

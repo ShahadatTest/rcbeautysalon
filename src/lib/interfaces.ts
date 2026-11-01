@@ -387,6 +387,9 @@ export interface CreateAppointmentData {
   notes?: string
   // Employee booking (20% discount, no deposit required)
   isEmployee?: boolean
+  // E2-7 (G7): optional workspace resource (ExtensionRecord id) — only
+  // honored when the org profile enables workspace-resources + appointments.
+  resourceRecordId?: string | null
 }
 
 export interface AppointmentCreationResult {
@@ -440,6 +443,9 @@ export interface CreateCheckoutSessionData {
   guestPhone?: string
   notes?: string
   isEmployee?: boolean // Employee discount flag
+  // E2-7 (G7): optional workspace resource id — carried via checkout
+  // metadata into the webhook-created appointment.
+  resourceRecordId?: string | null
 }
 
 export interface AdminAppointmentsFilter {
