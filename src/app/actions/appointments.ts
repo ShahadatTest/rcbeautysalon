@@ -1,7 +1,9 @@
 "use server"
 
 import { cache } from "react"
+import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
+import { ORG_HEADER } from "@/lib/tenant"
 import { auth } from "@/lib/auth/auth"
 import { revalidatePath } from "next/cache"
 import { after } from "next/server"
@@ -768,9 +770,41 @@ export async function getUserAppointments() {
     return [] // User doesn't have a customer profile
   }
 
-  // Fetch all appointments for this customer
+  // TENANT ISOLATION (EPIC #4 visual pass): when this action runs under a
+  // tenant site (/s/[slug]/my-appointments — the proxy sets x-org-slug),
+  // the list is scoped to THAT tenant only. Rendering another tenant's
+  // appointments under this tenant's brand would leak both business
+  // relations and personal data across tenants. On the platform root
+  // (/my-appointments, no org header) the user sees their own global list
+  // — their own data, platform domain, not a tenant surface.
+  let organizationId: string | null = null
+  let unknownTenant = false
+  const slug = (await headers()).get(ORG_HEADER)
+  if (slug) {
+    const org = await prisma.organization.findUnique({
+      where: { slug },
+      select: { id: true },
+    })
+    if (org) {
+      organizationId = org.id
+    } else {
+      // Unknown slug (the layout would render the maintenance screen, but
+      // the page still executes in parallel) — resolve to an EMPTY list,
+      // never to the global one.
+      unknownTenant = true
+    }
+  }
+
+  if (unknownTenant) {
+    return []
+  }
+
+  // Fetch appointments for this customer — org-scoped when applicable.
   const appointments = await prisma.appointment.findMany({
-    where: { customerId: user.customer.id },
+    where: {
+      customerId: user.customer.id,
+      ...(organizationId ? { organizationId } : {}),
+    },
     include: {
       staff: {
         select: { name: true, image: true, id: true },

@@ -2,9 +2,10 @@
 
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { headers } from "next/headers"
 import { OrderStatus } from "@prisma/client"
 import { auth } from "@/lib/auth/auth"
-import { requireAdminOrg } from "@/lib/tenant"
+import { requireAdminOrg, ORG_HEADER } from "@/lib/tenant"
 
 // Admin: Get all orders with customer and items
 export async function getAdminOrders(search?: string) {
@@ -195,8 +196,27 @@ export async function getCustomerOrders() {
     }
   }
 
+  // TENANT ISOLATION (EPIC #4 visual pass): under a tenant site
+  // (/s/[slug]/my-orders — proxy sets x-org-slug) scope to THAT tenant;
+  // another tenant's orders must never render under this brand. Unknown
+  // slug -> empty list, never the global one. On the platform root the
+  // user sees their own global order history (own data, own consent).
+  let organizationId: string | null = null
+  const slug = (await headers()).get(ORG_HEADER)
+  if (slug) {
+    const org = await prisma.organization.findUnique({
+      where: { slug },
+      select: { id: true },
+    })
+    if (!org) return { success: true, orders: [] }
+    organizationId = org.id
+  }
+
   const orders = await prisma.order.findMany({
-    where: { customer: { userId: session.user.id } },
+    where: {
+      customer: { userId: session.user.id },
+      ...(organizationId ? { organizationId } : {}),
+    },
     include: {
       items: {
         include: {

@@ -3,8 +3,9 @@
 import { auth } from "@/lib/auth/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { headers } from "next/headers"
 import { ReviewFormData } from "@/lib/interfaces"
-import { getPublicOrg } from "@/lib/tenant"
+import { getPublicOrg, ORG_HEADER } from "@/lib/tenant"
 
 // Create a new review for a service
 export async function createReview(data: ReviewFormData) {
@@ -95,9 +96,28 @@ export async function getUserReviews() {
     }
   }
 
+  // TENANT ISOLATION (EPIC #4 visual pass): under a tenant site
+  // (/s/[slug]/my-reviews — proxy sets x-org-slug) scope to reviews of
+  // THAT tenant's services; reviews for other tenants' services must not
+  // render under this brand. Unknown slug -> empty list. On the platform
+  // root the user sees all their own reviews (own data, platform domain).
+  let organizationId: string | null = null
+  const slug = (await headers()).get(ORG_HEADER)
+  if (slug) {
+    const org = await prisma.organization.findUnique({
+      where: { slug },
+      select: { id: true },
+    })
+    if (!org) return { success: true, reviews: [] }
+    organizationId = org.id
+  }
+
   try {
     const reviews = await prisma.review.findMany({
-      where: { userId: session.user.id },
+      where: {
+        userId: session.user.id,
+        ...(organizationId ? { service: { organizationId } } : {}),
+      },
       include: {
         service: {
           select: {
