@@ -59,6 +59,12 @@ interface HomeContentProps {
   featuredServices: Service[]
   featuredProducts: Product[]
   featuredStaff: Staff[]
+  /** Whether the tenant has ANY services/products at all (catalog counts).
+   * Empty-catalog sections render no markup at all — an empty "Naše
+   * storitve" heading with only a button confused product-only verticals
+   * (e.g. beekeeping, which has zero services by design). */
+  hasServices: boolean
+  hasProducts: boolean
 }
 
 export function HomeContent({
@@ -70,6 +76,8 @@ export function HomeContent({
   featuredServices,
   featuredProducts,
   featuredStaff,
+  hasServices,
+  hasProducts,
 }: HomeContentProps) {
   const primaryCta = ctaLinks?.primaryCta ?? content.hero.primaryCta
   const secondaryCta = ctaLinks ? ctaLinks.secondaryCta : content.hero.secondaryCta
@@ -146,8 +154,9 @@ export function HomeContent({
         </section>
       ),
 
-    // Services Preview
-    services: (
+    // Services Preview — skipped entirely when the tenant has no
+    // services at all (product-only verticals, e.g. beekeeping)
+    services: !hasServices ? null : (
         <SectionWrapper id="services" className="py-16">
           <div className="container mx-auto px-4">
             <div className="mb-12 text-center">
@@ -338,8 +347,8 @@ export function HomeContent({
         </SectionWrapper>
       ),
 
-    // Featured Products
-    shop: (
+    // Featured Products — skipped when the tenant has no products at all
+    shop: !hasProducts ? null : (
         <SectionWrapper id="shop" className="border-primary/30 border-t py-16">
           <div className="container mx-auto px-4">
             <div className="mb-12 text-center">

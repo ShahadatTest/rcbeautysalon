@@ -3,6 +3,7 @@ import {
   getPublicFeaturedServices,
   getPublicFeaturedProducts,
   getPublicFeaturedStaff,
+  getPublicCatalogCounts,
 } from "@/lib/public-site"
 import { HomeContent } from "@/components/landing/home-content"
 import { resolveCtaLinks, resolveCtaSectionHref } from "@/lib/public-cta"
@@ -24,10 +25,11 @@ export default async function HomePage() {
   }
 
   const { org, content } = site
-  const [featuredServices, featuredProducts, featuredStaff] = await Promise.all([
+  const [featuredServices, featuredProducts, featuredStaff, catalogCounts] = await Promise.all([
     getPublicFeaturedServices(org.id),
     getPublicFeaturedProducts(org.id),
     getPublicFeaturedStaff(org.id),
+    getPublicCatalogCounts(org.id),
   ])
 
   return (
@@ -44,6 +46,8 @@ export default async function HomePage() {
       featuredServices={featuredServices}
       featuredProducts={featuredProducts}
       featuredStaff={featuredStaff}
+      hasServices={catalogCounts.services}
+      hasProducts={catalogCounts.products}
     />
   )
 }
