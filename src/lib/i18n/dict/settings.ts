@@ -222,6 +222,27 @@ export const settingsSl = {
     securityNote:
       "Varnost: ključ je viden samo lastniku salona, na strežniku se uporablja izključno za plačila in se nikoli ne pošlje v brskalnik.",
   },
+  analyticsIntegration: {
+    title: "Analitika obiskov (GA4)",
+    description:
+      "Vnesite svoj Google Analytics 4 Measurement ID, če želite sami spremljati obiske svoje objavljene strani.",
+    measurementId: "GA4 Measurement ID (neobvezno)",
+    placeholder: "G-XXXXXXXXXX",
+    hint: "Google Analytics → Admin → Data streams → Web → Measurement ID (oblika G-XXXXXXXXXX).",
+    notSet: "Ni nastavljeno — noben skript za analitiko ni vstavljen.",
+    setTo: "Nastavljeno na:",
+    activeNote:
+      "Skript se vstavi SAMO v vašo objavljeno stran. Predogled neobjavljene strani, vzdrževalna stran in platforma ostanejo brez sledenja.",
+    save: "Shrani",
+    saving: "Shranjujem …",
+    clear: "Odstrani ID",
+    cleared: "Measurement ID odstranjen — skript ni več vstavljen.",
+    saved: "Measurement ID shranjen — skript bo vstavljen v objavljeno stran.",
+    errInvalid:
+      "Napačna oblika ID. Pričakovana oblika je G- sledi 6–12 alfanumeričnih znakov (npr. G-XXXXXXXXXX).",
+    errFailed: "Shranjevanje ni uspelo. Poskusite znova.",
+    errLoadFailed: "Nastavitve analitike ni bilo mogoče naložiti.",
+  },
   form: {
     saveAll: "Shrani vse spremembe",
     businessInfo: "Podatki o salonu",
@@ -707,6 +728,27 @@ export const settingsEn: SettingsDict = {
     errLoadFailed: "Payment settings could not be loaded.",
     securityNote:
       "Security: the key is visible only to the salon owner, used server-side for payments only, and never sent to the browser.",
+  },
+  analyticsIntegration: {
+    title: "Visit analytics (GA4)",
+    description:
+      "Enter your own Google Analytics 4 measurement ID if you want to track visits to your published site yourself.",
+    measurementId: "GA4 Measurement ID (optional)",
+    placeholder: "G-XXXXXXXXXX",
+    hint: "Google Analytics → Admin → Data streams → Web → Measurement ID (format G-XXXXXXXXXX).",
+    notSet: "Not set — no analytics script is injected.",
+    setTo: "Set to:",
+    activeNote:
+      "The script is injected ONLY into your published site. The preview of an unpublished site, the maintenance screen and the platform itself stay untracked.",
+    save: "Save",
+    saving: "Saving …",
+    clear: "Remove ID",
+    cleared: "Measurement ID removed — the script is no longer injected.",
+    saved: "Measurement ID saved — the script will be injected into the published site.",
+    errInvalid:
+      "Invalid ID format. Expected format is G- followed by 6–12 alphanumeric characters (e.g. G-XXXXXXXXXX).",
+    errFailed: "Saving failed. Please try again.",
+    errLoadFailed: "Analytics settings could not be loaded.",
   },
   form: {
     saveAll: "Save All Changes",

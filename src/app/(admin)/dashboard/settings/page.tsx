@@ -1,6 +1,7 @@
 import { getSalonSettings } from "@/app/actions/settings"
 import { getPublicationStatus } from "@/app/actions/publication"
 import { SettingsForm } from "@/components/dashboard/settings-form"
+import { AnalyticsIntegrationCard } from "@/components/dashboard/analytics-integration-card"
 import { BrandingEditor } from "@/components/dashboard/branding-editor"
 import { PaymentsSettings } from "@/components/dashboard/payments-settings"
 import { ProfileOverview } from "@/components/dashboard/profile-overview"
@@ -85,6 +86,8 @@ export default async function SettingsPage({
           />
           <ProfileOverview />
           <SettingsForm initialSettings={settings} />
+          {/* E4-2b: owner-supplied analytics (GA4) — optional, honest default = no script. */}
+          <AnalyticsIntegrationCard initialValue={settings.analyticsMeasurementId ?? null} />
         </div>
       }
       modules={

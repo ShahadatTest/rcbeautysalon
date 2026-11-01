@@ -341,6 +341,12 @@ model SalonConfig {
   maxBookingAdvance  Int     @default(30) // days
   cancellationPolicy String? @db.Text
 
+  // EPIC #4 E4-2b: optional per-tenant analytics integration (GA4).
+  // Null/empty = NO analytics script is ever injected (honest default:
+  // the platform does not track visitors on the owner's behalf until
+  // the owner explicitly provides their own measurement ID).
+  analyticsMeasurementId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

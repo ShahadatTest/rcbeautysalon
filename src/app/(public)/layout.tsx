@@ -1,9 +1,12 @@
 import { headers } from "next/headers"
+import Script from "next/script"
+import { prisma } from "@/lib/prisma"
 import { PublicNavbar } from "@/components/layouts/public-navbar"
 import { getPublicOrg, ORG_HEADER } from "@/lib/tenant"
 import { resolvePublicCta } from "@/lib/public-cta"
 import { resolvePublishGate } from "@/lib/publish-gate"
 import { MaintenanceScreen } from "@/components/public/maintenance-screen"
+import { analyticsScriptIdFor } from "@/lib/analytics/measurement-id"
 
 export default async function PublicLayout({
   children,
@@ -30,6 +33,9 @@ export default async function PublicLayout({
     if (gate === "hidden") {
       return <MaintenanceScreen />
     }
+    // E4-2b: owner preview of an UNPUBLISHED site — intentionally NO
+    // analytics script (visits here are not public traffic and the
+    // owner's measurement ID is scoped to the published site only).
     return (
       <>
         <PublicNavbar
@@ -49,10 +55,42 @@ export default async function PublicLayout({
     )
   }
 
+  // E4-2b — owner-supplied analytics (GA4). The script is injected ONLY
+  // when a PUBLISHED tenant site is being served AND the owner saved a
+  // valid measurement ID. Null for the platform-root default tenant
+  // without a site, hidden states and invalid/absent IDs — the platform
+  // itself never tracks anyone (analyticsScriptIdFor is the single
+  // testable decision point for this rule).
+  let analyticsId: string | null = null
+  if (org && gate === "published") {
+    const config = await prisma.salonConfig.findUnique({
+      where: { organizationId: org.id },
+      select: { analyticsMeasurementId: true },
+    })
+    analyticsId = analyticsScriptIdFor({
+      gate,
+      measurementId: config?.analyticsMeasurementId,
+    })
+  }
+
   const cta = resolvePublicCta(org?.vertical, "sl", org?.profileOverrides)
 
   return (
     <>
+      {analyticsId && (
+        <>
+          <Script
+            src={`https://www.googletagmanager.com/gtag/js?id=${analyticsId}`}
+            strategy="afterInteractive"
+          />
+          <Script id="ga4-init" strategy="afterInteractive">
+            {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${analyticsId}');`}
+          </Script>
+        </>
+      )}
       <PublicNavbar
         org={{
           slug: org?.slug ?? null,
