@@ -29,10 +29,26 @@ import {
 import { PALETTE_OPTIONS } from "@/lib/palettes-client"
 import { listProfileOptions } from "@/lib/profiles/registry"
 import { checkSlugAvailability, createSalonOrganization } from "@/app/actions/onboarding"
+import {
+  WIZARD_DRAFT_KEY,
+  clearDraftRaw,
+  isDraftSubstantial,
+  parseWizardDraft,
+  readDraftRaw,
+  safeResumeStep,
+  serializeWizardDraft,
+  writeDraftRaw,
+  type WizardDraftData,
+  type WizardDraftEnvelope,
+} from "@/lib/onboarding/wizard-draft"
 import { cn } from "@/lib/utils"
 
 // Single-source activity options (EPIC #1 registry).
 const ACTIVITY_OPTIONS = listProfileOptions()
+
+// E4-4 — registry allowlists for draft validation (unknown ids fail closed).
+const ALLOWED_VERTICAL_IDS = ACTIVITY_OPTIONS.map((v) => v.id)
+const ALLOWED_PALETTE_IDS = PALETTE_OPTIONS.map((p) => p.id)
 
 // Client-safe slugify (mirror of src/lib/tenant.ts, which is server-only)
 function slugifyLocal(input: string): string {
@@ -78,6 +94,10 @@ export function StartWizard() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
 
+  // E4-4 — resume offer (set once on mount from localStorage; null = none).
+  // While pending, storage still belongs to the saved draft.
+  const [resumeOffer, setResumeOffer] = useState<WizardDraftEnvelope | null>(null)
+
   const selectedVertical = useMemo(
     () => ACTIVITY_OPTIONS.find((v) => v.id === vertical) ?? null,
     [vertical]
@@ -106,6 +126,104 @@ export function StartWizard() {
     }, 450)
     return () => clearTimeout(timer)
   }, [slug])
+
+  // E4-4 — draft persistence (localStorage, per browser). Load once on
+  // mount; a substantial draft becomes an explicit resume question.
+  // Passwords are structurally excluded from the draft shape.
+  const pristineRef = useRef<WizardDraftData | null>(null)
+  useEffect(() => {
+    const result = parseWizardDraft(readDraftRaw(window.localStorage, WIZARD_DRAFT_KEY), {
+      now: Date.now(),
+      allowedVerticalIds: ALLOWED_VERTICAL_IDS,
+      allowedPaletteIds: ALLOWED_PALETTE_IDS,
+    })
+    if (result.ok) {
+      // Mount-time storage read cannot be a lazy initializer — SSR would
+      // render a different first frame (hydration mismatch). Safe: the
+      // offer state starts null on both server and client, and is only
+      // revealed after hydration.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (isDraftSubstantial(result.envelope.data)) setResumeOffer(result.envelope)
+    } else if (result.reason !== "empty") {
+      // malformed / stale / invalid — remove so the next visit starts clean
+      clearDraftRaw(window.localStorage, WIZARD_DRAFT_KEY)
+    }
+  }, [])
+
+  // Mirror meaningful progress into the draft. The first run only fixes
+  // the mount baseline (storage untouched), so a pending draft can never
+  // be wiped by a mount-time effect (incl. StrictMode double-invoke).
+  useEffect(() => {
+    const data: WizardDraftData = {
+      step,
+      vertical,
+      secondary,
+      palette,
+      name,
+      slug,
+      slugTouched,
+      ownerName,
+      email,
+    }
+    const pristine = pristineRef.current
+    if (pristine === null) {
+      pristineRef.current = data
+      return
+    }
+    if (
+      pristine.step === data.step &&
+      pristine.vertical === data.vertical &&
+      pristine.secondary === data.secondary &&
+      pristine.palette === data.palette &&
+      pristine.name === data.name &&
+      pristine.slug === data.slug &&
+      pristine.slugTouched === data.slugTouched &&
+      pristine.ownerName === data.ownerName &&
+      pristine.email === data.email
+    ) {
+      return
+    }
+    // A resume offer is pending: storage still belongs to the saved
+    // draft — the user's decision below applies or removes it.
+    if (resumeOffer) return
+    if (isDraftSubstantial(data)) {
+      writeDraftRaw(
+        window.localStorage,
+        WIZARD_DRAFT_KEY,
+        serializeWizardDraft(data, {
+          now: Date.now(),
+          allowedVerticalIds: ALLOWED_VERTICAL_IDS,
+          allowedPaletteIds: ALLOWED_PALETTE_IDS,
+        })
+      )
+    } else {
+      clearDraftRaw(window.localStorage, WIZARD_DRAFT_KEY)
+    }
+  }, [step, vertical, secondary, palette, name, slug, slugTouched, ownerName, email, resumeOffer])
+
+  // E4-4 — honest resume: restore the saved draft, but never land
+  // further than the data actually allows (safeResumeStep). The slug
+  // availability re-check runs automatically (the [slug] effect above).
+  function applyResume() {
+    if (!resumeOffer) return
+    const d = resumeOffer.data
+    setStep(safeResumeStep(d))
+    setVertical(d.vertical)
+    setSecondary(d.secondary)
+    setPalette(d.palette)
+    setName(d.name)
+    setSlug(d.slug)
+    setSlugTouched(d.slugTouched)
+    setSlugStatus(d.slug.trim().length >= 2 ? "checking" : "idle")
+    setOwnerName(d.ownerName)
+    setEmail(d.email)
+    setResumeOffer(null)
+  }
+
+  function startFresh() {
+    clearDraftRaw(window.localStorage, WIZARD_DRAFT_KEY)
+    setResumeOffer(null)
+  }
 
   // Auto-slug from salon name until the user edits the slug manually
   function handleNameChange(value: string) {
@@ -196,6 +314,18 @@ export function StartWizard() {
     setStep((s) => Math.max(1, s - 1))
   }
 
+  // E4-4 — truthful summary of what the saved draft contains (only
+  // fields the owner actually filled; never a fabricated progress claim).
+  const offerSummary = (() => {
+    if (!resumeOffer) return null
+    const parts: string[] = []
+    const vLabel = ACTIVITY_OPTIONS.find((v) => v.id === resumeOffer.data.vertical)?.label
+    if (vLabel) parts.push(`panoga: ${vLabel}`)
+    const n = resumeOffer.data.name.trim()
+    if (n) parts.push(`podjetje: ${n}`)
+    return parts.length > 0 ? parts.join(" · ") : null
+  })()
+
   async function handleSubmit() {
     if (!validateStep(3)) return
     setCreating(true)
@@ -216,6 +346,10 @@ export function StartWizard() {
         setCreating(false)
         return
       }
+
+      // E4-4 — tenant created: the draft served its purpose and must not
+      // outlive the account (the next person on this browser starts clean).
+      clearDraftRaw(window.localStorage, WIZARD_DRAFT_KEY)
 
       const login = await signIn("credentials", {
         email: email.trim(),
@@ -262,6 +396,35 @@ export function StartWizard() {
 
       {/* Main */}
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:py-10">
+        {/* E4-4 — resume question: an honest prompt over the saved draft,
+            with a truthful summary and an explicit note that passwords
+            are never stored. */}
+        {resumeOffer && (
+          <section
+            aria-label="Nadaljevanje registracije"
+            className="mb-8 rounded-xl border border-primary/30 bg-primary/5 p-4 sm:p-5"
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold">Nadaljuj, kjer si ostal?</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  V tem brskalniku je shranjen nedokončan vnos
+                  {offerSummary ? ` (${offerSummary})` : ""}. Gesel nikoli ne shranjujemo.
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-wrap gap-2">
+                <Button variant="outline" onClick={startFresh} className="min-h-11">
+                  Začni na novo
+                </Button>
+                <Button onClick={applyResume} className="min-h-11">
+                  <ArrowRightIcon size={16} weight="bold" className="mr-1.5" />
+                  Nadaljuj
+                </Button>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Step indicator */}
         <nav aria-label="Koraki registracije" className="mb-8">
           <ol className="flex items-center">
