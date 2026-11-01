@@ -43,6 +43,10 @@ function formatDate(date: Date | null, locale: string): string {
   }).format(date)
 }
 
+function formatPercent(ratePercent: number | null): string {
+  return ratePercent === null ? "—" : `${ratePercent.toLocaleString("sl-SI", { maximumFractionDigits: 1 })} %`
+}
+
 export default async function PlatformPage({ searchParams }: PlatformPageProps) {
   const { q, status } = await searchParams
   const locale = await getLocaleFromCookies()
@@ -94,6 +98,123 @@ export default async function PlatformPage({ searchParams }: PlatformPageProps) 
           </Card>
         ))}
       </div>
+
+      {/* Analytics (E4-1) — derived-only metrics, definitions shown inline */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{labels.analyticsHeading}</CardTitle>
+          <CardDescription>{labels.analyticsDescription}</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Plan distribution */}
+          <div className="rounded-md border p-4">
+            <p className="text-sm font-medium">{labels.analyticsPlanDistribution}</p>
+            {overview.analytics.planDistribution.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">{labels.emptyTenants}</p>
+            ) : (
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {overview.analytics.planDistribution.map((row) => (
+                  <li
+                    key={row.plan}
+                    className="flex items-center gap-1 rounded-full border bg-muted/40 px-2.5 py-0.5 text-xs font-medium"
+                  >
+                    <span className="uppercase">{row.plan}</span>
+                    <span className="tabular-nums">× {row.count}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Conversion */}
+          <div className="rounded-md border p-4">
+            <p className="text-sm font-medium">{labels.analyticsConversion}</p>
+            {overview.analytics.conversion.ratePercent === null ? (
+              <p className="mt-2 text-sm text-muted-foreground">
+                {labels.analyticsNoSubscriptions}
+              </p>
+            ) : (
+              <p className="mt-1 text-2xl font-bold tabular-nums leading-none">
+                {formatPercent(overview.analytics.conversion.ratePercent)}
+              </p>
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">
+              {overview.analytics.conversion.paying} /{" "}
+              {overview.analytics.conversion.tenantsWithSubscription} ·{" "}
+              {labels.analyticsConversionDef}
+            </p>
+          </div>
+
+          {/* Churn */}
+          <div className="rounded-md border p-4">
+            <p className="text-sm font-medium">{labels.analyticsChurn}</p>
+            {overview.analytics.churn.ratePercent === null ? (
+              <p className="mt-2 text-sm text-muted-foreground">
+                {labels.analyticsNoSubscriptions}
+              </p>
+            ) : (
+              <p className="mt-1 text-2xl font-bold tabular-nums leading-none">
+                {formatPercent(overview.analytics.churn.ratePercent)}
+              </p>
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">
+              {overview.analytics.churn.churned} / {overview.analytics.churn.subscriptions} ·{" "}
+              {labels.analyticsChurnDef}
+            </p>
+          </div>
+
+          {/* Revenue (current month) */}
+          <div className="rounded-md border p-4">
+            <p className="text-sm font-medium">{labels.analyticsRevenue}</p>
+            {overview.analytics.revenue.byCurrency.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">{labels.analyticsNoRevenue}</p>
+            ) : (
+              <ul className="mt-1 space-y-1">
+                {overview.analytics.revenue.byCurrency.map((row) => (
+                  <li key={row.currency} className="text-2xl font-bold tabular-nums leading-none">
+                    {(row.amountCents / 100).toLocaleString("sl-SI", {
+                      minimumFractionDigits: 2,
+                    })}{" "}
+                    <span className="text-sm font-semibold uppercase">{row.currency}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">
+              {labels.analyticsRevenueDef}
+              {overview.analytics.revenue.otherTypeEvents > 0 && (
+                <>
+                  {" · "}
+                  {overview.analytics.revenue.otherTypeEvents}{" "}
+                  {labels.analyticsOtherTypesNote}
+                </>
+              )}
+            </p>
+          </div>
+
+          {/* Webhook health */}
+          <div className="rounded-md border p-4">
+            <p className="text-sm font-medium">{labels.analyticsWebhookHealth}</p>
+            {overview.analytics.webhookHealth.eventsLast7d === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">{labels.analyticsNoEvents}</p>
+            ) : (
+              <p className="mt-1 text-2xl font-bold tabular-nums leading-none">
+                {overview.analytics.webhookHealth.eventsLast7d}
+              </p>
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">
+              {labels.analyticsWebhookDef}
+              {overview.analytics.webhookHealth.lastEventAt && (
+                <>
+                  {" · "}
+                  {labels.analyticsLastEvent}:{" "}
+                  {formatDate(overview.analytics.webhookHealth.lastEventAt, locale)}
+                </>
+              )}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Tenant roster */}
       <Card>

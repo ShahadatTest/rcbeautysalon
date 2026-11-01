@@ -1,7 +1,7 @@
 import "server-only"
 
 // ============================================================
-// PLATFORM OVERVIEW READ MODELS (EPIC #3 E3-5)
+// PLATFORM OVERVIEW READ MODELS (EPIC #3 E3-5; analytics E4-1)
 // Server-only read layer behind the operator console: tenant
 // roster with subscription/publication/usage snapshots and the
 // append-only audit trail. Read-only — mutations live exclusively
@@ -11,6 +11,12 @@ import "server-only"
 import { prisma } from "@/lib/prisma"
 import { getPlan, isPlanId } from "@/lib/plans/registry"
 import type { PlanLimits } from "@/lib/plans/types"
+import { monthStartUtc } from "@/lib/plans/types"
+import {
+  computePlatformAnalytics,
+  type AnalyticsEventInput,
+  type PlatformAnalytics,
+} from "@/lib/platform/analytics"
 
 export interface PlatformTenantRow {
   id: string
@@ -56,6 +62,8 @@ export interface PlatformAuditRow {
 export interface PlatformOverview {
   billingConfigured: boolean
   totals: PlatformTotals
+  /** Derived-only analytics (E4-1) — no counters are written anywhere. */
+  analytics: PlatformAnalytics
   tenants: PlatformTenantRow[]
   recentAudit: PlatformAuditRow[]
 }
@@ -132,7 +140,7 @@ export async function loadPlatformOverview(
     return conditions.length === 1 ? conditions[0] : { AND: conditions }
   })()
 
-  const [orgs, recentAuditRaw, subscriptionCounts] = await Promise.all([
+  const [orgs, recentAuditRaw, subscriptionCounts, billingEventRaw] = await Promise.all([
     prisma.organization.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -151,6 +159,22 @@ export async function loadPlatformOverview(
     prisma.platformSubscription.groupBy({
       by: ["status"],
       _count: { _all: true },
+    }),
+    // E4-1 analytics raw rows: the pure function filters each metric to
+    // its own window, so fetch the union window (earlier of month start
+    // / 7 days ago) once.
+    prisma.platformBillingEvent.findMany({
+      where: {
+        createdAt: {
+          gte: new Date(
+            Math.min(
+              monthStartUtc().getTime(),
+              Date.now() - 7 * 24 * 60 * 60 * 1000
+            )
+          ),
+        },
+      },
+      select: { type: true, amountCents: true, currency: true, createdAt: true },
     }),
   ])
 
@@ -197,9 +221,23 @@ export async function loadPlatformOverview(
     createdAt: row.createdAt,
   }))
 
+  const analyticsEvents: AnalyticsEventInput[] = billingEventRaw.map((row) => ({
+    type: row.type,
+    amountCents: row.amountCents,
+    currency: row.currency,
+    createdAt: row.createdAt,
+  }))
+
+  const analytics = computePlatformAnalytics({
+    tenants,
+    billingEvents: analyticsEvents,
+    now: new Date(),
+  })
+
   return {
     billingConfigured: Boolean(process.env.PLATFORM_STRIPE_SECRET_KEY),
     totals,
+    analytics,
     tenants,
     recentAudit,
   }

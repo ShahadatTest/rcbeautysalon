@@ -117,6 +117,24 @@ export interface PlatformLabels {
   slug: string
   vertical: string
   subscriptionNever: string
+  // Analytics (E4-1)
+  analyticsHeading: string
+  analyticsDescription: string
+  analyticsPlanDistribution: string
+  analyticsConversion: string
+  analyticsConversionDef: string
+  analyticsChurn: string
+  analyticsChurnDef: string
+  analyticsRevenue: string
+  analyticsRevenueDef: string
+  analyticsWebhookHealth: string
+  analyticsWebhookDef: string
+  analyticsNoSubscriptions: string
+  analyticsNoRevenue: string
+  analyticsNoEvents: string
+  analyticsLastEvent: string
+  analyticsOtherTypesNote: string
+  analyticsMonthOf: string
 }
 
 const sl: PlatformLabels = {
@@ -221,6 +239,26 @@ const sl: PlatformLabels = {
   slug: "Slug",
   vertical: "Dejavnost",
   subscriptionNever: "ni nikoli",
+  analyticsHeading: "Analitika",
+  analyticsDescription:
+    "Izpeljano iz obstoječih tabel v trenutnem pogledu — ni ločenih števcev, številke ne more odstopati od podatkov.",
+  analyticsPlanDistribution: "Distribucija paketov",
+  analyticsConversion: "Konverzija",
+  analyticsConversionDef:
+    "plačujoči (ACTIVE/TRIALING) ÷ najemniki z naročnino — brez naročnin ni deleža, ne 0 %",
+  analyticsChurn: "Odhod",
+  analyticsChurnDef: "CANCELED/UNPAID naročnine ÷ vse naročnine",
+  analyticsRevenue: "Prihodki (mesec)",
+  analyticsRevenueDef:
+    "vsota invoice.paid po zabeleženi valuti — checkout dogodki niso sešteti (prvi mesec bi podvojili plačilo)",
+  analyticsWebhookHealth: "Webhook (7 dni)",
+  analyticsWebhookDef: "število dogodkov obračunavanja v zadnjih 7 dneh — merilo živosti webhooka",
+  analyticsNoSubscriptions: "Ni naročnin — delež ni izračunan.",
+  analyticsNoRevenue: "Ni plačanih računov ta mesec.",
+  analyticsNoEvents: "Ni dogodkov obračunavanja.",
+  analyticsLastEvent: "Zadnji dogodek",
+  analyticsOtherTypesNote: "drugi dogodki (nesešteti)",
+  analyticsMonthOf: "od",
 }
 
 const en: PlatformLabels = {
@@ -325,6 +363,26 @@ const en: PlatformLabels = {
   slug: "Slug",
   vertical: "Vertical",
   subscriptionNever: "never",
+  analyticsHeading: "Analytics",
+  analyticsDescription:
+    "Derived from existing tables at view time — no separate counters, numbers cannot disagree with the data.",
+  analyticsPlanDistribution: "Plan distribution",
+  analyticsConversion: "Conversion",
+  analyticsConversionDef:
+    "paying (ACTIVE/TRIALING) ÷ tenants with a subscription — no subscriptions means no rate, not 0 %",
+  analyticsChurn: "Churn",
+  analyticsChurnDef: "CANCELED/UNPAID subscriptions ÷ all subscriptions",
+  analyticsRevenue: "Revenue (month)",
+  analyticsRevenueDef:
+    "sum of invoice.paid per recorded currency — checkout events are not summed (first month would double-count)",
+  analyticsWebhookHealth: "Webhook (7 days)",
+  analyticsWebhookDef: "billing events received in the last 7 days — webhook liveness measure",
+  analyticsNoSubscriptions: "No subscriptions — rate not computed.",
+  analyticsNoRevenue: "No paid invoices this month.",
+  analyticsNoEvents: "No billing events.",
+  analyticsLastEvent: "Last event",
+  analyticsOtherTypesNote: "other events (not summed)",
+  analyticsMonthOf: "since",
 }
 
 export function getPlatformLabels(locale: Locale): PlatformLabels {
