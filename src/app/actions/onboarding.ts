@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
 import { isReservedSlug, isSlugAvailable, slugify } from "@/lib/tenant"
-import { PALETTES, seedOrganizationCatalog, verticalSiteContent, getVertical } from "@/lib/verticals"
+import { PALETTES, seedOrganizationCatalog, verticalSiteContent, getVertical, presetStaffImage } from "@/lib/verticals"
 import { listProfileOptions } from "@/lib/profiles/registry"
 import { validateSecondaryVertical } from "@/lib/profiles/secondary"
 import { materializeProfileAssets } from "@/lib/profiles/materialize"
@@ -144,6 +144,12 @@ export async function createSalonOrganization(input: CreateSalonInput): Promise<
               email,
               isActive: true,
               organizationId: org.id,
+              // Preset portrait for the activity (test/demo realism, EPIC #4
+              // visual pass). undefined -> Prisma leaves image null and the
+              // public staff card renders the initials fallback.
+              ...(presetStaffImage(profile.id)
+                ? { image: presetStaffImage(profile.id) }
+                : {}),
               workingHours: {
                 create: [
                   { dayOfWeek: 1, startTime: "09:00", endTime: "18:00", isActive: true },

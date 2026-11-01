@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { VERTICALS, verticalSiteContent } from "@/lib/verticals"
+import { VERTICALS, verticalSiteContent, presetStaffImage } from "@/lib/verticals"
 
 /**
  * EPIC #4 test imagery invariant: every preset service and product
@@ -79,5 +79,24 @@ describe("vertical preset imagery completeness", () => {
     // Beauty keeps its video hero; remaining profiles keep the salon shot.
     expect(verticalSiteContent("beauty").hero.videoUrl).toBeTruthy()
     expect(verticalSiteContent("nails").hero.imageUrl).toContain("cloudinary")
+  })
+
+  it("every vertical except generic has a preset staff portrait that exists in public/", () => {
+    const publicDir = join(process.cwd(), "public")
+    for (const v of VERTICALS) {
+      const img = presetStaffImage(v.id)
+      if (v.id === "generic") {
+        expect(img, "generic must have no staff preset").toBeUndefined()
+        continue
+      }
+      expect(img, `${v.id} missing preset staff image`).toBeTruthy()
+      expect(img!.startsWith("/img/presets/staff-"), `${v.id} staff image not a preset`).toBe(true)
+      expect(existsSync(join(publicDir, img!)), `missing staff preset asset: ${img}`).toBe(true)
+    }
+  })
+
+  it("presetStaffImage is fail-closed for unknown verticals", () => {
+    expect(presetStaffImage("nonexistent-vertical")).toBeUndefined()
+    expect(presetStaffImage("")).toBeUndefined()
   })
 })

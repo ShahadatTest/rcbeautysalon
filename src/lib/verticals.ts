@@ -149,6 +149,45 @@ const IMG = {
   heroAtelier: "/img/presets/hero-atelier.jpg",
   heroGarage: "/img/presets/hero-garage.jpg",
   heroApiary: "/img/presets/hero-apiary.jpg",
+
+  // Owner/staff portrait presets (photorealistic, per vertical)
+  staffFrizerka: "/img/presets/staff-frizerka.jpg",
+  staffBarber: "/img/presets/staff-barber.jpg",
+  staffKozmeticka: "/img/presets/staff-kozmeticka.jpg",
+  staffMaserka: "/img/presets/staff-maserka.jpg",
+  staffEpilacija: "/img/presets/staff-epilacija.jpg",
+  staffSivilja: "/img/presets/staff-sivilja.jpg",
+  staffMehanik: "/img/presets/staff-mehanik.jpg",
+  staffCebelar: "/img/presets/staff-cebelar.jpg",
+  staffNails: "/img/presets/staff-nails.jpg",
+}
+
+/**
+ * Owner staff portrait per vertical, applied when onboarding creates the
+ * tenant's first (owner) staff profile. Verticals without a fitting
+ * portrait (generic) return undefined — the public staff card renders a
+ * graceful initials fallback. Shared asset keys keep the mapping honest:
+ * cosmetica-adjacent verticals reuse the beauty portrait.
+ */
+const PRESET_STAFF_IMAGE: Record<string, string> = {
+  frizer: IMG.staffFrizerka,
+  barber: IMG.staffBarber,
+  nails: IMG.staffNails,
+  cosmetica: IMG.staffKozmeticka,
+  beauty: IMG.staffKozmeticka,
+  massage: IMG.staffMaserka,
+  epilation: IMG.staffEpilacija,
+  seamstress: IMG.staffSivilja,
+  "tire-service": IMG.staffMehanik,
+  beekeeping: IMG.staffCebelar,
+}
+
+/**
+ * Pure helper: preset staff portrait for a vertical id (undefined when
+ * the vertical has no preset — onboarding then leaves image null).
+ */
+export function presetStaffImage(verticalId: string): string | undefined {
+  return PRESET_STAFF_IMAGE[verticalId]
 }
 
 /**
