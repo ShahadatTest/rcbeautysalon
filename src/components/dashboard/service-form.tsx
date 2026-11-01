@@ -495,10 +495,19 @@ export function ServiceForm({
                 </div>
               ) : (
                 <div
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Naloži sliko storitve"
                   className={`border-muted-foreground/25 hover:border-muted-foreground/50 flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 transition-colors ${
                     isUploading ? "pointer-events-none opacity-50" : ""
                   }`}
                   onClick={() => fileInputRef.current?.click()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      fileInputRef.current?.click()
+                    }
+                  }}
                 >
                   {isUploading ? (
                     <SpinnerIcon

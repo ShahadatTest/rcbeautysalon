@@ -284,7 +284,7 @@ export const settingsSl = {
     bookingSettings: "Nastavitve rezervacij",
     bookingSettingsDesc: "Nastavite pravila rezervacij terminov",
     bookingDeposit: "Polog za rezervacijo (€)",
-    depositRefundable: "Polog povrnjljiv",
+    depositRefundable: "Polog povrnjiv",
     depositRefundableHint: "Dovoli povrnitev pologa",
     minBookingAdvance: "Min. čas pred rezervacijo (ure)",
     maxBookingAdvance: "Max. čas pred rezervacijo (dnevi)",

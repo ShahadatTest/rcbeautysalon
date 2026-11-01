@@ -7,7 +7,6 @@ import { TooltipProvider } from "@/components/providers/tooltip-provider"
 
 import { Toaster } from "sonner"
 import "./globals.css"
-import Footer from "@/components/layouts/footer"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth/auth"
 import { getOrgBySlug, getOrgById } from "@/lib/tenant"
@@ -133,12 +132,7 @@ export default async function RootLayout({
           <SessionProvider>
             <CurrencyProvider currency={orgCurrency}>
               <CartProvider>
-                <TooltipProvider>
-                  {children}
-
-                  {/* Footer - Appears on ALL pages (public, customer, admin) */}
-                  <Footer />
-                </TooltipProvider>
+                <TooltipProvider>{children}</TooltipProvider>
               </CartProvider>
             </CurrencyProvider>
 

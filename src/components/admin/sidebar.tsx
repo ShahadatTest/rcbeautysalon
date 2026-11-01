@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils"
 import { Logo } from "@/components/ui/logo"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { LanguageSwitcher } from "@/components/admin/language-switcher"
 import {
   Sheet,
   SheetContent,
@@ -150,9 +149,6 @@ export function AdminSidebar() {
 
         {/* Footer */}
         <div className="space-y-2 p-4">
-          <div className="flex justify-center">
-            <LanguageSwitcher />
-          </div>
           <p className="text-center text-xs text-muted-foreground">
             {t.common.platformTagline}
           </p>

@@ -1,5 +1,6 @@
 import { headers } from "next/headers"
 import { PublicNavbar } from "@/components/layouts/public-navbar"
+import Footer from "@/components/layouts/footer"
 import { getPublicOrg, ORG_HEADER } from "@/lib/tenant"
 import { resolvePublicCta } from "@/lib/public-cta"
 import { resolvePublishGate } from "@/lib/publish-gate"
@@ -43,6 +44,7 @@ export default async function CustomerLayout({
           stran, dokler je ne objavite v nastavitvah.
         </div>
         <main>{children}</main>
+        <Footer />
       </>
     )
   }
@@ -60,6 +62,7 @@ export default async function CustomerLayout({
         cta={cta.enabled ? { label: cta.label, href: cta.href } : null}
       />
       <main>{children}</main>
+      <Footer />
     </>
   )
 }

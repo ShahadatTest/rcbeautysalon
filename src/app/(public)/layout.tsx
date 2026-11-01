@@ -2,6 +2,7 @@ import { headers } from "next/headers"
 import Script from "next/script"
 import { prisma } from "@/lib/prisma"
 import { PublicNavbar } from "@/components/layouts/public-navbar"
+import Footer from "@/components/layouts/footer"
 import { getPublicOrg, ORG_HEADER } from "@/lib/tenant"
 import { resolvePublicCta } from "@/lib/public-cta"
 import { resolvePublishGate } from "@/lib/publish-gate"
@@ -72,6 +73,7 @@ export default async function PublicLayout({
           stran, dokler je ne objavite v nastavitvah.
         </div>
         <main>{children}</main>
+        <Footer />
       </>
     )
   }
@@ -122,6 +124,7 @@ gtag('config', '${analyticsId}');`}
         availableSections={org ? await resolveAvailableSections(org.id) : undefined}
       />
       <main>{children}</main>
+      <Footer />
     </>
   )
 }
