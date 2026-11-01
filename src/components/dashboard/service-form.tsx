@@ -1,10 +1,9 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useActionState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -38,6 +37,14 @@ import {
   updateServiceSchema,
   type ServiceFormData,
 } from "@/lib/validations/service"
+import {
+  fdStr,
+  fdOptStr,
+  fdNum,
+  fdBool,
+  fdStrList,
+  zodIssuesToFieldErrors,
+} from "@/lib/forms/form-data"
 
 interface Category {
   id: string
@@ -90,15 +97,11 @@ export function ServiceForm({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const {
-    register,
-    handleSubmit,
     setValue,
     watch,
-    formState: { errors, isSubmitting },
+    setError,
+    formState: { errors },
   } = useForm<ServiceFormData>({
-    resolver: zodResolver(
-      isEditMode ? updateServiceSchema : createServiceSchema
-    ),
     defaultValues: {
       name: service?.name || "",
       slug: service?.slug || "",
@@ -113,8 +116,20 @@ export function ServiceForm({
   })
 
   const watchName = watch("name")
+  const watchSlug = watch("slug")
+  const watchDescription = watch("description")
+  const watchDuration = watch("duration")
+  const watchPrice = watch("price")
+  const watchCategoryId = watch("categoryId")
   const watchIsActive = watch("isActive")
   const watchIsFeatured = watch("isFeatured")
+
+  // All text/number fields are CONTROLLED — the React 19 `action={}`
+  // pathway resets uncontrolled inputs after every action submission,
+  // and controlled values survive that reset on validation errors.
+  // Empty number input → undefined (zod "required" message then applies);
+  // RHF's setValue types the field as required, hence the explicit cast.
+  const numberValue = (raw: string) => (raw === "" ? undefined : Number(raw))
 
   // Generate slug from name
   const generateSlug = (name: string) => {
@@ -226,48 +241,72 @@ export function ServiceForm({
     }
   }
 
-  // Submit form
-  const onSubmit = async (data: ServiceFormData) => {
-    try {
-      const serviceData = {
-        name: data.name,
-        slug: data.slug,
-        description: data.description || undefined,
-        duration: data.duration,
-        price: data.price,
+  // Submit form — React 19 `action={}` pathway (F1: E3-8 follow-up).
+  // The action parses FormData, validates against the SAME server schema
+  // (zod safeParse) and only then calls the server action. On validation
+  // failure the submitted values are restored (React resets uncontrolled
+  // fields after an action completes) and zod issues map to inline errors.
+  const [, formAction, isPending] = useActionState(
+    async (_prev: { ok: boolean } | null, formData: FormData) => {
+      const values = {
+        name: fdStr(formData, "name"),
+        slug: fdStr(formData, "slug"),
+        description: fdOptStr(formData, "description"),
+        duration: fdNum(formData, "duration"),
+        price: fdNum(formData, "price"),
         imageUrl: imageUrl || undefined,
-        categoryId: data.categoryId || undefined,
-        isActive: data.isActive,
-        isFeatured: data.isFeatured,
-        staffIds: selectedStaff,
+        categoryId: fdOptStr(formData, "categoryId"),
+        isActive: fdBool(formData, "isActive"),
+        isFeatured: fdBool(formData, "isFeatured"),
+        staffIds: fdStrList(formData, "staffIds"),
       }
 
-      const result =
-        isEditMode && service?.id
-          ? await updateService(service.id, serviceData)
-          : await createService(serviceData)
-
-      if (result.success) {
-        toast.success(
-          isEditMode
-            ? t.services.updateSuccess
-            : t.services.createSuccess
+      const schema = isEditMode ? updateServiceSchema : createServiceSchema
+      const parsed = schema.safeParse(values)
+      if (!parsed.success) {
+        // All fields are controlled, so nothing to restore — just surface
+        // the same schema issues inline (same slots as the old resolver).
+        const fieldErrors = zodIssuesToFieldErrors(parsed.error)
+        for (const [field, message] of Object.entries(fieldErrors)) {
+          setError(field as keyof ServiceFormData, { message })
+        }
+        toast.error(
+          isEditMode ? t.services.updateFailed : t.services.createFailed
         )
-        router.push("/dashboard/services")
-      } else {
+        return { ok: false }
+      }
+
+      try {
+        const result =
+          isEditMode && service?.id
+            ? await updateService(service.id, parsed.data)
+            : await createService(parsed.data)
+
+        if (result.success) {
+          toast.success(
+            isEditMode
+              ? t.services.updateSuccess
+              : t.services.createSuccess
+          )
+          router.push("/dashboard/services")
+          return { ok: true }
+        }
         toast.error(
           result.error ||
             (isEditMode ? t.services.updateFailed : t.services.createFailed)
         )
+        return { ok: false }
+      } catch (error) {
+        console.error("Submit error:", error)
+        toast.error(t.services.unexpectedError)
+        return { ok: false }
       }
-    } catch (error) {
-      console.error("Submit error:", error)
-      toast.error(t.services.unexpectedError)
-    }
-  }
+    },
+    null
+  )
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form action={formAction}>
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Form */}
         <div className="space-y-6 lg:col-span-2">
@@ -282,10 +321,11 @@ export function ServiceForm({
                 <Label htmlFor="name">{t.services.nameLabel}</Label>
                 <Input
                   id="name"
+                  name="name"
                   placeholder={t.services.namePlaceholder}
                   value={watchName}
                   onChange={handleNameChange}
-                  disabled={isSubmitting}
+                  disabled={isPending}
                 />
                 {errors.name && (
                   <p className="text-destructive text-sm">
@@ -298,9 +338,11 @@ export function ServiceForm({
                 <Label htmlFor="slug">{t.services.slugLabel}</Label>
                 <Input
                   id="slug"
+                  name="slug"
                   placeholder={t.services.slugPlaceholder}
-                  {...register("slug")}
-                  disabled={isSubmitting}
+                  value={watchSlug}
+                  onChange={(e) => setValue("slug", e.target.value)}
+                  disabled={isPending}
                 />
                 <p className="text-muted-foreground text-xs">
                   {t.services.slugHelp}
@@ -316,10 +358,12 @@ export function ServiceForm({
                 <Label htmlFor="description">{t.services.descriptionLabel}</Label>
                 <Textarea
                   id="description"
+                  name="description"
                   placeholder={t.services.descriptionPlaceholder}
                   rows={4}
-                  {...register("description")}
-                  disabled={isSubmitting}
+                  value={watchDescription ?? ""}
+                  onChange={(e) => setValue("description", e.target.value)}
+                  disabled={isPending}
                 />
               </div>
 
@@ -328,10 +372,17 @@ export function ServiceForm({
                   <Label htmlFor="duration">{t.services.durationLabel}</Label>
                   <Input
                     id="duration"
+                    name="duration"
                     type="number"
                     placeholder="60"
-                    {...register("duration", { valueAsNumber: true })}
-                    disabled={isSubmitting}
+                    value={watchDuration ?? ""}
+                    onChange={(e) =>
+                      setValue(
+                        "duration",
+                        numberValue(e.target.value) as unknown as number
+                      )
+                    }
+                    disabled={isPending}
                   />
                   {errors.duration && (
                     <p className="text-destructive text-sm">
@@ -343,11 +394,18 @@ export function ServiceForm({
                   <Label htmlFor="price">{t.services.priceLabel}</Label>
                   <Input
                     id="price"
+                    name="price"
                     type="number"
                     step="0.01"
                     placeholder="85.00"
-                    {...register("price", { valueAsNumber: true })}
-                    disabled={isSubmitting}
+                    value={watchPrice ?? ""}
+                    onChange={(e) =>
+                      setValue(
+                        "price",
+                        numberValue(e.target.value) as unknown as number
+                      )
+                    }
+                    disabled={isPending}
                   />
                   {errors.price && (
                     <p className="text-destructive text-sm">
@@ -362,7 +420,7 @@ export function ServiceForm({
                 <Select
                   defaultValue={service?.categoryId || undefined}
                   onValueChange={(value) => setValue("categoryId", value)}
-                  disabled={isSubmitting}
+                  disabled={isPending}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={t.services.categoryPlaceholder} />
@@ -435,6 +493,16 @@ export function ServiceForm({
               />
             </CardContent>
           </Card>
+
+          {/* Mirrors for the React 19 action — controlled state has no DOM
+              input of its own, FormData needs explicit carriers. */}
+          <input type="hidden" name="categoryId" value={watchCategoryId ?? ""} />
+          <input type="hidden" name="isActive" value={String(watchIsActive)} />
+          <input type="hidden" name="isFeatured" value={String(watchIsFeatured)} />
+          {imageUrl && <input type="hidden" name="imageUrl" value={imageUrl} />}
+          {selectedStaff.map((id) => (
+            <input key={id} type="hidden" name="staffIds" value={id} />
+          ))}
         </div>
 
         {/* Sidebar */}
@@ -455,7 +523,7 @@ export function ServiceForm({
                 <Switch
                   checked={watchIsActive}
                   onCheckedChange={(checked) => setValue("isActive", checked)}
-                  disabled={isSubmitting}
+                  disabled={isPending}
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -468,7 +536,7 @@ export function ServiceForm({
                 <Switch
                   checked={watchIsFeatured}
                   onCheckedChange={(checked) => setValue("isFeatured", checked)}
-                  disabled={isSubmitting}
+                  disabled={isPending}
                 />
               </div>
             </CardContent>
@@ -499,7 +567,7 @@ export function ServiceForm({
                         className="rounded border-gray-300"
                         checked={selectedStaff.includes(member.id)}
                         onChange={() => handleStaffToggle(member.id)}
-                        disabled={isSubmitting}
+                        disabled={isPending}
                       />
                       <span className="text-sm">{member.name}</span>
                     </label>
@@ -514,9 +582,9 @@ export function ServiceForm({
             <Button
               type="submit"
               className="w-full"
-              disabled={isSubmitting || isDeleting}
+              disabled={isPending || isDeleting}
             >
-              {isSubmitting && (
+              {isPending && (
                 <SpinnerIcon size={16} className="mr-2 animate-spin" />
               )}
               {isEditMode ? t.services.updateButton : t.services.createButton}
@@ -526,7 +594,7 @@ export function ServiceForm({
               variant="outline"
               className="w-full"
               onClick={() => router.push("/dashboard/services")}
-              disabled={isSubmitting || isDeleting}
+              disabled={isPending || isDeleting}
             >
               {t.common.actions.cancel}
             </Button>
@@ -536,7 +604,7 @@ export function ServiceForm({
                 variant="destructive"
                 className="w-full"
                 onClick={handleDelete}
-                disabled={isSubmitting || isDeleting}
+                disabled={isPending || isDeleting}
               >
                 {isDeleting ? (
                   <SpinnerIcon size={16} className="animate-spin" />

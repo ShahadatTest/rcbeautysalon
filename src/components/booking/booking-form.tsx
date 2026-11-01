@@ -1,9 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useActionState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm, useWatch } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
 import {
   bookingSchema,
   authenticatedBookingSchema,
@@ -20,6 +19,11 @@ import { BookingSummaryCard } from "./booking-summary-card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { SparkleIcon } from "@/components/icons"
 import { format, isSameDay } from "date-fns"
+import {
+  fdStr,
+  fdOptStr,
+  zodIssuesToFieldErrors,
+} from "@/lib/forms/form-data"
 
 import { BookingFormProps, BookingFormValues } from "@/lib/interfaces"
 
@@ -32,8 +36,7 @@ export function BookingForm(props: BookingFormProps) {
   } = props
 
   const router = useRouter()
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [flowError, setFlowError] = useState<string | null>(null)
   const [selectedServiceId, setSelectedServiceId] = useState<string>("")
   // E2-7 (G7): optional workspace resources (empty for non-capable orgs —
   // the selector then never renders).
@@ -69,13 +72,11 @@ export function BookingForm(props: BookingFormProps) {
   const schema = isAuthenticated ? authenticatedBookingSchema : bookingSchema
 
   const {
-    register,
-    handleSubmit,
     control,
     setValue,
+    setError,
     formState: { errors },
   } = useForm<BookingFormValues>({
-    resolver: zodResolver(schema) as never,
     mode: "onChange",
     defaultValues: {
       staffId: isStaffFirst ? props.preselectedStaff.id : "",
@@ -93,93 +94,126 @@ export function BookingForm(props: BookingFormProps) {
   const staffId = useWatch({ control, name: "staffId" })
   const selectedDate = useWatch({ control, name: "date" })
   const selectedTime = useWatch({ control, name: "time" })
+  const customerValues = {
+    firstName: useWatch({ control, name: "firstName" }) ?? "",
+    lastName: useWatch({ control, name: "lastName" }) ?? "",
+    email: useWatch({ control, name: "email" }) ?? "",
+    phone: useWatch({ control, name: "phone" }) ?? "",
+    notes: useWatch({ control, name: "notes" }) ?? "",
+  }
+  const setCustomerField = (
+    field: keyof typeof customerValues,
+    value: string
+  ) => setValue(field, value)
 
   // Handle service selection in staff-first mode
   const handleServiceSelect = (serviceId: string) => {
     setSelectedServiceId(serviceId)
   }
 
-  const onSubmit = async (data: BookingFormValues) => {
-    // Validate service is selected in staff-first mode
-    if (isStaffFirst && !selectedServiceId) {
-      setError("Izberite storitev")
-      return
-    }
-
-    setSubmitting(true)
-    setError(null)
-
-    try {
-      if (!data.date) {
-        setError("Izberite datum")
-        setSubmitting(false)
-        return
+  // Submit — React 19 `action={}` pathway (F1: E3-8 follow-up).
+  // All fields are controlled (or carried by hidden inputs), so the
+  // framework's automatic post-action form reset cannot lose user input.
+  // Validation runs against the SAME schema the resolver used; issues map
+  // to the same inline error slots. Server actions stay unchanged.
+  const [, formAction, isPending] = useActionState(
+    async (_prev: { ok: boolean } | null, formData: FormData) => {
+      if (isStaffFirst && !selectedServiceId) {
+        setFlowError("Izberite storitev")
+        return { ok: false }
       }
 
-      // Get the service ID based on mode
+      setFlowError(null)
+
+      const rawDate = fdStr(formData, "date")
+      if (!rawDate) {
+        setFlowError("Izberite datum")
+        return { ok: false }
+      }
+
+      // "yyyy-MM-dd" (salon-local) → the same local-midnight Date the
+      // picker produced, so the schema's z.date() validates identically.
+      const [y, m, d] = rawDate.split("-").map(Number)
+      const parsedValues = {
+        staffId: fdStr(formData, "staffId"),
+        date: new Date(y, m - 1, d),
+        time: fdStr(formData, "time"),
+        firstName: fdStr(formData, "firstName"),
+        lastName: fdStr(formData, "lastName"),
+        email: fdStr(formData, "email"),
+        phone: fdStr(formData, "phone"),
+        notes: fdOptStr(formData, "notes"),
+      }
+
+      const parsed = schema.safeParse(parsedValues)
+      if (!parsed.success) {
+        const fieldErrors = zodIssuesToFieldErrors(parsed.error)
+        for (const [field, message] of Object.entries(fieldErrors)) {
+          setError(field as keyof BookingFormValues, { message })
+        }
+        return { ok: false }
+      }
+
       const serviceId = isStaffFirst ? selectedServiceId : props.service.id
+      const bookingDate = rawDate
+      const bookingTime = parsed.data.time
 
-      // Send salon-local "yyyy-MM-dd" + "HH:mm" — the server builds the
-      // exact instant in the salon's timezone (no client/server drift).
-      const bookingDate = format(data.date, "yyyy-MM-dd")
-      const bookingTime = data.time
+      try {
+        // Employee flow: Create appointment directly (no Stripe payment required)
+        if (isEmployee) {
+          const result = await createAppointment({
+            serviceIds: [serviceId],
+            staffId: parsed.data.staffId,
+            startTime: new Date(),
+            bookingDate,
+            bookingTime,
+            guestPhone: parsed.data.phone || undefined,
+            notes: parsed.data.notes || undefined,
+            isEmployee: true, // Apply 20% discount, no deposit
+            resourceRecordId: selectedResourceId,
+          })
 
-      // Employee flow: Create appointment directly (no Stripe payment required)
-      if (isEmployee) {
-        const result = await createAppointment({
+          if (result.success && result.appointmentId) {
+            router.push(`/my-appointments?new=${result.appointmentId}`)
+            return { ok: true }
+          }
+          setFlowError(result.error || "Ustvarjanje termina ni uspelo")
+          return { ok: false }
+        }
+
+        // Regular customer flow: Stripe Checkout, then redirect to payment
+        const result = await createCheckoutSession({
           serviceIds: [serviceId],
-          staffId: data.staffId,
-          startTime: new Date(),
+          staffId: parsed.data.staffId,
+          startTime: bookingDate, // legacy field — server prefers bookingDate/bookingTime
           bookingDate,
           bookingTime,
-          guestPhone: data.phone || undefined,
-          notes: data.notes || undefined,
-          isEmployee: true, // Apply 20% discount, no deposit
           resourceRecordId: selectedResourceId,
+          guestName: !isAuthenticated
+            ? `${parsed.data.firstName} ${parsed.data.lastName}`
+            : undefined,
+          guestEmail: !isAuthenticated ? parsed.data.email : undefined,
+          guestPhone: parsed.data.phone || undefined,
+          notes: parsed.data.notes || undefined,
         })
 
-        if (result.success && result.appointmentId) {
-          // Redirect to my-appointments with success message
-          router.push(`/my-appointments?new=${result.appointmentId}`)
-        } else {
-          setError(result.error || "Ustvarjanje termina ni uspelo")
-          setSubmitting(false)
+        if (result.success && result.checkoutUrl) {
+          window.location.assign(result.checkoutUrl)
+          return { ok: true }
         }
-        return
+        setFlowError(result.error || "Ustvarjanje plačila ni uspelo")
+        return { ok: false }
+      } catch (err) {
+        console.error("Error creating booking:", err)
+        setFlowError("Prišlo je do nepričakovane napake. Poskusite znova.")
+        return { ok: false }
       }
-
-      // Regular customer flow: Create Stripe Checkout session and redirect to payment
-      const result = await createCheckoutSession({
-        serviceIds: [serviceId],
-        staffId: data.staffId,
-        startTime: bookingDate, // legacy field — server prefers bookingDate/bookingTime
-        bookingDate,
-        bookingTime,
-        resourceRecordId: selectedResourceId,
-        guestName: !isAuthenticated
-          ? `${data.firstName} ${data.lastName}`
-          : undefined,
-        guestEmail: !isAuthenticated ? data.email : undefined,
-        guestPhone: data.phone || undefined,
-        notes: data.notes || undefined,
-      })
-
-      if (result.success && result.checkoutUrl) {
-        // Redirect to Stripe Checkout
-        window.location.assign(result.checkoutUrl)
-      } else {
-        setError(result.error || "Ustvarjanje plačila ni uspelo")
-        setSubmitting(false)
-      }
-    } catch (err) {
-      console.error("Error creating booking:", err)
-      setError("Prišlo je do nepričakovane napake. Poskusite znova.")
-      setSubmitting(false)
-    }
-  }
+    },
+    null
+  )
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form action={formAction}>
       {/* Employee Banner */}
       {isEmployee && (
         <Alert className="mb-6 border-primary/30 bg-linear-to-r from-primary/5 via-primary/10 to-accent/5 dark:border-primary/40 dark:from-primary/10 dark:via-primary/15 dark:to-accent/10">
@@ -204,7 +238,7 @@ export function BookingForm(props: BookingFormProps) {
                 services={props.staffServices}
                 selectedServiceId={selectedServiceId}
                 onSelectService={handleServiceSelect}
-                error={!selectedServiceId && error ? "Izberite storitev" : undefined}
+                error={!selectedServiceId && flowError ? "Izberite storitev" : undefined}
               />
             </>
           ) : (
@@ -262,7 +296,8 @@ export function BookingForm(props: BookingFormProps) {
 
           {/* Step 4: Customer Information */}
           <CustomerInfoStep
-            register={register}
+            values={customerValues}
+            onChange={setCustomerField}
             errors={errors}
             isAuthenticated={isAuthenticated}
           />
@@ -280,13 +315,29 @@ export function BookingForm(props: BookingFormProps) {
             selectedDate={selectedDate}
             selectedTime={selectedTime}
             salonConfig={salonConfig}
-            submitting={submitting}
-            error={error}
+            submitting={isPending}
+            error={flowError}
             isEmployee={isEmployee}
             availableSlots={[]}
           />
         </div>
       </div>
+
+      {/* Hidden carriers for the React 19 action — selection state lives in
+          React/RHF state, not in DOM inputs, so FormData needs explicit
+          mirrors of exactly what the server action expects. */}
+      <input type="hidden" name="staffId" value={staffId ?? ""} />
+      <input
+        type="hidden"
+        name="date"
+        value={selectedDate ? format(selectedDate, "yyyy-MM-dd") : ""}
+      />
+      <input type="hidden" name="time" value={selectedTime ?? ""} />
+      <input
+        type="hidden"
+        name="resourceRecordId"
+        value={selectedResourceId ?? ""}
+      />
     </form>
   )
 }

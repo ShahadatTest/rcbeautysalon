@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useActionState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -28,7 +28,26 @@ export function PublicInquiryForm({ form }: PublicInquiryFormProps) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
-  const [pending, startTransition] = useTransition()
+
+  // F1 (E3-8 follow-up): submission runs through the React 19 `action={}`
+  // pathway instead of a manual onSubmit handler. All fields are controlled,
+  // so the framework's automatic post-action form reset cannot lose input.
+  const [, formAction, pending] = useActionState(async () => {
+    setFormError(null)
+    setFieldErrors({})
+    const result = await submitPublicForm(form.key, values, contact)
+    if (result.ok) {
+      setSubmitted(true)
+      return null
+    }
+    if (result.error === "VALIDATION" && result.fieldErrors) {
+      setFieldErrors(result.fieldErrors)
+      setFormError("Prosimo, preverite označena polja.")
+      return null
+    }
+    setFormError("Oddaja ni uspela. Poskusite znova ali nas pokličite.")
+    return null
+  }, null)
 
   const setValue = (key: string, value: string | boolean) => {
     setValues((prev) => ({ ...prev, [key]: value }))
@@ -37,25 +56,6 @@ export function PublicInquiryForm({ form }: PublicInquiryFormProps) {
       const next = { ...prev }
       delete next[key]
       return next
-    })
-  }
-
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setFormError(null)
-    setFieldErrors({})
-    startTransition(async () => {
-      const result = await submitPublicForm(form.key, values, contact)
-      if (result.ok) {
-        setSubmitted(true)
-        return
-      }
-      if (result.error === "VALIDATION" && result.fieldErrors) {
-        setFieldErrors(result.fieldErrors)
-        setFormError("Prosimo, preverite označena polja.")
-        return
-      }
-      setFormError("Oddaja ni uspela. Poskusite znova ali nas pokličite.")
     })
   }
 
@@ -86,7 +86,7 @@ export function PublicInquiryForm({ form }: PublicInquiryFormProps) {
 
   return (
     <form
-      onSubmit={onSubmit}
+      action={formAction}
       className="bg-card space-y-6 rounded-2xl border p-6 shadow-sm sm:p-8"
       aria-label={form.name}
     >

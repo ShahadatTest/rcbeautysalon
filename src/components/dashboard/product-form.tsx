@@ -1,10 +1,9 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useActionState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -34,6 +33,13 @@ import {
   updateProductSchema,
   type ProductFormData,
 } from "@/lib/validations/product"
+import {
+  fdStr,
+  fdOptStr,
+  fdNum,
+  fdBool,
+  zodIssuesToFieldErrors,
+} from "@/lib/forms/form-data"
 
 interface Category {
   id: string
@@ -71,13 +77,11 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const {
-    register,
-    handleSubmit,
     setValue,
     watch,
-    formState: { errors, isSubmitting },
+    setError,
+    formState: { errors },
   } = useForm<ProductFormData>({
-    resolver: zodResolver(isEditMode ? updateProductSchema : createProductSchema),
     defaultValues: {
       name: product?.name || "",
       description: product?.description || "",
@@ -92,9 +96,23 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
     },
   })
 
+  const watchName = watch("name")
+  const watchDescription = watch("description")
+  const watchPrice = watch("price")
+  const watchCompareAtPrice = watch("compareAtPrice")
+  const watchSku = watch("sku")
+  const watchStockQuantity = watch("stockQuantity")
   const watchIsActive = watch("isActive")
   const watchIsFeatured = watch("isFeatured")
   const watchTrackInventory = watch("trackInventory")
+  const watchCategoryId = watch("categoryId")
+
+  // All text/number fields are CONTROLLED — the React 19 `action={}`
+  // pathway resets uncontrolled inputs after every action submission,
+  // and controlled values survive that reset on validation errors.
+  // Empty number input → undefined (zod "required" message then applies);
+  // RHF's setValue types the field as required, hence the explicit cast.
+  const numberValue = (raw: string) => (raw === "" ? undefined : Number(raw))
 
   // Handle image upload
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,41 +195,70 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
     }
   }
 
-  // Submit form
-  const onSubmit = async (data: ProductFormData) => {
-    try {
-      const productData = {
-        name: data.name,
-        description: data.description || undefined,
-        price: data.price,
-        compareAtPrice: data.compareAtPrice || undefined,
-        sku: data.sku || undefined,
-        trackInventory: data.trackInventory,
-        stockQuantity: data.stockQuantity || 0,
-        images: images,
-        categoryId: data.categoryId || undefined,
-        isActive: data.isActive,
-        isFeatured: data.isFeatured,
+  // Submit form — React 19 `action={}` pathway (F1: E3-8 follow-up).
+  // Same contract as ServiceForm: FormData → zod safeParse → server action;
+  // on validation failure restore submitted values (React resets
+  // uncontrolled inputs after an action) and map issues to inline errors.
+  const [, formAction, isPending] = useActionState(
+    async (_prev: { ok: boolean } | null, formData: FormData) => {
+      const values = {
+        name: fdStr(formData, "name"),
+        description: fdOptStr(formData, "description"),
+        price: fdNum(formData, "price"),
+        compareAtPrice: fdNum(formData, "compareAtPrice"),
+        sku: fdOptStr(formData, "sku"),
+        trackInventory: fdBool(formData, "trackInventory"),
+        stockQuantity: fdNum(formData, "stockQuantity") ?? 0,
+        images: images.length > 0 ? images : undefined,
+        categoryId: fdOptStr(formData, "categoryId"),
+        isActive: fdBool(formData, "isActive"),
+        isFeatured: fdBool(formData, "isFeatured"),
       }
 
-      const result = isEditMode && product?.id
-        ? await updateProduct(product.id, productData)
-        : await createProduct(productData)
+      const schema = isEditMode ? updateProductSchema : createProductSchema
+      const parsed = schema.safeParse(values)
+      if (!parsed.success) {
+        // All fields are controlled, so nothing to restore — just surface
+        // the same schema issues inline (same slots as the old resolver).
+        const fieldErrors = zodIssuesToFieldErrors(parsed.error)
+        for (const [field, message] of Object.entries(fieldErrors)) {
+          setError(field as keyof ProductFormData, { message })
+        }
+        toast.error(
+          isEditMode ? t.products.updateFailed : t.products.createFailed
+        )
+        return { ok: false }
+      }
 
-      if (result.success) {
-        toast.success(isEditMode ? t.products.updateSuccess : t.products.createSuccess)
-        router.push("/dashboard/products")
-      } else {
+      try {
+        const result = isEditMode && product?.id
+          ? await updateProduct(product.id, {
+              ...parsed.data,
+              compareAtPrice: parsed.data.compareAtPrice ?? undefined,
+            })
+          : await createProduct({
+              ...parsed.data,
+              compareAtPrice: parsed.data.compareAtPrice ?? undefined,
+            })
+
+        if (result.success) {
+          toast.success(isEditMode ? t.products.updateSuccess : t.products.createSuccess)
+          router.push("/dashboard/products")
+          return { ok: true }
+        }
         toast.error(result.error || (isEditMode ? t.products.updateFailed : t.products.createFailed))
+        return { ok: false }
+      } catch (error) {
+        console.error("Submit error:", error)
+        toast.error(t.products.unexpectedError)
+        return { ok: false }
       }
-    } catch (error) {
-      console.error("Submit error:", error)
-      toast.error(t.products.unexpectedError)
-    }
-  }
+    },
+    null
+  )
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form action={formAction}>
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Form */}
         <div className="space-y-6 lg:col-span-2">
@@ -226,9 +273,11 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                 <Label htmlFor="name">{t.products.nameLabel}</Label>
                 <Input
                   id="name"
+                  name="name"
                   placeholder={t.products.namePlaceholder}
-                  {...register("name")}
-                  disabled={isSubmitting}
+                  value={watchName}
+                  onChange={(e) => setValue("name", e.target.value)}
+                  disabled={isPending}
                 />
                 {errors.name && (
                   <p className="text-destructive text-sm">
@@ -241,10 +290,12 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                 <Label htmlFor="description">{t.products.descriptionLabel}</Label>
                 <Textarea
                   id="description"
+                  name="description"
                   placeholder={t.products.descriptionPlaceholder}
                   rows={4}
-                  {...register("description")}
-                  disabled={isSubmitting}
+                  value={watchDescription ?? ""}
+                  onChange={(e) => setValue("description", e.target.value)}
+                  disabled={isPending}
                 />
               </div>
 
@@ -253,7 +304,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                 <Select
                   defaultValue={product?.categoryId || undefined}
                   onValueChange={(value) => setValue("categoryId", value)}
-                  disabled={isSubmitting}
+                  disabled={isPending}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={t.products.categoryPlaceholder} />
@@ -282,11 +333,18 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                   <Label htmlFor="price">{t.products.priceLabel}</Label>
                   <Input
                     id="price"
+                    name="price"
                     type="number"
                     step="0.01"
                     placeholder="28.00"
-                    {...register("price", { valueAsNumber: true })}
-                    disabled={isSubmitting}
+                    value={watchPrice ?? ""}
+                    onChange={(e) =>
+                      setValue(
+                        "price",
+                        numberValue(e.target.value) as unknown as number
+                      )
+                    }
+                    disabled={isPending}
                   />
                   {errors.price && (
                     <p className="text-destructive text-sm">
@@ -298,11 +356,18 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                   <Label htmlFor="compareAtPrice">{t.products.compareAtPriceLabel}</Label>
                   <Input
                     id="compareAtPrice"
+                    name="compareAtPrice"
                     type="number"
                     step="0.01"
                     placeholder="35.00"
-                    {...register("compareAtPrice", { valueAsNumber: true })}
-                    disabled={isSubmitting}
+                    value={watchCompareAtPrice ?? ""}
+                    onChange={(e) =>
+                      setValue(
+                        "compareAtPrice",
+                        numberValue(e.target.value) as unknown as number
+                      )
+                    }
+                    disabled={isPending}
                   />
                   <p className="text-xs text-muted-foreground">
                     {t.products.compareAtPriceHelp}
@@ -324,19 +389,28 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                   <Label htmlFor="sku">{t.products.skuLabel}</Label>
                   <Input
                     id="sku"
+                    name="sku"
                     placeholder="SHMP-001"
-                    {...register("sku")}
-                    disabled={isSubmitting}
+                    value={watchSku}
+                    onChange={(e) => setValue("sku", e.target.value)}
+                    disabled={isPending}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="stockQuantity">{t.products.stockQuantityLabel}</Label>
                   <Input
                     id="stockQuantity"
+                    name="stockQuantity"
                     type="number"
                     placeholder="50"
-                    {...register("stockQuantity", { valueAsNumber: true })}
-                    disabled={isSubmitting}
+                    value={watchStockQuantity ?? ""}
+                    onChange={(e) =>
+                      setValue(
+                        "stockQuantity",
+                        numberValue(e.target.value) as unknown as number
+                      )
+                    }
+                    disabled={isPending}
                   />
                 </div>
               </div>
@@ -350,7 +424,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                 <Switch
                   checked={watchTrackInventory}
                   onCheckedChange={(checked) => setValue("trackInventory", checked)}
-                  disabled={isSubmitting}
+                  disabled={isPending}
                 />
               </div>
             </CardContent>
@@ -432,6 +506,16 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
           </Card>
         </div>
 
+        {/* Mirrors for the React 19 action — controlled state has no DOM
+            input of its own, FormData needs explicit carriers. */}
+        <input type="hidden" name="categoryId" value={watchCategoryId ?? ""} />
+        <input type="hidden" name="trackInventory" value={String(watchTrackInventory)} />
+        <input type="hidden" name="isActive" value={String(watchIsActive)} />
+        <input type="hidden" name="isFeatured" value={String(watchIsFeatured)} />
+        {images.map((image) => (
+          <input key={image} type="hidden" name="images" value={image} />
+        ))}
+
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Status */}
@@ -450,7 +534,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                 <Switch
                   checked={watchIsActive}
                   onCheckedChange={(checked) => setValue("isActive", checked)}
-                  disabled={isSubmitting}
+                  disabled={isPending}
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -463,7 +547,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                 <Switch
                   checked={watchIsFeatured}
                   onCheckedChange={(checked) => setValue("isFeatured", checked)}
-                  disabled={isSubmitting}
+                  disabled={isPending}
                 />
               </div>
             </CardContent>
@@ -471,8 +555,8 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
 
           {/* Actions */}
           <div className="flex flex-col gap-2">
-            <Button type="submit" className="w-full" disabled={isSubmitting || isDeleting}>
-              {isSubmitting && (
+            <Button type="submit" className="w-full" disabled={isPending || isDeleting}>
+              {isPending && (
                 <SpinnerIcon size={16} className="mr-2 animate-spin" />
               )}
               {isEditMode ? t.products.updateButton : t.products.createButton}
@@ -482,7 +566,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
               variant="outline"
               className="w-full"
               onClick={() => router.push("/dashboard/products")}
-              disabled={isSubmitting || isDeleting}
+              disabled={isPending || isDeleting}
             >
               {t.common.actions.cancel}
             </Button>
@@ -492,7 +576,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                 variant="destructive"
                 className="w-full"
                 onClick={handleDelete}
-                disabled={isSubmitting || isDeleting}
+                disabled={isPending || isDeleting}
               >
                 {isDeleting ? (
                   <SpinnerIcon size={16} className="animate-spin" />
