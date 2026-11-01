@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { requireAdminOrg, requirePublicOrg } from "@/lib/tenant"
+import { formSnapshot, makeFormEntityKey } from "@/lib/config-history/logic"
+import { recordConfigChange } from "@/lib/config-history/record"
 import { validateFieldValues } from "@/lib/field-validation"
 import type { Prisma } from "@prisma/client"
 
@@ -283,13 +285,27 @@ export async function toggleFormDefinition(
   id: string,
   isActive: boolean
 ): Promise<{ ok: boolean }> {
-  const { org } = await requireAdminOrg()
+  const { org, session } = await requireAdminOrg()
   const def = await prisma.formDefinition.findFirst({
     where: { id, organizationId: org.id },
-    select: { id: true },
+    select: { id: true, key: true, name: true, fields: true, isActive: true },
   })
   if (!def) return { ok: false }
-  await prisma.formDefinition.update({ where: { id }, data: { isActive } })
+
+  // E2-5: config history — toggle is a config change with a snapshot.
+  const previous = formSnapshot({ name: def.name, fields: def.fields, isActive: def.isActive })
+  await prisma.$transaction(async (tx) => {
+    await tx.formDefinition.update({ where: { id: def.id }, data: { isActive } })
+    await recordConfigChange({
+      organizationId: org.id,
+      actorEmail: session.user.email ?? "",
+      entityKey: makeFormEntityKey(def.key),
+      action: "UPDATE",
+      previous,
+      next: { ...previous, isActive },
+      tx,
+    })
+  })
   revalidatePath("/dashboard/forms")
   return { ok: true }
 }
@@ -336,7 +352,7 @@ export async function updateFormDefinition(
   input: { name?: string; fields: unknown }
 ): Promise<UpdateFormResult> {
   try {
-    const { org } = await requireAdminOrg()
+    const { org, session } = await requireAdminOrg()
     const parsed = updateFormSchema.safeParse(input)
     if (!parsed.success) return { ok: false, error: "INVALID" }
 
@@ -354,17 +370,36 @@ export async function updateFormDefinition(
 
     const def = await prisma.formDefinition.findFirst({
       where: { id, organizationId: org.id },
-      select: { id: true, version: true },
+      select: { id: true, key: true, name: true, fields: true, isActive: true, version: true },
     })
     if (!def) return { ok: false, error: "NOT_FOUND" }
 
-    await prisma.formDefinition.update({
-      where: { id: def.id },
-      data: {
-        ...(name ? { name } : {}),
-        fields: fields as unknown as Prisma.InputJsonValue,
-        version: def.version + 1,
-      },
+    // E2-5: config history — snapshot before, new state after, in ONE tx.
+    const previous = formSnapshot({ name: def.name, fields: def.fields, isActive: def.isActive })
+    const next = {
+      name: name ?? def.name,
+      isActive: def.isActive,
+      fields: fields as unknown[],
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.formDefinition.update({
+        where: { id: def.id },
+        data: {
+          ...(name ? { name } : {}),
+          fields: fields as unknown as Prisma.InputJsonValue,
+          version: def.version + 1,
+        },
+      })
+      await recordConfigChange({
+        organizationId: org.id,
+        actorEmail: session.user.email ?? "",
+        entityKey: makeFormEntityKey(def.key),
+        action: "UPDATE",
+        previous,
+        next,
+        tx,
+      })
     })
 
     revalidatePath("/dashboard/forms")

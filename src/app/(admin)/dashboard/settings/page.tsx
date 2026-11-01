@@ -6,6 +6,7 @@ import { PaymentsSettings } from "@/components/dashboard/payments-settings"
 import { ProfileOverview } from "@/components/dashboard/profile-overview"
 import { ModulesConfigurator } from "@/components/dashboard/modules-configurator"
 import { ActivitiesCard } from "@/components/dashboard/activities-card"
+import { ConfigHistoryCard } from "@/components/dashboard/config-history-card"
 import { PublicationCard } from "@/components/dashboard/publication-card"
 import { PlanUsageCard } from "@/components/dashboard/plan-usage-card"
 import { DomainsCard } from "@/components/dashboard/domains-card"
@@ -90,6 +91,7 @@ export default async function SettingsPage({
         <div className="space-y-6">
           <ActivitiesCard />
           <ModulesConfigurator />
+          <ConfigHistoryCard />
         </div>
       }
       branding={<BrandingEditor />}

@@ -14,6 +14,12 @@ import {
   validateSecondaryVertical,
 } from "@/lib/profiles/secondary"
 import {
+  OVERRIDES_ENTITY_KEY,
+  overridesSnapshot,
+  type ConfigSnapshot,
+} from "@/lib/config-history/logic"
+import { recordConfigChange } from "@/lib/config-history/record"
+import {
   applyOverrides,
   OVERRIDES_VERSION,
   parseOverrides,
@@ -201,7 +207,7 @@ export async function updateOrgOverrides(
   input: z.input<typeof updateOverridesSchema>
 ): Promise<UpdateOverridesResult> {
   try {
-    const { org } = await requireAdminOrg()
+    const { org, session } = await requireAdminOrg()
     const parsed = updateOverridesSchema.safeParse(input)
     if (!parsed.success) return { ok: false, error: "INVALID" }
 
@@ -243,9 +249,29 @@ export async function updateOrgOverrides(
       ...(dashboardWidgets ? { dashboardWidgets } : {}),
     }
 
-    await prisma.organization.update({
-      where: { id: org.id },
-      data: { profileOverrides: nextOverrides },
+    // E2-5: append-only history — snapshot before/after in ONE transaction
+    // with the state change (never rewritten, revert appends a new version).
+    const previousOverrides = overridesSnapshot(
+      (await prisma.organization.findUnique({
+        where: { id: org.id },
+        select: { profileOverrides: true },
+      }))?.profileOverrides
+    )
+
+    await prisma.$transaction(async (tx) => {
+      await tx.organization.update({
+        where: { id: org.id },
+        data: { profileOverrides: nextOverrides },
+      })
+      await recordConfigChange({
+        organizationId: org.id,
+        actorEmail: session.user.email ?? "",
+        entityKey: OVERRIDES_ENTITY_KEY,
+        action: "UPDATE",
+        previous: previousOverrides,
+        next: nextOverrides as ConfigSnapshot,
+        tx,
+      })
     })
 
     revalidatePath("/dashboard", "layout")
@@ -260,10 +286,28 @@ export async function updateOrgOverrides(
 /** Remove all owner overrides — back to the shared profile defaults. */
 export async function resetOrgOverrides(): Promise<UpdateOverridesResult> {
   try {
-    const { org } = await requireAdminOrg()
-    await prisma.organization.update({
-      where: { id: org.id },
-      data: { profileOverrides: Prisma.DbNull },
+    const { org, session } = await requireAdminOrg()
+    const previousOverrides = overridesSnapshot(
+      (await prisma.organization.findUnique({
+        where: { id: org.id },
+        select: { profileOverrides: true },
+      }))?.profileOverrides
+    )
+
+    await prisma.$transaction(async (tx) => {
+      await tx.organization.update({
+        where: { id: org.id },
+        data: { profileOverrides: Prisma.DbNull },
+      })
+      await recordConfigChange({
+        organizationId: org.id,
+        actorEmail: session.user.email ?? "",
+        entityKey: OVERRIDES_ENTITY_KEY,
+        action: "RESET",
+        previous: previousOverrides,
+        next: null,
+        tx,
+      })
     })
     revalidatePath("/dashboard", "layout")
     revalidatePath("/dashboard")

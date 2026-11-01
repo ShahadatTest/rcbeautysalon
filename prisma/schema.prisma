@@ -69,6 +69,11 @@ model Organization {
   // terminology. Validated by src/lib/profiles/secondary.ts before any write.
   secondaryVertical String?
 
+  // Configuration history (EPIC #2 E2-5, G5): append-only audit of config
+  // changes (profile overrides, form/workflow definitions). A revert NEVER
+  // rewrites or deletes history — it appends a NEW version entry.
+  configChangeLogs ConfigChangeLog[]
+
   // Publication lifecycle (EPIC #3 E3-1): DRAFT sites are private (visible to
   // the owner as a preview, maintenance page for everyone else). Default
   // PUBLISHED preserves the pre-E3-1 behavior for existing tenants verbatim;
@@ -1211,4 +1216,33 @@ model ProjectTask {
   @@index([organizationId])
   @@index([projectId])
   @@index([projectId, position])
+}
+
+// ============================================================
+// CONFIG CHANGE LOG (EPIC #2 E2-5, G5) — append-only history of
+// tenant configuration edits: profile overrides, form definitions
+// and workflow definitions. Every change appends ONE row with the
+// previous/next JSON snapshot and a per-org+entity monotonic
+// version. A revert NEVER rewrites or deletes history — it
+// applies an old snapshot and appends a NEW version entry
+// (audit trail stays intact, §5/§6/§11).
+// entityKey: "profileOverrides" | "form:{formKey}" | "workflow:{workflowKey}"
+// ============================================================
+model ConfigChangeLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  entityKey      String
+  version        Int // monotonic per (organizationId, entityKey), starts at 1
+  actorEmail     String // authenticated owner/admin who made the change
+  action         String // UPDATE | RESET | REVERT
+  summary        String? // short human-readable description (owner's locale)
+  previous       Json? // snapshot BEFORE the change (null on first entry)
+  next           Json? // snapshot AFTER the change (this is what revert restores)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, entityKey, version])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, entityKey])
 }

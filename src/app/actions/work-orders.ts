@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { requireAdminOrg } from "@/lib/tenant"
+import { makeWorkflowEntityKey, workflowSnapshot } from "@/lib/config-history/logic"
+import { recordConfigChange } from "@/lib/config-history/record"
 
 // ============================================================
 // WORK ORDERS (EPIC #1 §9 — universal workflow engine, Phase 4)
@@ -594,7 +596,7 @@ export async function updateWorkflowStages(
   stages: StageInput[]
 ): Promise<UpdateStagesResult> {
   try {
-    const { org } = await requireAdminOrg()
+    const { org, session } = await requireAdminOrg()
 
     // Basic shape validation.
     const clean = stages
@@ -709,6 +711,22 @@ export async function updateWorkflowStages(
       await tx.workflowDefinition.update({
         where: { id: definition.id },
         data: { version: { increment: 1 } },
+      })
+
+      // 5. E2-5: append-only config history — previous snapshot (pre-read
+      //    definition with stages) + the NEW state read inside the same tx.
+      const afterStages = await tx.workflowStage.findMany({
+        where: { definitionId: definition.id },
+        orderBy: { order: "asc" },
+      })
+      await recordConfigChange({
+        organizationId: org.id,
+        actorEmail: session.user.email ?? "",
+        entityKey: makeWorkflowEntityKey(definition.key),
+        action: "UPDATE",
+        previous: workflowSnapshot({ name: definition.name, stages: definition.stages }),
+        next: workflowSnapshot({ name: definition.name, stages: afterStages }),
+        tx,
       })
     })
 
