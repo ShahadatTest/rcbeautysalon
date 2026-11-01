@@ -9,6 +9,13 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Logo } from "@/components/ui/logo"
 import {
   ArrowLeftIcon,
@@ -56,6 +63,7 @@ export function StartWizard() {
 
   // Step 1 — vertical & palette
   const [vertical, setVertical] = useState<string | null>(null)
+  const [secondary, setSecondary] = useState<string | null>(null)
   const [palette, setPalette] = useState<string | null>(null)
 
   // Step 2 — salon details
@@ -118,6 +126,8 @@ export function StartWizard() {
 
   function selectVertical(id: string) {
     setVertical(id)
+    // Secondary must always differ from the primary (E2-4) — reset on change.
+    setSecondary((prev) => (prev === id ? null : prev))
     const preset = ACTIVITY_OPTIONS.find((v) => v.id === id)
     if (preset) setPalette(preset.palette)
   }
@@ -194,6 +204,7 @@ export function StartWizard() {
         name: name.trim(),
         slug: slug.trim(),
         vertical: vertical!,
+        secondaryVertical: secondary,
         palette: palette!,
         ownerName: ownerName.trim(),
         email: email.trim(),
@@ -336,6 +347,39 @@ export function StartWizard() {
                   </button>
                 )
               })}
+            </div>
+
+            {/* Secondary activity (E2-4): optional capability union — the primary
+                activity keeps terminology, forms, workflows and site content. */}
+            <div className="mt-8 rounded-xl border bg-muted/30 p-4 sm:p-5">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <h2 className="text-sm font-semibold">Dodatna dejavnost (neobvezno)</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Izberite še drugo dejavnost — moduli obeh se združijo (npr. vulkanizer + trgovina).
+                    Jezik, obrazci in vsebina strani ostanejo od prve dejavnosti.
+                  </p>
+                </div>
+                <div className="mt-3 shrink-0 sm:mt-0 sm:w-64">
+                  <Select
+                    value={secondary ?? "none"}
+                    onValueChange={(v) => setSecondary(v === "none" ? null : v)}
+                    disabled={!vertical}
+                  >
+                    <SelectTrigger aria-label="Dodatna dejavnost">
+                      <SelectValue placeholder="Izberite dodatno dejavnost" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Brez dodatne dejavnosti</SelectItem>
+                      {ACTIVITY_OPTIONS.filter((v) => v.id !== vertical).map((v) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
           </section>
         )}

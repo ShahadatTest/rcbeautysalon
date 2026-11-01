@@ -5,6 +5,7 @@ import { BrandingEditor } from "@/components/dashboard/branding-editor"
 import { PaymentsSettings } from "@/components/dashboard/payments-settings"
 import { ProfileOverview } from "@/components/dashboard/profile-overview"
 import { ModulesConfigurator } from "@/components/dashboard/modules-configurator"
+import { ActivitiesCard } from "@/components/dashboard/activities-card"
 import { PublicationCard } from "@/components/dashboard/publication-card"
 import { PlanUsageCard } from "@/components/dashboard/plan-usage-card"
 import { DomainsCard } from "@/components/dashboard/domains-card"
@@ -85,7 +86,12 @@ export default async function SettingsPage({
           <SettingsForm initialSettings={settings} />
         </div>
       }
-      modules={<ModulesConfigurator />}
+      modules={
+        <div className="space-y-6">
+          <ActivitiesCard />
+          <ModulesConfigurator />
+        </div>
+      }
       branding={<BrandingEditor />}
       payments={<PaymentsSettings />}
       domains={

@@ -14,6 +14,23 @@ export const settingsSl = {
     extensions: "Razširitve",
     customized: "prilagojeno",
   },
+  activities: {
+    title: "Dejavnosti",
+    description:
+      "Primarna dejavnost določa jezik, obrazce, procese in vsebino strani. Dodatna dejavnost (neobvezno) zgolj razširi module — npr. vulkanizer + trgovina.",
+    primary: "Primarna dejavnost",
+    secondary: "Dodatna dejavnost",
+    secondaryNone: "Brez dodatne dejavnosti",
+    secondaryPlaceholder: "Izberite dodatno dejavnost",
+    addsLabel: "Dodatna dejavnost omogoča:",
+    loadError: "Dejavnosti ni bilo mogoče naložiti.",
+    saved: "Dejavnosti so shranjene.",
+    invalid: "Neveljavna izbira.",
+    unknownProfile: "Neznana dejavnost.",
+    sameProfile: "Dodatna dejavnost mora biti različna od primarne.",
+    restricted: "Ta kombinacija dejavnosti ni dovoljena.",
+    error: "Napaka pri shranjevanju. Poskusite znova.",
+  },
   plan: {
     title: "Paket in raba",
     description:
@@ -455,6 +472,23 @@ export const settingsEn: SettingsDict = {
     fieldsCount: "fields",
     extensions: "Extensions",
     customized: "customized",
+  },
+  activities: {
+    title: "Activities",
+    description:
+      "The primary activity defines language, forms, workflows and site content. An optional secondary activity only widens the module set — e.g. tire service + shop.",
+    primary: "Primary activity",
+    secondary: "Secondary activity",
+    secondaryNone: "No secondary activity",
+    secondaryPlaceholder: "Choose a secondary activity",
+    addsLabel: "The secondary activity enables:",
+    loadError: "Could not load the activities.",
+    saved: "Activities saved.",
+    invalid: "Invalid selection.",
+    unknownProfile: "Unknown activity.",
+    sameProfile: "The secondary activity must differ from the primary.",
+    restricted: "This activity combination is not allowed.",
+    error: "Saving failed. Please try again.",
   },
   plan: {
     title: "Plan and usage",

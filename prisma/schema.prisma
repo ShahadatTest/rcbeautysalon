@@ -63,6 +63,12 @@ model Organization {
   profileVersion   String?
   profileOverrides Json?
 
+  // Secondary activity (EPIC #2 E2-4, G4): optional second activity profile id.
+  // Capability UNION (primary ∪ secondary) while the PRIMARY profile stays the
+  // owner of terminology, forms, workflows and site content — no "ugly" merged
+  // terminology. Validated by src/lib/profiles/secondary.ts before any write.
+  secondaryVertical String?
+
   // Publication lifecycle (EPIC #3 E3-1): DRAFT sites are private (visible to
   // the owner as a preview, maintenance page for everyone else). Default
   // PUBLISHED preserves the pre-E3-1 behavior for existing tenants verbatim;

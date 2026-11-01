@@ -22,6 +22,7 @@ export default async function AdminLayout({
     <AdminI18nProvider
       initialLocale={locale}
       profileId={profileId}
+      secondaryVertical={org?.secondaryVertical}
       profileOverrides={org?.profileOverrides}
     >
       <div className="admin-sans-headings flex h-screen overflow-hidden bg-background">

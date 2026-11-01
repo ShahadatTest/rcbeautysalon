@@ -5,8 +5,14 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { Prisma } from "@prisma/client"
 import { requireAdminOrg } from "@/lib/tenant"
-import { getProfile } from "@/lib/profiles/registry"
+import { getProfile, listProfileOptions } from "@/lib/profiles/registry"
 import { EXTENSIONS } from "@/lib/profiles/extensions"
+import {
+  applySecondaryProfile,
+  secondaryContribution,
+  secondaryVerticalSchema,
+  validateSecondaryVertical,
+} from "@/lib/profiles/secondary"
 import {
   applyOverrides,
   OVERRIDES_VERSION,
@@ -75,6 +81,8 @@ export interface OrgProfileOverview {
   adjustableCapabilities: string[]
   /** Currently selected dashboard widgets (effective). */
   dashboardWidgets: DashboardWidgetKey[]
+  /** Secondary activity (E2-4), if any — primary stays terminology owner. */
+  secondaryVertical: { id: string; label: string } | null
 }
 
 /**
@@ -84,7 +92,9 @@ export interface OrgProfileOverview {
 export async function getOrgProfileOverview(): Promise<OrgProfileOverview | { error: string }> {
   try {
     const { org } = await requireAdminOrg()
-    const baseProfile = getProfile(org.vertical)
+    // Base for capability/widget validation = shared profile + secondary-activity
+    // union (E2-4) — BEFORE owner overrides, mirroring the resolver order.
+    const baseProfile = applySecondaryProfile(getProfile(org.vertical), org.secondaryVertical)
     const overrides = parseOverrides(org.profileOverrides)
     const profile = applyOverrides(baseProfile, overrides)
 
@@ -151,6 +161,11 @@ export async function getOrgProfileOverview(): Promise<OrgProfileOverview | { er
         Object.keys(baseProfile.capabilities) as CapabilityKey[]
       ).filter((k) => baseProfile.capabilities[k] === "optional"),
       dashboardWidgets: profile.dashboardWidgets,
+      secondaryVertical:
+        org.secondaryVertical &&
+        validateSecondaryVertical(org.vertical, org.secondaryVertical) === "OK"
+          ? { id: org.secondaryVertical, label: getProfile(org.secondaryVertical).label }
+          : null,
     }
   } catch (error) {
     console.error("getOrgProfileOverview error:", error)
@@ -190,7 +205,10 @@ export async function updateOrgOverrides(
     const parsed = updateOverridesSchema.safeParse(input)
     if (!parsed.success) return { ok: false, error: "INVALID" }
 
-    const baseProfile = getProfile(org.vertical)
+    // Validation base = shared profile + secondary-activity union (E2-4):
+    // a capability that is only "optional" via the secondary activity is
+    // still owner-adjustable here.
+    const baseProfile = applySecondaryProfile(getProfile(org.vertical), org.secondaryVertical)
 
     // Capability validation against the shared profile.
     const capabilityStates: Partial<Record<CapabilityKey, CapabilityState>> = {}
@@ -252,6 +270,88 @@ export async function resetOrgOverrides(): Promise<UpdateOverridesResult> {
     return { ok: true }
   } catch (error) {
     console.error("resetOrgOverrides error:", error)
+    return { ok: false, error: "GENERIC" }
+  }
+}
+
+// ------------------------------------------------------------
+// Secondary activity (EPIC #2 E2-4 — G4) — union of capabilities,
+// primary stays the owner of terminology/forms/workflows/site.
+// ------------------------------------------------------------
+
+export interface OrgActivitiesInfo {
+  primaryId: string
+  primaryLabel: string
+  secondaryId: string | null
+  secondaryLabel: string | null
+  /** Selectable secondary options = every other registered profile. */
+  options: { id: string; label: string; description: string; palette: string }[]
+  /** What the current secondary ADDS to the primary (for the UI hint). */
+  contribution: { capabilities: string[]; extensions: string[] }
+}
+
+/** Current primary/secondary activities + selectable options for the settings card. */
+export async function getOrgActivities(): Promise<OrgActivitiesInfo | { error: string }> {
+  try {
+    const { org } = await requireAdminOrg()
+    const primary = getProfile(org.vertical)
+    const options = listProfileOptions()
+      .filter((p) => p.id !== primary.id)
+      .map((p) => ({ id: p.id, label: p.label, description: p.description, palette: p.palette }))
+    const validSecondary =
+      org.secondaryVertical &&
+      validateSecondaryVertical(org.vertical, org.secondaryVertical) === "OK"
+    const contribution = secondaryContribution(primary, org.secondaryVertical)
+    return {
+      primaryId: primary.id,
+      primaryLabel: primary.label,
+      secondaryId: validSecondary ? org.secondaryVertical! : null,
+      secondaryLabel: validSecondary
+        ? getProfile(org.secondaryVertical!).label
+        : null,
+      options,
+      contribution: {
+        capabilities: contribution.capabilities,
+        extensions: contribution.extensions,
+      },
+    }
+  } catch (error) {
+    console.error("getOrgActivities error:", error)
+    return { error: "Dejavnosti ni bilo mogoče naložiti." }
+  }
+}
+
+const setSecondaryVerticalSchema = z.object({
+  secondaryVertical: secondaryVerticalSchema,
+})
+
+/**
+ * Set (or clear) the org's secondary activity. The combination is
+ * validated against the pure rules in src/lib/profiles/secondary.ts —
+ * same rules the onboarding flow enforces, so both write paths share
+ * one contract. Fail-safe codes are mapped to bilingual text in the UI.
+ */
+export async function setOrgSecondaryVertical(
+  input: z.input<typeof setSecondaryVerticalSchema>
+): Promise<UpdateOverridesResult> {
+  try {
+    const { org } = await requireAdminOrg()
+    const parsed = setSecondaryVerticalSchema.safeParse(input)
+    if (!parsed.success) return { ok: false, error: "INVALID" }
+
+    const code = validateSecondaryVertical(org.vertical, parsed.data.secondaryVertical)
+    if (code !== "OK") return { ok: false, error: code }
+
+    await prisma.organization.update({
+      where: { id: org.id },
+      data: { secondaryVertical: parsed.data.secondaryVertical },
+    })
+
+    revalidatePath("/dashboard", "layout")
+    revalidatePath("/dashboard")
+    return { ok: true }
+  } catch (error) {
+    console.error("setOrgSecondaryVertical error:", error)
     return { ok: false, error: "GENERIC" }
   }
 }

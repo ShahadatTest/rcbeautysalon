@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma"
 import { isReservedSlug, isSlugAvailable, slugify } from "@/lib/tenant"
 import { PALETTES, seedOrganizationCatalog, verticalSiteContent, getVertical } from "@/lib/verticals"
 import { listProfileOptions } from "@/lib/profiles/registry"
+import { validateSecondaryVertical } from "@/lib/profiles/secondary"
 import { materializeProfileAssets } from "@/lib/profiles/materialize"
 import { PALETTE_OPTIONS } from "@/lib/palettes-client"
 
@@ -13,6 +14,8 @@ export interface CreateSalonInput {
   name: string
   slug: string
   vertical: string
+  /** Optional secondary activity (E2-4): capability union, primary keeps terminology. */
+  secondaryVertical: string | null
   palette: string
   ownerName: string
   email: string
@@ -68,6 +71,20 @@ export async function createSalonOrganization(input: CreateSalonInput): Promise<
       return { success: false, error: "Izberite veljavno dejavnost." }
     }
 
+    // Secondary activity (E2-4): same pure rules as the settings action —
+    // unknown ids and same-as-primary are rejected before any write.
+    const secondaryCode = validateSecondaryVertical(input.vertical, input.secondaryVertical)
+    if (secondaryCode === "UNKNOWN_PROFILE") {
+      return { success: false, error: "Izberite veljavno dodatno dejavnost." }
+    }
+    if (secondaryCode === "SAME_PROFILE") {
+      return {
+        success: false,
+        error: "Dodatna dejavnost mora biti različna od primarne dejavnosti.",
+      }
+    }
+    const secondaryVertical = input.secondaryVertical || null
+
     const palette = PALETTES[input.palette] ? input.palette : undefined
     if (!palette) {
       return { success: false, error: "Izberite veljavno barvno paleto." }
@@ -100,7 +117,14 @@ export async function createSalonOrganization(input: CreateSalonInput): Promise<
     // New tenants start UNPUBLISHED (EPIC #3 E3-1): the site is a private
     // owner preview until they publish it from Settings.
     const org = await prisma.organization.create({
-      data: { slug, name, vertical: profile.id, palette, publishState: "DRAFT" },
+      data: {
+        slug,
+        name,
+        vertical: profile.id,
+        secondaryVertical,
+        palette,
+        publishState: "DRAFT",
+      },
     })
 
     let userId: string | null = null
@@ -138,7 +162,12 @@ export async function createSalonOrganization(input: CreateSalonInput): Promise<
       userId = user.id
       const staffId = user.staff?.id
 
-      // Sample categories + services + products for the chosen activity
+      // Sample categories + services + products for the chosen activity.
+      // NOTE (E2-4): catalog seeds, forms/workflows materialization and the
+      // site content snapshot remain PRIMARY-only — the secondary activity
+      // contributes capability modules (the union), never duplicated
+      // terminology or definitions. The owner can add catalog items of the
+      // second activity manually in the shared modules.
       await seedOrganizationCatalog(org.id, profile.id)
 
       // Materialize profile-owned definitions (forms + workflows) so the

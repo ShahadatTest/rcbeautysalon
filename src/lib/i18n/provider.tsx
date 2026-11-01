@@ -13,6 +13,7 @@ import { LOCALE_COOKIE, Locale, localeLabels, locales } from "./config"
 import { Dictionary, getDictionary } from "./dictionaries"
 import { getProfile, term as profileTerm } from "@/lib/profiles/registry"
 import { applyOverrides, parseOverrides } from "@/lib/profiles/overrides"
+import { applySecondaryProfile } from "@/lib/profiles/secondary"
 import type { ActivityProfile } from "@/lib/profiles/types"
 
 interface I18nContextValue {
@@ -31,6 +32,8 @@ interface AdminI18nProviderProps {
   initialLocale: Locale
   /** Activity profile id of the current tenant's organization. */
   profileId?: string
+  /** Optional secondary activity id (E2-4 capability union). */
+  secondaryVertical?: string | null
   /** Owner overrides JSON stored on the organization (Phase 5). */
   profileOverrides?: unknown
   children: React.ReactNode
@@ -39,6 +42,7 @@ interface AdminI18nProviderProps {
 export function AdminI18nProvider({
   initialLocale,
   profileId,
+  secondaryVertical,
   profileOverrides,
   children,
 }: AdminI18nProviderProps) {
@@ -60,11 +64,10 @@ export function AdminI18nProvider({
   )
 
   const value = useMemo<I18nContextValue>(() => {
-    // Effective profile: shared profile + owner overrides (Phase 5).
-    const profile = applyOverrides(
-      getProfile(profileId),
-      parseOverrides(profileOverrides)
-    )
+    // Effective profile: shared profile + secondary-activity union (E2-4)
+    // + owner overrides (Phase 5) — same order as the server resolver.
+    const withSecondary = applySecondaryProfile(getProfile(profileId), secondaryVertical)
+    const profile = applyOverrides(withSecondary, parseOverrides(profileOverrides))
     return {
       locale,
       t: getDictionary(locale),
@@ -72,7 +75,7 @@ export function AdminI18nProvider({
       term: (key) => profileTerm(profile, key, locale),
       setLocale,
     }
-  }, [locale, setLocale, profileId, profileOverrides])
+  }, [locale, setLocale, profileId, secondaryVertical, profileOverrides])
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
 }
