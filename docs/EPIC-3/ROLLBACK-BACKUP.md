@@ -64,3 +64,25 @@
 4. Komuniciraj najemnikom (sprememba je vidna le kot vzdrževalna stran
    — podatki nikoli ne izginejo: grace politika, docs/EPIC-3/GRACE-POLICY.md).
 5. Post-incident: dopiši dnevnik odločitev v PLAN.md.
+
+## 6. Priprava na opozorila (E4-5 — §13 spremljanje, napake in operativna opozorila)
+
+### 6.1 Končne točke za zdravje (zdravstveni končni točki)
+
+| Končna točka | Dostop | Vsebina | Namen |
+|---|---|---|---|
+| `GET /api/health` | javen | `status:"ok"`, različica, commit, časovni žig — **brez DB, brez občutljivih podatkov** | zunanji spremljevalnik razpoložljivosti (odgovor < 200 ms; odsoten/časovno omejen odgovor = signal napake) |
+| `GET /api/health/internal` | samo operater (`PLATFORM_ADMIN_EMAILS`, fail-closed) | `status: ok\|degraded`, DB ping (ms), stanje migracij (`_prisma_migrations`: aplicirano/nedokončano/najnovejše), števci napak webhookov (24 h / 7 dni / po razlogih) | resnično stanje za operaterja; nič občutljivega (nobenih payloadov, e-pošte ali sporočil napak DB — tveganje povezovalnega niza) |
+
+**Odločitev o statusu (čista funkcija `healthStatusFor`, prag 20/24 h):** `degraded`, kadar je DB nedosegljiva **ali** obstaja nedokončana migracija **ali** so napake webhookov ≥ 20/24 h. Prag je konstanta v kodi (`WEBHOOK_FAILURE_ALERT_THRESHOLD`) — ista številka je vidna v `/platform` Analitika.
+
+### 6.2 Kaj priključiti na opozorila (ko se platforma skalira)
+
+1. **Zunanji monitor razpoložljivosti** (npr. UptimeRobot / Better Stack / Vercel Observability): interval 5 min na `GET /api/health`, opozorilo ob != 200 ali > 2 s. To je edini signal, ki ga je mogoče avtomatizirati brez prijave — notranja končna točka ostane fail-closed (prijava operaterja), po mnenju načrta namenoma brez dodatnega skrivnega žetona.
+2. **Napake webhookov**: prag — opozorilo, ko `webhookFailures.last24h >= 20` (notranja končna točka ali ploščica na `/platform`). Vzrok je skoraj vedo napačno konfiguriran endpoint v Stripe računu najemnika (glej razloge v dnevniku napak na `/platform`).
+3. **Migracije**: `migrations.unfinished > 0` = deploy ni zaključen (Vercel build poganja `prisma migrate deploy` — neuspel build pomeni, da je ohranjen zadnji delujoč deployment, §3). Preveri Vercel build log.
+4. **Baza**: Neon nadzorna plošča (poraba, PITR ohranjenost) + §1 postopki.
+
+### 6.3 Razlaga števcev napak webhookov (razlogi)
+
+`missing_signature` (anonimen poskus brez podpisa — pričakovano ob spamu), `not_configured` (platformni sloj brez skrivnosti), `signature_invalid` (napačna skrivnost / podpisan drug vsebina — preveri endpoint v Stripe), `no_tenant_scope` (dogodek brez prepoznavnega najemnika — preveri metadata orgId), `processing_error` (napaka pri apliciranju — glej podrobnosti v dnevniku `/platform`). Ponovno pošiljanje VARNO prek Stripe Resend (idempotenca ostaja; platforma nikoli ne ponovi surovih payloadov — E4-3).
