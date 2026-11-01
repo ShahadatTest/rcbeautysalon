@@ -100,6 +100,7 @@ export function ServiceForm({
     setValue,
     watch,
     setError,
+    clearErrors,
     formState: { errors },
   } = useForm<ServiceFormData>({
     defaultValues: {
@@ -144,6 +145,8 @@ export function ServiceForm({
     const name = e.target.value
     setValue("name", name)
     setValue("slug", generateSlug(name))
+    clearErrors("name")
+    clearErrors("slug")
   }
 
   // Handle image upload
@@ -341,7 +344,10 @@ export function ServiceForm({
                   name="slug"
                   placeholder={t.services.slugPlaceholder}
                   value={watchSlug}
-                  onChange={(e) => setValue("slug", e.target.value)}
+                  onChange={(e) => {
+                    setValue("slug", e.target.value)
+                    clearErrors("slug")
+                  }}
                   disabled={isPending}
                 />
                 <p className="text-muted-foreground text-xs">
@@ -362,7 +368,10 @@ export function ServiceForm({
                   placeholder={t.services.descriptionPlaceholder}
                   rows={4}
                   value={watchDescription ?? ""}
-                  onChange={(e) => setValue("description", e.target.value)}
+                  onChange={(e) => {
+                    setValue("description", e.target.value)
+                    clearErrors("description")
+                  }}
                   disabled={isPending}
                 />
               </div>
@@ -376,12 +385,13 @@ export function ServiceForm({
                     type="number"
                     placeholder="60"
                     value={watchDuration ?? ""}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setValue(
                         "duration",
                         numberValue(e.target.value) as unknown as number
                       )
-                    }
+                      clearErrors("duration")
+                    }}
                     disabled={isPending}
                   />
                   {errors.duration && (
@@ -399,12 +409,13 @@ export function ServiceForm({
                     step="0.01"
                     placeholder="85.00"
                     value={watchPrice ?? ""}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setValue(
                         "price",
                         numberValue(e.target.value) as unknown as number
                       )
-                    }
+                      clearErrors("price")
+                    }}
                     disabled={isPending}
                   />
                   {errors.price && (

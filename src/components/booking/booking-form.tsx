@@ -75,6 +75,7 @@ export function BookingForm(props: BookingFormProps) {
     control,
     setValue,
     setError,
+    clearErrors,
     formState: { errors },
   } = useForm<BookingFormValues>({
     mode: "onChange",
@@ -104,7 +105,10 @@ export function BookingForm(props: BookingFormProps) {
   const setCustomerField = (
     field: keyof typeof customerValues,
     value: string
-  ) => setValue(field, value)
+  ) => {
+    setValue(field, value)
+    clearErrors(field)
+  }
 
   // Handle service selection in staff-first mode
   const handleServiceSelect = (serviceId: string) => {
@@ -251,9 +255,10 @@ export function BookingForm(props: BookingFormProps) {
               <StaffStep
                 availableStaff={props.availableStaff}
                 selectedStaffId={staffId}
-                onSelectStaff={(id) =>
+                onSelectStaff={(id) => {
                   setValue("staffId", id, { shouldValidate: true })
-                }
+                  clearErrors("staffId")
+                }}
                 error={errors.staffId?.message}
               />
             </>
@@ -271,6 +276,7 @@ export function BookingForm(props: BookingFormProps) {
               // selection instead of losing it.
               const nextDate = date ?? selectedDate
               setValue("date", nextDate, { shouldValidate: true })
+              clearErrors("date")
               // BUGFIX: clear a stale time when the day changes — otherwise
               // the summary shows an old time and submit would send a slot
               // that does not exist on the newly picked day.
@@ -278,9 +284,10 @@ export function BookingForm(props: BookingFormProps) {
                 setValue("time", "")
               }
             }}
-            onSelectTime={(time) =>
+            onSelectTime={(time) => {
               setValue("time", time, { shouldValidate: true })
-            }
+              clearErrors("time")
+            }}
             resources={resources}
             selectedResourceId={selectedResourceId}
             onSelectResource={(id) => {

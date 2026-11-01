@@ -80,6 +80,7 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
     setValue,
     watch,
     setError,
+    clearErrors,
     formState: { errors },
   } = useForm<ProductFormData>({
     defaultValues: {
@@ -276,7 +277,10 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                   name="name"
                   placeholder={t.products.namePlaceholder}
                   value={watchName}
-                  onChange={(e) => setValue("name", e.target.value)}
+                  onChange={(e) => {
+                    setValue("name", e.target.value)
+                    clearErrors("name")
+                  }}
                   disabled={isPending}
                 />
                 {errors.name && (
@@ -294,7 +298,10 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                   placeholder={t.products.descriptionPlaceholder}
                   rows={4}
                   value={watchDescription ?? ""}
-                  onChange={(e) => setValue("description", e.target.value)}
+                  onChange={(e) => {
+                    setValue("description", e.target.value)
+                    clearErrors("description")
+                  }}
                   disabled={isPending}
                 />
               </div>
@@ -338,12 +345,13 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                     step="0.01"
                     placeholder="28.00"
                     value={watchPrice ?? ""}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setValue(
                         "price",
                         numberValue(e.target.value) as unknown as number
                       )
-                    }
+                      clearErrors("price")
+                    }}
                     disabled={isPending}
                   />
                   {errors.price && (
@@ -361,12 +369,13 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                     step="0.01"
                     placeholder="35.00"
                     value={watchCompareAtPrice ?? ""}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setValue(
                         "compareAtPrice",
                         numberValue(e.target.value) as unknown as number
                       )
-                    }
+                      clearErrors("compareAtPrice")
+                    }}
                     disabled={isPending}
                   />
                   <p className="text-xs text-muted-foreground">
@@ -392,7 +401,10 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                     name="sku"
                     placeholder="SHMP-001"
                     value={watchSku}
-                    onChange={(e) => setValue("sku", e.target.value)}
+                    onChange={(e) => {
+                      setValue("sku", e.target.value)
+                      clearErrors("sku")
+                    }}
                     disabled={isPending}
                   />
                 </div>
@@ -404,12 +416,13 @@ export function ProductForm({ categories, product, mode = "create" }: ProductFor
                     type="number"
                     placeholder="50"
                     value={watchStockQuantity ?? ""}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setValue(
                         "stockQuantity",
                         numberValue(e.target.value) as unknown as number
                       )
-                    }
+                      clearErrors("stockQuantity")
+                    }}
                     disabled={isPending}
                   />
                 </div>
