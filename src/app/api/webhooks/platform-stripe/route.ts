@@ -32,12 +32,20 @@ import {
   subscriptionUpdateFromSnapshot,
   type SubscriptionSnapshot,
 } from "@/lib/payments/subscription-state"
+import { recordPlatformWebhookFailure } from "@/lib/platform/webhook-failure-recorder"
 
 export async function POST(req: Request) {
   const body = await req.text()
   const signature = (await headers()).get("stripe-signature")
 
   if (!signature) {
+    // E4-3: every failure is recorded (§10) — never silently dropped.
+    // Unverified bodies are stored only as a truncated diagnostic
+    // snippet; no id/type is ever parsed out of them.
+    await recordPlatformWebhookFailure({
+      reason: "missing_signature",
+      payload: body,
+    })
     return NextResponse.json({ error: "No signature" }, { status: 400 })
   }
 
@@ -47,6 +55,10 @@ export async function POST(req: Request) {
   const stripe = getPlatformStripeClient()
   if (!secret || !stripe) {
     console.error("[platform-billing] webhook received but platform billing is not configured")
+    await recordPlatformWebhookFailure({
+      reason: "not_configured",
+      payload: body,
+    })
     return NextResponse.json({ error: "Platform billing not configured" }, { status: 400 })
   }
 
@@ -58,6 +70,11 @@ export async function POST(req: Request) {
       "[platform-billing] signature verification failed:",
       err instanceof Error ? err.message : err
     )
+    await recordPlatformWebhookFailure({
+      reason: "signature_invalid",
+      detail: err instanceof Error ? err.message : String(err),
+      payload: body,
+    })
     return NextResponse.json({ error: "Webhook signature verification failed" }, { status: 400 })
   }
 
@@ -82,12 +99,19 @@ export async function POST(req: Request) {
     }
   } catch (err) {
     // Duplicate replays short-circuit via the unique event id —
-    // anything else is logged for ops; the guarded applies are
-    // replay-safe, so a manual resend from the dashboard is safe.
+    // anything else is logged AND recorded (E4-3) for ops; the guarded
+    // applies are replay-safe, so a manual resend from the dashboard
+    // is safe.
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return NextResponse.json({ received: true, duplicate: true })
     }
     console.error(`[platform-billing] error processing ${event.type}:`, err)
+    await recordPlatformWebhookFailure({
+      reason: "processing_error",
+      stripeEventId: event.id,
+      type: event.type,
+      detail: err instanceof Error ? err.message : String(err),
+    })
     return NextResponse.json({ error: "Processing failed" }, { status: 500 })
   }
 
@@ -135,6 +159,12 @@ async function handleCheckoutCompleted(event: Stripe.Event) {
   const orgId = await resolveOrgId(metadata?.orgId, session.subscription as string | null)
   if (!orgId) {
     console.error(`[platform-billing] checkout session ${session.id}: no tenant scoping, skipping`)
+    await recordPlatformWebhookFailure({
+      reason: "no_tenant_scope",
+      stripeEventId: event.id,
+      type: event.type,
+      detail: `checkout session ${session.id} has no resolvable tenant (metadata orgId: ${metadata?.orgId ?? "none"})`,
+    })
     return
   }
 
@@ -194,6 +224,12 @@ async function handleSubscriptionEvent(event: Stripe.Event) {
   const orgId = await resolveOrgId(sub.metadata?.orgId, snapshot.stripeSubscriptionId)
   if (!orgId) {
     console.error(`[platform-billing] subscription ${sub.id}: no tenant scoping, skipping`)
+    await recordPlatformWebhookFailure({
+      reason: "no_tenant_scope",
+      stripeEventId: event.id,
+      type: event.type,
+      detail: `subscription ${sub.id} has no resolvable tenant (metadata orgId: ${sub.metadata?.orgId ?? "none"})`,
+    })
     return
   }
 
@@ -271,6 +307,12 @@ async function handleInvoiceEvent(event: Stripe.Event) {
   const orgId = await resolveOrgId(metadataOrgId, subscriptionId)
   if (!orgId) {
     console.error(`[platform-billing] invoice ${invoice.id}: no tenant scoping, skipping`)
+    await recordPlatformWebhookFailure({
+      reason: "no_tenant_scope",
+      stripeEventId: event.id,
+      type: event.type,
+      detail: `invoice ${invoice.id} has no resolvable tenant (metadata orgId: ${metadataOrgId ?? "none"})`,
+    })
     return
   }
 

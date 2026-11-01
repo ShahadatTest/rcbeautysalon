@@ -16,6 +16,7 @@ import {
   computePlatformAnalytics,
   type AnalyticsEventInput,
   type PlatformAnalytics,
+  type WebhookFailureInput,
 } from "@/lib/platform/analytics"
 
 export interface PlatformTenantRow {
@@ -66,6 +67,16 @@ export interface PlatformOverview {
   analytics: PlatformAnalytics
   tenants: PlatformTenantRow[]
   recentAudit: PlatformAuditRow[]
+}
+
+/** E4-3: platform webhook failure row as shown in the console. */
+export interface PlatformWebhookFailureRow {
+  id: string
+  reason: string
+  type: string | null
+  stripeEventId: string | null
+  detail: string | null
+  createdAt: Date
 }
 
 export interface PlatformBillingHistoryRow {
@@ -140,7 +151,10 @@ export async function loadPlatformOverview(
     return conditions.length === 1 ? conditions[0] : { AND: conditions }
   })()
 
-  const [orgs, recentAuditRaw, subscriptionCounts, billingEventRaw] = await Promise.all([
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
+  const [orgs, recentAuditRaw, subscriptionCounts, billingEventRaw, failureCount, recentFailuresRaw] =
+    await Promise.all([
     prisma.organization.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -175,6 +189,24 @@ export async function loadPlatformOverview(
         },
       },
       select: { type: true, amountCents: true, currency: true, createdAt: true },
+    }),
+    // E4-3 webhook failure log (§10): exact 7-day count + latest rows for
+    // display. Platform-level by design (no org scoping — failures often
+    // carry no trusted org context).
+    prisma.platformWebhookFailure.count({
+      where: { createdAt: { gte: sevenDaysAgo } },
+    }),
+    prisma.platformWebhookFailure.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        reason: true,
+        type: true,
+        stripeEventId: true,
+        detail: true,
+        createdAt: true,
+      },
     }),
   ])
 
@@ -231,6 +263,18 @@ export async function loadPlatformOverview(
   const analytics = computePlatformAnalytics({
     tenants,
     billingEvents: analyticsEvents,
+    webhookFailures: {
+      failuresLast7dCount: failureCount,
+      recent: recentFailuresRaw.map(
+        (row): WebhookFailureInput => ({
+          reason: row.reason,
+          type: row.type,
+          stripeEventId: row.stripeEventId,
+          detail: row.detail,
+          createdAt: row.createdAt,
+        })
+      ),
+    },
     now: new Date(),
   })
 

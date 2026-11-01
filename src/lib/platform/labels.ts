@@ -135,6 +135,17 @@ export interface PlatformLabels {
   analyticsLastEvent: string
   analyticsOtherTypesNote: string
   analyticsMonthOf: string
+  // Webhook failures (E4-3, §10)
+  analyticsWebhookFailures: string
+  analyticsNoFailures: string
+  analyticsFailuresDef: string
+  analyticsLastFailure: string
+  analyticsFailuresRetryNote: string
+  failureReason_missing_signature: string
+  failureReason_not_configured: string
+  failureReason_signature_invalid: string
+  failureReason_no_tenant_scope: string
+  failureReason_processing_error: string
 }
 
 const sl: PlatformLabels = {
@@ -259,6 +270,18 @@ const sl: PlatformLabels = {
   analyticsLastEvent: "Zadnji dogodek",
   analyticsOtherTypesNote: "drugi dogodki (nesešteti)",
   analyticsMonthOf: "od",
+  analyticsWebhookFailures: "Neuspešni webhook dogodki (7 dni)",
+  analyticsNoFailures: "Brez zabeleženih napak.",
+  analyticsFailuresDef:
+    "zavrnjen podpis, nekonfiguriran plačilni sloj, neznana najemnika ali neuspešna obdelava — vsaka napaka je vedno zabeležena",
+  analyticsLastFailure: "Zadnja napaka",
+  analyticsFailuresRetryNote:
+    "Varno ponovno pošiljanje: Stripe Dashboard → Webhooks → Resend (endpoint je idempotenten).",
+  failureReason_missing_signature: "Manjkajoč podpis",
+  failureReason_not_configured: "Plačilni sloj ni konfiguriran",
+  failureReason_signature_invalid: "Neveljaven podpis",
+  failureReason_no_tenant_scope: "Neznana najemnika",
+  failureReason_processing_error: "Neuspešna obdelava",
 }
 
 const en: PlatformLabels = {
@@ -383,6 +406,18 @@ const en: PlatformLabels = {
   analyticsLastEvent: "Last event",
   analyticsOtherTypesNote: "other events (not summed)",
   analyticsMonthOf: "since",
+  analyticsWebhookFailures: "Failed webhook deliveries (7 days)",
+  analyticsNoFailures: "No recorded failures.",
+  analyticsFailuresDef:
+    "rejected signature, unconfigured billing layer, unknown tenant or failed processing — every failure is always recorded",
+  analyticsLastFailure: "Last failure",
+  analyticsFailuresRetryNote:
+    "Safe replay: Stripe Dashboard → Webhooks → Resend (the endpoint is idempotent).",
+  failureReason_missing_signature: "Missing signature",
+  failureReason_not_configured: "Billing layer not configured",
+  failureReason_signature_invalid: "Invalid signature",
+  failureReason_no_tenant_scope: "Unknown tenant",
+  failureReason_processing_error: "Processing failed",
 }
 
 export function getPlatformLabels(locale: Locale): PlatformLabels {
@@ -396,4 +431,29 @@ export function auditActionLabel(
   if (action === "TENANT_SUSPENDED") return labels.auditActionTENANT_SUSPENDED
   if (action === "TENANT_REACTIVATED") return labels.auditActionTENANT_REACTIVATED
   return action
+}
+
+/**
+ * Bilingual label for a webhook failure reason. Unknown reasons are
+ * shown as their raw code — nothing is silently folded into a known
+ * bucket (same honesty principle as unknown plan ids in E4-1).
+ */
+export function failureReasonLabel(
+  reason: string,
+  labels: PlatformLabels
+): string {
+  switch (reason) {
+    case "missing_signature":
+      return labels.failureReason_missing_signature
+    case "not_configured":
+      return labels.failureReason_not_configured
+    case "signature_invalid":
+      return labels.failureReason_signature_invalid
+    case "no_tenant_scope":
+      return labels.failureReason_no_tenant_scope
+    case "processing_error":
+      return labels.failureReason_processing_error
+    default:
+      return reason
+  }
 }

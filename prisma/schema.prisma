@@ -213,6 +213,27 @@ model PlatformAuditLog {
   @@index([action, createdAt])
 }
 
+// EPIC #4 E4-3: platform webhook failure log (§10 — "billing integration /
+// webhook health and failed events"). Deliberately NOT org-scoped: many
+// failures (rejected signature, malformed body, no tenant scoping) carry no
+// trusted org context, and PlatformBillingEvent is the IDEMPOTENCY LOCK
+// (stripeEventId @unique) — recording failures there would make Stripe's
+// replay of a failed delivery look like an already-processed duplicate.
+// stripeEventId/type are present only when the delivery was signature-verified
+// far enough to trust them; unverified bodies are never parsed into them.
+model PlatformWebhookFailure {
+  id             String   @id @default(cuid())
+  stripeEventId  String? // trusted only for signature-verified deliveries
+  type           String?
+  reason         String // missing_signature | not_configured | signature_invalid | no_tenant_scope | processing_error
+  detail         String? // short error message (length-capped by the recorder)
+  payloadSnippet String?  @db.Text // truncated raw body for diagnosis, never used for processing
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([reason, createdAt])
+}
+
 // Binary media storage (DB fallback when Cloudinary is not configured)
 model Media {
   id             String   @id @default(cuid())

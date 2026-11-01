@@ -89,12 +89,38 @@ export interface WebhookHealthMetric {
   lastEventAt: Date | null
 }
 
+// --- Webhook FAILURES (E4-3) -------------------------------------------
+
+export interface WebhookFailureInput {
+  reason: string
+  type: string | null
+  stripeEventId: string | null
+  detail: string | null
+  createdAt: Date
+}
+
+export interface WebhookFailureMetric {
+  /** Exact 7-day count — provided by the loader (a separate count query),
+   *  so the number stays honest even when the recent list is truncated. */
+  failuresLast7d: number
+  /** Distinct reasons among the most recent failures (unknown reasons are
+   *  kept as their own bucket — nothing is silently folded away). */
+  distinctRecentReasons: number
+  lastFailureAt: Date | null
+  /** Latest failures for display (loader-bounded, newest first). */
+  recent: WebhookFailureInput[]
+}
+
 export interface PlatformAnalytics {
   planDistribution: PlanDistributionRow[]
   conversion: ConversionMetric
   churn: ChurnMetric
   revenue: RevenueMetric
   webhookHealth: WebhookHealthMetric
+  /** Failure log summary (E4-3). Zeros/nulls when the log is empty —
+   *  an empty log is shown honestly as "no recorded failures", never
+   *  dressed up as a fabricated success rate. */
+  webhookFailures: WebhookFailureMetric
 }
 
 /** Known plan ids first (free, pro, scale), unknown ids after, both ascending. */
@@ -116,6 +142,12 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 export function computePlatformAnalytics(input: {
   tenants: AnalyticsTenantInput[]
   billingEvents: AnalyticsEventInput[]
+  /** E4-3: latest webhook failures (loader-bounded, newest first).
+   *  Optional for backward compatibility with existing fixtures. */
+  webhookFailures?: {
+    failuresLast7dCount: number
+    recent: WebhookFailureInput[]
+  }
   now: Date
 }): PlatformAnalytics {
   const { tenants, billingEvents, now } = input
@@ -203,5 +235,22 @@ export function computePlatformAnalytics(input: {
     lastEventAt,
   }
 
-  return { planDistribution, conversion, churn, revenue, webhookHealth }
+  // --- Webhook failures (E4-3, §10) --------------------------------------
+  const failureInput = input.webhookFailures ?? { failuresLast7dCount: 0, recent: [] }
+  const recentFailures = failureInput.recent
+  const lastFailureAt =
+    recentFailures.length > 0
+      ? recentFailures.reduce<Date | null>(
+          (latest, failure) => (!latest || failure.createdAt > latest ? failure.createdAt : latest),
+          null
+        )
+      : null
+  const webhookFailures: WebhookFailureMetric = {
+    failuresLast7d: failureInput.failuresLast7dCount,
+    distinctRecentReasons: new Set(recentFailures.map((f) => f.reason)).size,
+    lastFailureAt,
+    recent: recentFailures,
+  }
+
+  return { planDistribution, conversion, churn, revenue, webhookHealth, webhookFailures }
 }

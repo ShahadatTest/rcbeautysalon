@@ -26,7 +26,11 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import { loadPlatformOverview } from "@/lib/platform/overview"
-import { getPlatformLabels, auditActionLabel } from "@/lib/platform/labels"
+import {
+  getPlatformLabels,
+  auditActionLabel,
+  failureReasonLabel,
+} from "@/lib/platform/labels"
 import { getLocaleFromCookies } from "@/lib/i18n/server"
 import { TenantStatusActions } from "@/components/platform/tenant-status-actions"
 
@@ -213,6 +217,80 @@ export default async function PlatformPage({ searchParams }: PlatformPageProps) 
               )}
             </p>
           </div>
+
+          {/* Webhook failures (E4-3, §10) — every failure is always recorded */}
+          <div className="rounded-md border p-4">
+            <p className="text-sm font-medium">{labels.analyticsWebhookFailures}</p>
+            {overview.analytics.webhookFailures.failuresLast7d === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">{labels.analyticsNoFailures}</p>
+            ) : (
+              <p
+                className={cn(
+                  "mt-1 text-2xl font-bold tabular-nums leading-none",
+                  overview.analytics.webhookFailures.failuresLast7d > 0 &&
+                    "text-amber-600"
+                )}
+              >
+                {overview.analytics.webhookFailures.failuresLast7d}
+              </p>
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">
+              {labels.analyticsFailuresDef}
+              {overview.analytics.webhookFailures.lastFailureAt && (
+                <>
+                  {" · "}
+                  {labels.analyticsLastFailure}:{" "}
+                  {formatDate(overview.analytics.webhookFailures.lastFailureAt, locale)}
+                </>
+              )}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Webhook failure log (E4-3, §10) — latest recorded failures */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{labels.analyticsWebhookFailures}</CardTitle>
+          <CardDescription>{labels.analyticsFailuresRetryNote}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {overview.analytics.webhookFailures.recent.length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              {labels.analyticsNoFailures}
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {overview.analytics.webhookFailures.recent.map((failure) => (
+                <li
+                  key={`${failure.createdAt.toISOString()}-${failure.reason}-${failure.stripeEventId ?? "-"}`}
+                  className="flex flex-col gap-1 rounded-md border p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium">
+                      <Badge variant="destructive" className="mr-2">
+                        {failureReasonLabel(failure.reason, labels)}
+                      </Badge>
+                      {failure.type && (
+                        <span className="font-mono text-xs">{failure.type}</span>
+                      )}
+                    </p>
+                    {failure.detail && (
+                      <p className="truncate text-xs text-muted-foreground">{failure.detail}</p>
+                    )}
+                    {failure.stripeEventId && (
+                      <p className="truncate font-mono text-xs text-muted-foreground">
+                        {failure.stripeEventId}
+                      </p>
+                    )}
+                  </div>
+                  <div className="shrink-0 text-right text-xs text-muted-foreground">
+                    {formatDate(failure.createdAt, locale)}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
 
