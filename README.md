@@ -18,6 +18,19 @@ Ena namestitev streže **več neodvisnim salonom** — vsak s svojo domeno (`/s/
 - **Katalog**: storitve, izdelki, variante, paketi (storitve + izdelki), ponudbe in računi s številčenjem po najemniku
 - **Lastniška prilagoditev**: moduli vklop/izklop, dashboard widgeti, urejevalniki obrazcev in procesov — vse verzionirano, brez programiranja
 
+### 🧩 Razširitve in več dejavnosti (EPIC #2)
+- **Registry razširitev zmožnosti** — deklarativni vnosi z tipiziranimi odvisnostmi; nova razširitev = samo vnos v register + test ([vodnik](docs/ADD-NEW-TEMPLATE.md))
+- **Projekti + naloge (E2-3)** — večnevski posli (fotograf/čistilec/šiviljstvo): pravilo zaključka (vse naloge DONE → projekt COMPLETED), opozorila rok
+- **Inventarni runtime (E2-2)** — `StockMovement` LEDGER: prihod/odhod v transakciji, negativna zaloga zavrnjena, sledljivost serij prek `ExtensionRecord`
+- **Več dejavnosti pod enim računom (E2-4)** — sekundarna panoga kot **unija zmožnosti**: moduli obeh se združijo, terminologija/obrazci/stran ostanejo od primarne (vulkanizer + trgovina)
+- **Zgodovina konfiguracije + rollback (E2-5)** — append-only sled vsake spremembe modulov/obrazcev/procesov; povrnitev ustvari NOVO verzijo, zgodovina se nikoli ne prepiše
+
+### 🚀 SaaS platforma (EPIC #3)
+- **Objava/predogled strani** — DRAFT/PUBLISHED/UNPUBLISHED življenjski cikel, snapshot objave, povrnitev verzij vsebine
+- **Naročnine + plani** — FREE/PRO/SCALE register, limiti pri novih vnosih, raba „X/Y“ z opozorili pri 80 %, Stripe checkout + idempotenten webhook, grace politika (neplačilo/downgrade **nikoli** ne briše podatkov — [GRACE-POLICY](docs/EPIC-3/GRACE-POLICY.md))
+- **Lastne domene** — verifikacija prek Vercel Domains API (VERIFIED izključno s potrditvijo ponudnika), DNS navodila v UI, host-based razrešitev najemnika
+- **Operaterska konzola `/platform`** — najemniki, naročnine, suspend/reaktivacija z revizijsko sledjo
+
 ### 🏢 Večnajemniškost (multi-tenant)
 - Vsak salon dobi svojo javno stran pod `/s/[slug]` (npr. `/s/salon-luna/rezervacija`)
 - **Izolacija najemnikov** — vsaka poizvedba org-scoped, shemski guardrail test zahteva `organizationId` + indeks na vseh najemniških modelih, runtime izolacijski skript
@@ -175,14 +188,18 @@ Neon ✅ · Supabase · Railway — katerikoli PostgreSQL
 pnpm dev          # dev strežnik (Turbopack)
 pnpm build        # produkcijski build
 pnpm lint         # ESLint
-pnpm test         # vitest — profilni motor, overrides, izolacijski guardraili (71 testov)
+pnpm test         # vitest — profilni motor, razširitve, unija dejavnosti, zgodovina konfiguracije, guardraili (267 testov)
 DATABASE_URL=… bun scripts/verify-tenant-isolation.ts   # runtime preverba izolacije najemnikov
 pnpm format       # Prettier
 pnpm db:studio    # Prisma Studio (GUI za bazo)
 pnpm db:seed      # vzorčni podatki
 ```
 
-Arhitektura univerzalne platforme (analiza, matrika zmožnosti, fazni načrt z akceptančnimi kriteriji): [`docs/EPIC-1/ARCHITECTURE.md`](docs/EPIC-1/ARCHITECTURE.md).
+Arhitektura in fazni načrti:
+- EPIC #1 (univerzalna platforma): [`docs/EPIC-1/ARCHITECTURE.md`](docs/EPIC-1/ARCHITECTURE.md)
+- EPIC #2 (razširitve po panogah): [`docs/EPIC-2/PLAN.md`](docs/EPIC-2/PLAN.md)
+- EPIC #3 (SaaS platforma): [`docs/EPIC-3/PLAN.md`](docs/EPIC-3/PLAN.md)
+- **Nov profil/razširitev v 1 datoteki + 1 testu:** [`docs/ADD-NEW-TEMPLATE.md`](docs/ADD-NEW-TEMPLATE.md)
 
 ## 📄 Licenca
 
