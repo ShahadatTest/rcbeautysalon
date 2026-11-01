@@ -30,6 +30,10 @@ Ena namestitev streže **več neodvisnim salonom** — vsak s svojo domeno (`/s/
 - **Naročnine + plani** — FREE/PRO/SCALE register, limiti pri novih vnosih, raba „X/Y“ z opozorili pri 80 %, Stripe checkout + idempotenten webhook, grace politika (neplačilo/downgrade **nikoli** ne briše podatkov — [GRACE-POLICY](docs/EPIC-3/GRACE-POLICY.md))
 - **Lastne domene** — verifikacija prek Vercel Domains API (VERIFIED izključno s potrditvijo ponudnika), DNS navodila v UI, host-based razrešitev najemnika
 - **Operaterska konzola `/platform`** — najemniki, naročnine, suspend/reaktivacija z revizijsko sledjo
+- **React 19 `action={}` obrazci (F1)** — kritični obrazci na React 19 vzorec z kontroliranimi polji in FormData pomočniki (`src/lib/forms/form-data.ts`)
+
+### 📊 Analitika in zdravje (EPIC #4)
+Načrt ostankov po zaključku EPIC #3: platformna/najemniška analitika (§15), webhook zdravje (§10), nadaljevanje namestitve (§2), health endpoint (§13) — [docs/EPIC-4/PLAN.md](docs/EPIC-4/PLAN.md)
 
 ### 🏢 Večnajemniškost (multi-tenant)
 - Vsak salon dobi svojo javno stran pod `/s/[slug]` (npr. `/s/salon-luna/rezervacija`)
@@ -199,6 +203,7 @@ Arhitektura in fazni načrti:
 - EPIC #1 (univerzalna platforma): [`docs/EPIC-1/ARCHITECTURE.md`](docs/EPIC-1/ARCHITECTURE.md)
 - EPIC #2 (razširitve po panogah): [`docs/EPIC-2/PLAN.md`](docs/EPIC-2/PLAN.md)
 - EPIC #3 (SaaS platforma): [`docs/EPIC-3/PLAN.md`](docs/EPIC-3/PLAN.md)
+- EPIC #4 (analitika + zdravje): [`docs/EPIC-4/PLAN.md`](docs/EPIC-4/PLAN.md)
 - **Nov profil/razširitev v 1 datoteki + 1 testu:** [`docs/ADD-NEW-TEMPLATE.md`](docs/ADD-NEW-TEMPLATE.md)
 
 ## 📄 Licenca
