@@ -70,6 +70,13 @@ model Organization {
   // is non-destructive for the same-vertical confirmation).
   verticalChosenAt DateTime?
 
+  // Activation checklist ("vodena namestitev") owner state: only UI
+  // preferences live here (dismissed/reopened). STEP COMPLETION is always
+  // DERIVED from real business data (catalog edits, staff, customers,
+  // bookings, publish state) — see src/lib/profiles/setup-checklist.ts.
+  // Shape: { dismissedAt?: string } (ISO timestamp).
+  setupChecklist Json?
+
   // Secondary activity (EPIC #2 E2-4, G4): optional second activity profile id.
   // Capability UNION (primary ∪ secondary) while the PRIMARY profile stays the
   // owner of terminology, forms, workflows and site content — no "ugly" merged

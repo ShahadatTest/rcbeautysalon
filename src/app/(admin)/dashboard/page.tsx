@@ -36,27 +36,16 @@ import { getEffectivePermissions } from "@/lib/permissions/effective"
 import { hasPermission } from "@/lib/permissions/roles"
 import { getSessionOrg } from "@/lib/tenant"
 import { ShareLinkCard } from "@/components/dashboard/share-link-card"
-import { GuidedEntryDialog, GuidedEntryGate } from "@/components/dashboard/guided-entry"
-import { PROFILE_ICONS } from "@/lib/profiles/profile-icons"
-import { LayoutGrid } from "lucide-react"
+import { GuidedEntryGate } from "@/components/dashboard/guided-entry"
+import { SetupChecklistCard } from "@/components/dashboard/setup-checklist"
+import { buildSetupChecklist } from "@/lib/profiles/setup-checklist"
 import { listProfileOptions } from "@/lib/profiles/registry"
+import { prisma } from "@/lib/prisma"
 
 type DashboardStats = Awaited<ReturnType<typeof getDashboardStats>>
 type TodaysAppointments = Awaited<ReturnType<typeof getTodaysAppointments>>
 type RecentActivities = Awaited<ReturnType<typeof getRecentActivities>>
 type RevenueStats = Awaited<ReturnType<typeof getRevenueStats>>
-
-/**
- * Icon of an activity profile — module level so the component is not
- * (re)created during render (Next compiler rule) and the fallback for
- * unknown ids lives in ONE place (iconForProfile).
- */
-function ProfileIcon({ id, size = 20 }: { id: string; size?: number }) {
-  // Direct map subscript (same proven pattern as the sidebar) — calling a
-  // resolver function here trips the "components created during render" rule.
-  const Icon = PROFILE_ICONS[id] ?? LayoutGrid
-  return <Icon size={size} aria-hidden="true" />
-}
 
 export default async function AdminDashboard() {
   const [{ t, locale, dateFnsLocale }, salonTz] = await Promise.all([
@@ -157,6 +146,53 @@ export default async function AdminDashboard() {
   const projectsOverview =
     projectsEnabled && hasWidget("projects") ? await listProjects() : null
 
+  // ACTIVATION CHECKLIST ("vodena namestitev") — the persistent setup
+  // guide (Shopify/Fresha pattern: wizard first run → checklist until
+  // activated → one highlighted next-best-action). Step completion is
+  // DERIVED from real business data on every render — nothing to store,
+  // nothing to fake. Only the dismiss/reopen preference persists.
+  let checklist: ReturnType<typeof buildSetupChecklist> | null = null
+  let checklistDismissed = false
+  if (canManageSettings && shareOrg) {
+    const catalogRef = shareOrg.verticalChosenAt ?? shareOrg.createdAt
+    const [touchedServices, touchedProducts, staffCount, customerCount, appointmentCount, orderCount] =
+      await Promise.all([
+        prisma.service.count({
+          where: { organizationId: shareOrg.id, updatedAt: { gt: catalogRef } },
+        }),
+        prisma.product.count({
+          where: { organizationId: shareOrg.id, updatedAt: { gt: catalogRef } },
+        }),
+        prisma.staff.count({ where: { organizationId: shareOrg.id } }),
+        prisma.customer.count({ where: { organizationId: shareOrg.id } }),
+        prisma.appointment.count({ where: { organizationId: shareOrg.id } }),
+        prisma.order.count({ where: { organizationId: shareOrg.id } }),
+      ])
+    checklist = buildSetupChecklist({
+      verticalChosen: shareOrg.verticalChosenAt != null,
+      catalogTouched: touchedServices > 0 || touchedProducts > 0,
+      catalogCapable:
+        profile.capabilities.services !== "disabled" ||
+        profile.capabilities.shop !== "disabled" ||
+        profile.capabilities.inventory !== "disabled",
+      staffCount,
+      staffCapable: profile.capabilities.staff !== "disabled",
+      customerCount,
+      customersCapable: profile.capabilities.customers !== "disabled",
+      appointmentCount,
+      orderCount,
+      appointmentsCapable: profile.capabilities.appointments !== "disabled",
+      workOrdersCapable: profile.capabilities.workOrders !== "disabled",
+      published: shareOrg.publishState === "PUBLISHED",
+    })
+    const ui = shareOrg.setupChecklist
+    checklistDismissed =
+      !!ui &&
+      typeof ui === "object" &&
+      !Array.isArray(ui) &&
+      typeof (ui as Record<string, unknown>).dismissedAt === "string"
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -170,32 +206,27 @@ export default async function AdminDashboard() {
         <p className="text-muted-foreground">{t.dashboard.welcome}</p>
       </div>
 
-      {/* Current activity — the "vodeni vstop" is always ONE click away.
-          Settings managers see which activity drives the workspace and can
-          re-run the guided entry right here (modules, terminology, forms and
-          the sidebar all follow the switch). */}
-      {canManageSettings && shareOrg && (
-        <Card>
-          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <span className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
-                <ProfileIcon id={profile.id} />
-              </span>
-              <div>
-                <p className="text-sm font-semibold">
-                  {t.settings.activities.primary}: {profile.label}
-                </p>
-                <p className="text-muted-foreground text-xs">
-                  {t.settings.guidedEntry.reopenDescription}
-                </p>
-              </div>
-            </div>
-            <GuidedEntryDialog
-              triggerLabel={t.settings.guidedEntry.reopenButton}
-              dict={t.settings.guidedEntry}
-            />
-          </CardContent>
-        </Card>
+      {/* VODENA NAMESTITEV — persistent activation checklist + activity
+          switcher. Steps derive from real data (catalog edits, staff,
+          customers, bookings, publish state); the first unfinished step is
+          highlighted as the next-best-action. Dismissing collapses the card
+          to the compact "Primarna dejavnost" row — the guided entry is
+          always ONE click away, never hidden in Settings only. */}
+      {canManageSettings && shareOrg && checklist && (
+        <SetupChecklistCard
+          profileId={profile.id}
+          profileLabel={profile.label}
+          primaryActivityLabel={t.settings.activities.primary}
+          steps={checklist.steps}
+          nextKey={checklist.nextKey}
+          doneCount={checklist.doneCount}
+          total={checklist.total}
+          allDone={checklist.allDone}
+          dismissed={checklistDismissed}
+          appointmentsCapable={profile.capabilities.appointments !== "disabled"}
+          dict={t.dashboard.setupChecklist}
+          guidedEntryDict={t.settings.guidedEntry}
+        />
       )}
 
       {/* Stats Cards — widget-configurable (Phase 5) */}

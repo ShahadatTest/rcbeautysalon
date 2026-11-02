@@ -57,6 +57,59 @@ export const dashboardSl = {
       "Dodajte povezavo k svojemu Google poslovnemu profilu, da vas stranke najdejo v iskanju in na zemljevidu.",
     openGoogle: "Upravljaj Google profil",
   },
+  setupChecklist: {
+    title: "Vodena namestitev",
+    subtitle:
+      "Nekaj korakov do popolnoma pripravljene strani — vsi podatki podjetja so varni, ko ste kot na svojem domu.",
+    progress: (done: number, total: number) =>
+      done === total ? "Vse opravljeno" : `${done} od ${total} korakov`,
+    nextStep: "Naslednji korak",
+    dismiss: "Skrij",
+    dismissDescription: "Kontrolni seznam lahko kadarkoli znova odprete tukaj.",
+    collapse: "Skrči",
+    expand: "Razpri",
+    reopen: "Pokaži vodeno namestitev",
+    completedTitle: "Vse pripravljeno! 🎉",
+    completedNote:
+      "Namestitev je zaključena — vodeni vstop za zamenjavo dejavnosti je še vedno en klik stran.",
+    steps: {
+      vertical: {
+        label: "Izberite dejavnost",
+        description: "Povlecite delovno površino na svojo panogo — moduli, terminologija in obrazci se prilagodijo.",
+        cta: "Zaženi vodeni vstop",
+      },
+      catalog: {
+        label: "Prilagodite katalog svoji ponudbi",
+        description: "Vzorčne storitve in izdelki so pripravljeni — popravite cene, dodajte svoje.",
+        cta: "Odpri katalog",
+      },
+      staff: {
+        label: "Dodajte osebje",
+        description: "Dodajte sodelavce in jim nastavite urnik ter dostop.",
+        cta: "Dodaj osebje",
+      },
+      customers: {
+        label: "Dodajte prvo stranko",
+        description: "Stranke so osnova terminov, naročil in sporočanja.",
+        cta: "Dodaj stranko",
+      },
+      publish: {
+        label: "Objavite svojo stran",
+        description: "Objavljena stran je vidna strankam in odprta za rezervacije.",
+        cta: "Odpri nastavitve objave",
+      },
+      firstJob: {
+        label: "Sprejmite prvi termin",
+        description: "Prvi rezerviran termin je trenutek, ko aplikacija res začne služiti vam.",
+        cta: "Nov termin",
+      },
+      firstJobOrder: {
+        label: "Zaključite prvo delovno naročilo",
+        description: "Prvo naročilo je trenutek, ko aplikacija res začne služiti vam.",
+        cta: "Nova naročila",
+      },
+    },
+  },
 }
 
 export type DashboardDict = typeof dashboardSl
@@ -106,5 +159,58 @@ export const dashboardEn: DashboardDict = {
     googleTip:
       "Add the link to your Google Business Profile so customers can find you in Search and on Maps.",
     openGoogle: "Manage Google profile",
+  },
+  setupChecklist: {
+    title: "Guided setup",
+    subtitle:
+      "A few steps to a fully ready page — your data stays yours at every step.",
+    progress: (done: number, total: number) =>
+      done === total ? "All done" : `${done} of ${total} steps`,
+    nextStep: "Next step",
+    dismiss: "Hide",
+    dismissDescription: "You can reopen the checklist here at any time.",
+    collapse: "Collapse",
+    expand: "Expand",
+    reopen: "Show guided setup",
+    completedTitle: "All set! 🎉",
+    completedNote:
+      "Setup is complete — the guided entry for switching activities stays one click away.",
+    steps: {
+      vertical: {
+        label: "Choose your activity",
+        description: "Tailor the workspace to your trade — modules, terminology and forms follow.",
+        cta: "Start guided entry",
+      },
+      catalog: {
+        label: "Tailor the catalog to your offer",
+        description: "Sample services and products are ready — adjust prices and add your own.",
+        cta: "Open catalog",
+      },
+      staff: {
+        label: "Add your team",
+        description: "Add colleagues and set their schedule and access.",
+        cta: "Add staff",
+      },
+      customers: {
+        label: "Add your first customer",
+        description: "Customers are the basis of bookings, orders and messaging.",
+        cta: "Add customer",
+      },
+      publish: {
+        label: "Publish your page",
+        description: "A published page is visible to customers and open for bookings.",
+        cta: "Open publishing settings",
+      },
+      firstJob: {
+        label: "Take your first booking",
+        description: "The first appointment is when the app truly starts working for you.",
+        cta: "New appointment",
+      },
+      firstJobOrder: {
+        label: "Complete your first work order",
+        description: "The first order is when the app truly starts working for you.",
+        cta: "New orders",
+      },
+    },
   },
 }
