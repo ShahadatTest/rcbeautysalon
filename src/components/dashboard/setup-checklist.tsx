@@ -108,6 +108,13 @@ export function SetupChecklistCard({
 
   const Icon = PROFILE_ICONS[profileId] ?? LayoutGrid
   const progressPct = total > 0 ? Math.round((doneCount / total) * 100) : 0
+  // Plain-string interpolation — dict props crossing the server→client
+  // boundary must stay serializable (no functions).
+  const progressText = allDone
+    ? dict.progressAllDone
+    : dict.progressFormat
+        .replace("{done}", String(doneCount))
+        .replace("{total}", String(total))
 
   // ---- DISMISSED: compact activity row (vodeni vstop one click away) ----
   if (dismissed) {
@@ -197,14 +204,14 @@ export function SetupChecklistCard({
         {/* Progress — "x od y" + thin bar */}
         <div className="mt-3 flex items-center gap-3">
           <span className="text-muted-foreground shrink-0 text-xs font-medium">
-            {dict.progress(doneCount, total)}
+            {progressText}
           </span>
           <div
             role="progressbar"
             aria-valuenow={doneCount}
             aria-valuemin={0}
             aria-valuemax={total}
-            aria-label={dict.progress(doneCount, total)}
+            aria-label={progressText}
             className="bg-primary/10 h-1.5 flex-1 overflow-hidden rounded-full"
           >
             <div

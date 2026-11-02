@@ -61,8 +61,8 @@ export const dashboardSl = {
     title: "Vodena namestitev",
     subtitle:
       "Nekaj korakov do popolnoma pripravljene strani — vsi podatki podjetja so varni, ko ste kot na svojem domu.",
-    progress: (done: number, total: number) =>
-      done === total ? "Vse opravljeno" : `${done} od ${total} korakov`,
+    progressFormat: "{done} od {total} korakov",
+    progressAllDone: "Vse opravljeno",
     nextStep: "Naslednji korak",
     dismiss: "Skrij",
     dismissDescription: "Kontrolni seznam lahko kadarkoli znova odprete tukaj.",
@@ -164,8 +164,8 @@ export const dashboardEn: DashboardDict = {
     title: "Guided setup",
     subtitle:
       "A few steps to a fully ready page — your data stays yours at every step.",
-    progress: (done: number, total: number) =>
-      done === total ? "All done" : `${done} of ${total} steps`,
+    progressFormat: "{done} of {total} steps",
+    progressAllDone: "All done",
     nextStep: "Next step",
     dismiss: "Hide",
     dismissDescription: "You can reopen the checklist here at any time.",
