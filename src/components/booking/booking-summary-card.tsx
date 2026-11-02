@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import {
   WarningCircleIcon,
+  CalendarCheckIcon,
   CalendarIcon,
   ClockIcon,
   CurrencyDollarIcon,
@@ -36,6 +37,9 @@ interface BookingSummaryCardProps {
   error: string | null
   availableSlots: TimeSlot[]
   isEmployee?: boolean
+  // False when the salon has no Stripe key: the booking is submitted
+  // WITHOUT online payment (PENDING, deposit payable in salon).
+  paymentsEnabled?: boolean
 }
 
 export function BookingSummaryCard({
@@ -48,6 +52,7 @@ export function BookingSummaryCard({
   error,
   availableSlots,
   isEmployee = false,
+  paymentsEnabled = true,
 }: BookingSummaryCardProps) {
   const fmt = useFormatPrice()
   const selectedSlot = availableSlots.find((s) => s.time === selectedTime)
@@ -208,10 +213,15 @@ export function BookingSummaryCard({
                 <CurrencyDollarIcon size={20} className="mr-2" weight="regular" />
                 Potrdi rezervacijo zaposlenega
               </>
-            ) : (
+            ) : paymentsEnabled ? (
               <>
                 <CurrencyDollarIcon size={20} className="mr-2" weight="regular" />
                 Plačaj {fmt(salonConfig.bookingDeposit)} in potrdi rezervacijo
+              </>
+            ) : (
+              <>
+                <CalendarCheckIcon size={20} className="mr-2" weight="regular" />
+                Oddaj rezervacijo (brez pologa)
               </>
             )}
           </Button>

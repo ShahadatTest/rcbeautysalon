@@ -1,12 +1,17 @@
 import type { Metadata } from "next"
 import { Suspense } from "react"
 import Link from "next/link"
-import { CheckCircle, CalendarCheck, House } from "@phosphor-icons/react/dist/ssr"
+import { CheckCircle, CalendarCheck, House, Clock } from "@phosphor-icons/react/dist/ssr"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { verifyAndCreateAppointment } from "@/app/actions/stripe"
+import { getOrgTimezone } from "@/app/actions/appointments"
 import { getPublicSiteData } from "@/lib/public-site"
 import { orgPath } from "@/lib/org-path"
+import { prisma } from "@/lib/prisma"
+import { formatSalonTime } from "@/lib/booking-time"
+import { format } from "date-fns"
+import { sl } from "date-fns/locale"
 
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getPublicSiteData()
@@ -105,12 +110,98 @@ async function BookingSuccessContent({
 export default async function BookingSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ session_id?: string }>
+  searchParams: Promise<{ session_id?: string; appointment?: string }>
 }) {
   const params = await searchParams
   const sessionId = params.session_id || null
+  const appointmentId = params.appointment || null
   const site = await getPublicSiteData()
   const orgSlug = site?.org.slug ?? null
+
+  // No-payment booking (salon without Stripe, E4-3b): the appointment was
+  // created directly as PENDING — show honest "submitted" state.
+  if (appointmentId) {
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: {
+        services: { include: { service: true } },
+        staff: { select: { name: true } },
+      },
+    })
+
+    const tz = site?.org.id ? await getOrgTimezone(site.org.id) : "Europe/Ljubljana"
+    const serviceNames =
+      appointment?.services.map((s) => s.service.name).join(", ") || null
+    const when = appointment
+      ? `${format(new Date(appointment.startTime), "d. MMMM yyyy", { locale: sl })} ob ${formatSalonTime(new Date(appointment.startTime), tz)}`
+      : null
+
+    return (
+      <div className="container mx-auto flex min-h-[60vh] items-center justify-center px-4 py-16">
+        {appointment ? (
+          <Card className="mx-auto max-w-lg text-center">
+            <CardHeader className="space-y-4">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+                <Clock size={48} weight="fill" className="text-amber-600 dark:text-amber-400" />
+              </div>
+              <CardTitle className="text-2xl">Rezervacija oddana!</CardTitle>
+              <CardDescription className="text-base">
+                Vaša rezervacija je bila posredovana salonu — potrditveno e-poštno
+                sporočilo smo poslali. Salon bo termin potrdil, polog (
+                {appointment.depositAmount.toNumber().toFixed(2).replace(".", ",")} €)
+                pa poravnajte ob obisku.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="rounded-lg bg-muted/50 p-4 text-sm text-left">
+                {serviceNames && (
+                  <p>
+                    <span className="text-muted-foreground">Storitev:</span>{" "}
+                    <strong className="text-foreground">{serviceNames}</strong>
+                  </p>
+                )}
+                {when && (
+                  <p>
+                    <span className="text-muted-foreground">Termin:</span>{" "}
+                    <strong className="text-foreground">{when}</strong>
+                  </p>
+                )}
+                {appointment.staff?.name && (
+                  <p>
+                    <span className="text-muted-foreground">Pri:</span>{" "}
+                    <strong className="text-foreground">{appointment.staff.name}</strong>
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+                <Button asChild size="lg">
+                  <Link href={orgPath(orgSlug, "/")}>
+                    <House size={20} className="mr-2" weight="regular" />
+                    Nazaj domov
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="mx-auto max-w-lg text-center">
+            <CardHeader>
+              <CardTitle className="text-destructive">Rezervacija ni bila najdena</CardTitle>
+              <CardDescription>
+                Te rezervacije ni bilo mogoče najti. Poskusite znova ali kontaktirajte salon.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild>
+                <Link href={orgPath(orgSlug, "/services")}>Nazaj na storitve</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto flex min-h-[60vh] items-center justify-center px-4 py-16">

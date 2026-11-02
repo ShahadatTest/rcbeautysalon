@@ -8,12 +8,14 @@ import { after } from "next/server"
 import { getServicesForBooking, getSalonConfig, getOrgTimezone } from "./appointments"
 import { instantFromParts, formatSalonTime } from "@/lib/booking-time"
 import { getPublicOrg, getSessionOrg, getOrgById } from "@/lib/tenant"
-import { CreateCheckoutSessionData } from "@/lib/interfaces"
+import { CreateCheckoutSessionData, CreateCheckoutSessionResult } from "@/lib/interfaces"
 import { hasResourceConflict } from "@/lib/booking/resources"
 import { sendAppointmentConfirmationEmail } from "@/lib/email/appointment-confirmation"
 import Stripe from "stripe"
 
-export async function createCheckoutSession(data: CreateCheckoutSessionData) {
+export async function createCheckoutSession(
+  data: CreateCheckoutSessionData
+): Promise<CreateCheckoutSessionResult> {
   try {
     // Get current session
     const session = await auth()
@@ -38,6 +40,10 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
     if (!stripeClient) {
       return {
         success: false,
+        // Structured flag: the salon has no Stripe key. The client falls
+        // back to a PENDING appointment (no deposit collected) instead of
+        // blocking the booking entirely.
+        paymentRequired: true,
         error:
           "Spletna plačila še niso nastavljena. Za dokončanje rezervacije kontaktirajte salon.",
       }
@@ -149,7 +155,7 @@ export async function createCheckoutSession(data: CreateCheckoutSessionData) {
 
     return {
       success: true,
-      checkoutUrl: checkoutSession.url,
+      checkoutUrl: checkoutSession.url ?? undefined,
     }
   } catch (error) {
     console.error("Error creating checkout session:", error)
@@ -581,7 +587,7 @@ export async function createDepositCheckoutForAppointment(appointmentId: string)
 
     return {
       success: true,
-      checkoutUrl: checkoutSession.url,
+      checkoutUrl: checkoutSession.url ?? undefined,
     }
   } catch (error) {
     console.error("Error creating checkout for existing appointment:", error)

@@ -33,6 +33,7 @@ export function BookingForm(props: BookingFormProps) {
     salonConfig,
     isAuthenticated,
     isEmployee,
+    paymentsEnabled = true,
     defaultValues = {},
   } = props
 
@@ -220,6 +221,47 @@ export function BookingForm(props: BookingFormProps) {
           window.location.assign(result.checkoutUrl)
           return { ok: true }
         }
+
+        // Payments are an optional salon integration (E4-3b). When the salon
+        // has no Stripe key, checkout cannot collect the deposit — fall back
+        // to a PENDING appointment the salon confirms manually, instead of
+        // blocking the booking entirely.
+        if (result.paymentRequired) {
+          const fallback = await createAppointment({
+            serviceIds: [serviceId],
+            staffId: parsed.data.staffId,
+            startTime: new Date(),
+            bookingDate,
+            bookingTime,
+            guestName: !isAuthenticated
+              ? `${parsed.data.firstName} ${parsed.data.lastName}`
+              : undefined,
+            guestEmail: !isAuthenticated ? parsed.data.email : undefined,
+            guestPhone: parsed.data.phone || undefined,
+            notes: parsed.data.notes || undefined,
+            resourceRecordId: selectedResourceId,
+          })
+
+          if (fallback.success && fallback.appointmentId) {
+            toast.info(
+              "Rezervacija je bila oddana brez spletnega plačila — salon jo bo potrdil, polog pa poravnal ob obisku."
+            )
+            if (isAuthenticated) {
+              router.push(`/my-appointments?new=${fallback.appointmentId}`)
+            } else {
+              router.push(`/booking/success?appointment=${fallback.appointmentId}`)
+            }
+            return { ok: true }
+          }
+
+          const fallbackError =
+            fallback.error ||
+            "Rezervacija ni uspela. Kontaktirajte salon ali poskusite znova."
+          setFlowError(fallbackError)
+          toast.error(fallbackError)
+          return { ok: false }
+        }
+
         // Failure must be visible NEXT TO the button AND as a toast —
         // the summary card sits below the fold on mobile, so an inline
         // box alone reads as "nothing happened" (real-world finding).
@@ -347,6 +389,7 @@ export function BookingForm(props: BookingFormProps) {
             submitting={isPending}
             error={flowError}
             isEmployee={isEmployee}
+            paymentsEnabled={paymentsEnabled}
             availableSlots={[]}
           />
         </div>

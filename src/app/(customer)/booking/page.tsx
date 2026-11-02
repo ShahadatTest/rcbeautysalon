@@ -14,6 +14,7 @@ import {
   getCurrentUserStaffId,
 } from "@/app/actions/appointments"
 import { BookingForm } from "@/components/booking/booking-form"
+import { getStripeForOrg } from "@/lib/stripe"
 
 interface BookingPageProps {
   searchParams: Promise<{ service?: string; staff?: string }>
@@ -55,6 +56,11 @@ export default async function BookingPage(props: BookingPageProps) {
 
   // Get salon config (needed for both flows)
   const salonConfig = await getSalonConfig()
+
+  // Payments are optional (E4-3b): when the salon has no Stripe key the
+  // booking is submitted without online payment (PENDING, deposit payable
+  // in salon) instead of dead-ending at checkout.
+  const paymentsEnabled = org ? !!(await getStripeForOrg(org)) : false
 
   // ============================================
   // FLOW 1: Staff-first (?staff=xxx)
@@ -98,6 +104,7 @@ export default async function BookingPage(props: BookingPageProps) {
             salonConfig={salonConfig}
             isAuthenticated={!!session?.user}
             isEmployee={isEmployee}
+            paymentsEnabled={paymentsEnabled}
             defaultValues={defaultValues}
           />
         </div>
@@ -225,6 +232,7 @@ export default async function BookingPage(props: BookingPageProps) {
           salonConfig={salonConfig}
           isAuthenticated={!!session?.user}
           isEmployee={isEmployee}
+          paymentsEnabled={paymentsEnabled}
           defaultValues={defaultValues}
         />
       </div>

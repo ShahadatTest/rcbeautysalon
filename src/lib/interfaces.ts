@@ -448,6 +448,15 @@ export interface CreateCheckoutSessionData {
   resourceRecordId?: string | null
 }
 
+export interface CreateCheckoutSessionResult {
+  success: boolean
+  checkoutUrl?: string
+  // True when the salon has no Stripe key (payments optional, E4-3b):
+  // the client falls back to a PENDING appointment instead of blocking.
+  paymentRequired?: boolean
+  error?: string
+}
+
 export interface AdminAppointmentsFilter {
   status?: AppointmentStatus
   staffId?: string
@@ -592,6 +601,9 @@ interface BookingFormBaseProps {
   salonConfig: BookingSalonConfig
   isAuthenticated: boolean
   isEmployee: boolean
+  // False when the salon has no Stripe key (payments optional, E4-3b):
+  // booking is submitted without online payment and lands as PENDING.
+  paymentsEnabled?: boolean
   defaultValues?: {
     firstName?: string
     lastName?: string
