@@ -22,21 +22,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import {
-  Check,
-  Feather,
-  Flower2,
-  Gem,
-  Hand,
-  Hexagon,
-  LayoutGrid,
-  Loader2,
-  Ruler,
-  Scissors,
-  Sparkles,
-  Wrench,
-  type LucideIcon,
-} from "lucide-react"
+import { Check, LayoutGrid, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -49,24 +35,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { modulesForVertical } from "@/lib/profiles/modules"
+import { PROFILE_ICONS } from "@/lib/profiles/profile-icons"
 import { PALETTE_OPTIONS, type PaletteOption } from "@/lib/palettes-client"
 import { listProfileOptions, type ProfileOption } from "@/lib/profiles/registry"
 import type { SettingsDict } from "@/lib/i18n/dict/settings"
 import { completeGuidedEntry, getGuidedEntryContext } from "@/app/actions/guided-entry"
-
-const PROFILE_ICONS: Record<string, LucideIcon> = {
-  beauty: Sparkles,
-  frizer: Scissors,
-  barber: Scissors,
-  nails: Gem,
-  cosmetica: Flower2,
-  massage: Hand,
-  epilation: Feather,
-  generic: LayoutGrid,
-  seamstress: Ruler,
-  "tire-service": Wrench,
-  beekeeping: Hexagon,
-}
 
 export interface GuidedEntryProps {
   profiles: ProfileOption[]

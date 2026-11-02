@@ -36,13 +36,27 @@ import { getEffectivePermissions } from "@/lib/permissions/effective"
 import { hasPermission } from "@/lib/permissions/roles"
 import { getSessionOrg } from "@/lib/tenant"
 import { ShareLinkCard } from "@/components/dashboard/share-link-card"
-import { GuidedEntryGate } from "@/components/dashboard/guided-entry"
+import { GuidedEntryDialog, GuidedEntryGate } from "@/components/dashboard/guided-entry"
+import { PROFILE_ICONS } from "@/lib/profiles/profile-icons"
+import { LayoutGrid } from "lucide-react"
 import { listProfileOptions } from "@/lib/profiles/registry"
 
 type DashboardStats = Awaited<ReturnType<typeof getDashboardStats>>
 type TodaysAppointments = Awaited<ReturnType<typeof getTodaysAppointments>>
 type RecentActivities = Awaited<ReturnType<typeof getRecentActivities>>
 type RevenueStats = Awaited<ReturnType<typeof getRevenueStats>>
+
+/**
+ * Icon of an activity profile — module level so the component is not
+ * (re)created during render (Next compiler rule) and the fallback for
+ * unknown ids lives in ONE place (iconForProfile).
+ */
+function ProfileIcon({ id, size = 20 }: { id: string; size?: number }) {
+  // Direct map subscript (same proven pattern as the sidebar) — calling a
+  // resolver function here trips the "components created during render" rule.
+  const Icon = PROFILE_ICONS[id] ?? LayoutGrid
+  return <Icon size={size} aria-hidden="true" />
+}
 
 export default async function AdminDashboard() {
   const [{ t, locale, dateFnsLocale }, salonTz] = await Promise.all([
@@ -155,6 +169,34 @@ export default async function AdminDashboard() {
         </h1>
         <p className="text-muted-foreground">{t.dashboard.welcome}</p>
       </div>
+
+      {/* Current activity — the "vodeni vstop" is always ONE click away.
+          Settings managers see which activity drives the workspace and can
+          re-run the guided entry right here (modules, terminology, forms and
+          the sidebar all follow the switch). */}
+      {canManageSettings && shareOrg && (
+        <Card>
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
+                <ProfileIcon id={profile.id} />
+              </span>
+              <div>
+                <p className="text-sm font-semibold">
+                  {t.settings.activities.primary}: {profile.label}
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  {t.settings.guidedEntry.reopenDescription}
+                </p>
+              </div>
+            </div>
+            <GuidedEntryDialog
+              triggerLabel={t.settings.guidedEntry.reopenButton}
+              dict={t.settings.guidedEntry}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards — widget-configurable (Phase 5) */}
       <div className={`grid gap-4 md:grid-cols-2 ${statCardsVisible >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
