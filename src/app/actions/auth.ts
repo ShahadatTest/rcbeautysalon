@@ -36,7 +36,7 @@ export async function registerUser(data: RegisterInput) {
     if (existingUser) {
       return {
         success: false,
-        errors: [{ message: "Email is already registered." }],
+        errors: [{ message: "E-poštni naslov je že registriran." }],
       }
     }
 
@@ -111,7 +111,7 @@ export async function registerUser(data: RegisterInput) {
     console.error("Registration error:", error)
     return {
       success: false,
-      errors: [{ message: "Something went wrong. Please try again." }],
+      errors: [{ message: "Prišlo je do napake. Poskusite znova." }],
     }
   }
 }
@@ -156,7 +156,7 @@ export async function forgotPassword(data: ForgotPasswordInput) {
     console.error("Password reset error:", error)
     return {
       success: false,
-      errors: [{ message: "Something went wrong. Please try again." }],
+      errors: [{ message: "Prišlo je do napake. Poskusite znova." }],
     }
   }
 }
@@ -184,7 +184,7 @@ export async function resetPassword(data: ResetPasswordInput) {
     if (!user) {
       return {
         success: false,
-        errors: [{ message: "Invalid or expired token." }],
+        errors: [{ message: "Neveljaven ali potekel žeton." }],
       }
     }
 
@@ -205,7 +205,7 @@ export async function resetPassword(data: ResetPasswordInput) {
 
     return {
       success: false,
-      errors: [{ message: "Something went wrong. Please try again." }],
+      errors: [{ message: "Prišlo je do napake. Poskusite znova." }],
     }
   }
 }
@@ -222,7 +222,7 @@ export async function verifyEmail(token: string) {
     if (!verificationToken) {
       return {
         success: false,
-        errors: [{ message: "Invalid or expired verification token." }],
+        errors: [{ message: "Neveljaven ali potekel žeton za potrditev." }],
       }
     }
 
@@ -233,7 +233,7 @@ export async function verifyEmail(token: string) {
       })
       return {
         success: false,
-        errors: [{ message: "Invalid or expired verification token." }],
+        errors: [{ message: "Neveljaven ali potekel žeton za potrditev." }],
       }
     }
 
@@ -261,7 +261,7 @@ export async function verifyEmail(token: string) {
     console.error("Email verification error:", error)
     return {
       success: false,
-      errors: [{ message: "Something went wrong. Please try again." }],
+      errors: [{ message: "Prišlo je do napake. Poskusite znova." }],
     }
   }
 }
