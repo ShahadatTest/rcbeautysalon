@@ -41,6 +41,7 @@ Ena namestitev streže **več neodvisnim salonom** — vsak s svojo domeno (`/s/
 - **Health endpoint + alerting priprava (E4-5)** — javen `/api/health` brez DB, operaterski `/api/health/internal` fail-closed (DB ping, stanje migracij, webhook števci); runbook v [ROLLBACK-BACKUP.md §6](docs/ROLLBACK-BACKUP.md)
 - **Vizualni pregled + testni podatki** — 10 demo najemnikov pokriva vseh 11 panog s popolnimi katalogi (storitve/izdelki s slikami, preset portreti osebja, hero slike po panogi); praktični testi rezervacije, trgovine in lastniške plošče na produkciji; DOM preverba slik 10/10 brez napak; popravljene najdene napake: CTA puščanje med najemniki, mrtev checkout gumb, mrtvi sidri, podvojeni jezikovni preklopnik, slugify č/š/ž, a11y nalaganja slik — [docs/EPIC-4/PLAN.md](docs/EPIC-4/PLAN.md)
 - **Vloge po meri (G8, E4-6)** — katalog 12 dovoljenj, vloge per salon („admin brez financ“, „senior frizer“), urejevalnik na `/dashboard/roles`, navigacija in kritične strežniške akcije varovane; član brez vloge po meri ima nespremenjen dostop, vloga po meri ga OMEJI (velja takoj); košarica ločena per salon, rezervacijski čarovnik z inline izbiro storitve
+- **Ponastavitev gesla** — samoslužni tok prek e-pošte (žeton 1 h, pošteno sporočilo neodvisno od obstoja računa) + admin ponastavitev članu iz `/dashboard/users/[id]`: močno generirano geslo brez dvoumnih znakov, org-scoped, zaščiteno (ne samo-sebi, ne drugim adminom), pošteno i18n SL/EN
 
 ### 🏢 Večnajemniškost (multi-tenant)
 - Vsak salon dobi svojo javno stran pod `/s/[slug]` (npr. `/s/salon-luna/rezervacija`)

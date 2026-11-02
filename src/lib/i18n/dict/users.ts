@@ -80,6 +80,22 @@ export const usersSl = {
   userId: "ID uporabnika:",
   created: "Ustvarjeno:",
   lastUpdated: "Nazadnje posodobljeno:",
+  resetPassword: {
+    button: "Ponastavi geslo",
+    title: "Ponastavi geslo članu",
+    description: (name: string) =>
+      `Nastavite novo geslo za ${name}. Novo geslo mu posredujte varno — osebno ali po telefonu.`,
+    newPassword: "Novo geslo",
+    confirmPassword: "Potrdite geslo",
+    generate: "Ustvari močno geslo",
+    mismatch: "Gesli se ne ujemata",
+    submit: "Nastavi geslo",
+    submitting: "Shranjujem …",
+    selfNote:
+      "Član se bo prijavil s tem geslom. Priporočamo, da ga po prijavi spremeni v svoje.",
+    toastSuccess: "Geslo uspešno nastavljeno",
+    toastFailed: "Napaka pri nastavljanju gesla",
+  },
   orderStatus: {
     PENDING: "V čakanju",
     PAID: "Plačano",
@@ -214,6 +230,22 @@ export const usersEn: UsersDict = {
   userId: "User ID:",
   created: "Created:",
   lastUpdated: "Last Updated:",
+  resetPassword: {
+    button: "Reset password",
+    title: "Reset member password",
+    description: (name: string) =>
+      `Set a new password for ${name}. Share it with them securely — in person or by phone.`,
+    newPassword: "New password",
+    confirmPassword: "Confirm password",
+    generate: "Generate strong password",
+    mismatch: "Passwords do not match",
+    submit: "Set password",
+    submitting: "Saving …",
+    selfNote:
+      "The member will sign in with this password. We recommend they change it after signing in.",
+    toastSuccess: "Password set successfully",
+    toastFailed: "Failed to set password",
+  },
   orderStatus: {
     PENDING: "Pending",
     PAID: "Paid",

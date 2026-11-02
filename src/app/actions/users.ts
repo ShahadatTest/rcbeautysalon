@@ -3,8 +3,13 @@
 import { cache } from "react"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import bcrypt from "bcryptjs"
 import { UnauthorizedError } from "@/lib/auth/guards"
 import { requireAdminOrg } from "@/lib/tenant"
+import {
+  adminSetPasswordSchema,
+  type AdminSetPasswordInput,
+} from "@/lib/validations/auth"
 
 type UserRole = "ADMIN" | "STAFF" | "CLIENTE"
 
@@ -242,6 +247,94 @@ export async function updateUserRole(userId: string, role: UserRole) {
     }
     console.error("Error updating user role:", error)
     return { success: false, error: "Failed to update user role" }
+  }
+}
+
+// Admin: Set a new password for an organization member (password reset helper)
+// - org-scoped: target must belong to the admin's organization
+// - self-reset is blocked (admin must use account settings with current password)
+// - other ADMINs are protected (no privilege escalation via dashboard)
+// - clears any pending self-service reset token
+export async function adminSetUserPassword(input: AdminSetPasswordInput) {
+  const validated = adminSetPasswordSchema.safeParse(input)
+
+  if (!validated.success) {
+    return { success: false, errors: validated.error.issues }
+  }
+
+  try {
+    const { session, org } = await requireAdminOrg()
+    const { userId, password } = validated.data
+
+    if (session.user.id === userId) {
+      return {
+        success: false,
+        errors: [
+          {
+            message:
+              "Svojega gesla ne morete ponastaviti tukaj — uporabite nastavitve računa.",
+          },
+        ],
+      }
+    }
+
+    const target = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        staff: { select: { organizationId: true } },
+        customer: { select: { organizationId: true } },
+      },
+    })
+
+    if (!target) {
+      return { success: false, errors: [{ message: "Uporabnik ni najden." }] }
+    }
+
+    const belongsToOrg =
+      target.organizationId === org.id ||
+      target.customer?.organizationId === org.id ||
+      target.staff?.organizationId === org.id
+
+    if (!belongsToOrg) {
+      return {
+        success: false,
+        errors: [{ message: "Uporabnik ni član tega salona." }],
+      }
+    }
+
+    if (target.role === "ADMIN") {
+      return {
+        success: false,
+        errors: [
+          { message: "Gesla drugih administratorjev ni mogoče ponastaviti." },
+        ],
+      }
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    await prisma.user.update({
+      where: { id: target.id },
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
+    })
+
+    revalidatePath(`/dashboard/users/${target.id}`)
+    revalidatePath("/dashboard/users")
+
+    return { success: true }
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return { success: false, errors: [{ message: error.message }] }
+    }
+    console.error("Error setting user password:", error)
+    return {
+      success: false,
+      errors: [{ message: "Napaka pri nastavljanju gesla." }],
+    }
   }
 }
 

@@ -15,8 +15,11 @@ import {
   CurrencyDollarIcon,
   ClockIcon,
   PencilIcon,
+  LockIcon,
 } from "@/components/icons"
 import { getUserById, getCustomerTotalSpent } from "@/app/actions/users"
+import { ResetPasswordDialog } from "@/components/dashboard/reset-password-dialog"
+import { auth } from "@/lib/auth/auth"
 import { format } from "date-fns"
 import { formatSalonTime } from "@/lib/booking-time"
 import { getSessionSalonTimezone } from "@/lib/tenant"
@@ -67,9 +70,10 @@ export async function generateMetadata({ params }: PageProps) {
 }
 
 export default async function UserDetailsPage({ params }: PageProps) {
-  const [{ t, dateFnsLocale }, salonTz] = await Promise.all([
+  const [{ t, dateFnsLocale }, salonTz, session] = await Promise.all([
     getServerI18n(),
     getSessionSalonTimezone(),
+    auth(),
   ])
   const { id } = await params
   const user = await getUserById(id)
@@ -403,6 +407,21 @@ export default async function UserDetailsPage({ params }: PageProps) {
               </p>
             </CardContent>
           </Card>
+
+          {/* Password reset (admin helper) — not for self, not for other admins */}
+          {session?.user?.id !== user.id && user.role !== "ADMIN" && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <LockIcon size={20} />
+                  {t.users.resetPassword.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResetPasswordDialog userId={user.id} userName={user.name || user.email} />
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
