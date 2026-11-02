@@ -32,8 +32,14 @@ Ena namestitev streže **več neodvisnim salonom** — vsak s svojo domeno (`/s/
 - **Operaterska konzola `/platform`** — najemniki, naročnine, suspend/reaktivacija z revizijsko sledjo
 - **React 19 `action={}` obrazci (F1)** — kritični obrazci na React 19 vzorec z kontroliranimi polji in FormData pomočniki (`src/lib/forms/form-data.ts`)
 
-### 📊 Analitika in zdravje (EPIC #4)
-Načrt ostankov po zaključku EPIC #3: platformna analitika v operaterski konzoli (E4-1: distribucija paketov, konverzija, odhod, prihodki, webhook zdravje — vse izpeljano iz obstoječih tabel), najemniška analitika (E4-2a: povpraševanja s poštenimi praznimi stanji; E4-2b: neobvezen lastni GA4 Measurement ID — skript izključno v objavljeni strani, platforma sama ne sledi), **webhook dnevnik napak (E4-3: vsaka neuspešna dostava vedno zabeležena, vidna v `/platform`, pošteno omejen zapisovalnik zoper zlorabe, idempotenca ostane)**, **najemniški Stripe ključi izključno lastniški vnos (E4-3b: env fallback odstranjen — platforma ne more imeti ključa)**, **nadaljevanje namestitve (E4-4: osnutek čarovnika v localStorage — „Nadaljuj, kjer si ostal?“ na `/start`, gesla strukturno izključena iz osnutka, TTL 7 dni, brisanje po uspešni kreaciji)**, **health endpoint + alerting priprava (E4-5: javen `/api/health` brez DB, operaterski `/api/health/internal` fail-closed — DB ping, stanje migracij, webhook števci; brez občutljivih izpisov; runbook v ROLLBACK-BACKUP.md §6)** — [docs/EPIC-4/PLAN.md](docs/EPIC-4/PLAN.md)
+### 📊 Analitika, zdravje in vizualni pregled (EPIC #4) — **ZAKLJUČENO**
+- **Platformna analitika (E4-1)** — distribucija paketov, konverzija, odhod, prihodki, webhook zdravje v operaterski konzoli `/platform` (vse izpeljano iz obstoječih tabel)
+- **Najemniška analitika (E4-2a/2b)** — povpraševanja s poštenimi praznimi stanji; neobvezen lastni GA4 Measurement ID (skript izključno v objavljeni strani, platforma sama ne sledi)
+- **Webhook dnevnik napak (E4-3)** — vsaka neuspešna dostava vedno zabeležena, vidna v `/platform`, pošteno omejen zapisovalnik zoper zlorabe, idempotenca ostane
+- **Najemniški Stripe ključi (E4-3b)** — izključno lastniški vnos; env fallback odstranjen (platforma ne more imeti ključa)
+- **Nadaljevanje namestitve (E4-4)** — osnutek čarovnika v localStorage: „Nadaljuj, kjer si ostal?“ na `/start`, gesla strukturno izključena iz osnutka, TTL 7 dni, brisanje po uspešni kreaciji
+- **Health endpoint + alerting priprava (E4-5)** — javen `/api/health` brez DB, operaterski `/api/health/internal` fail-closed (DB ping, stanje migracij, webhook števci); runbook v [ROLLBACK-BACKUP.md §6](docs/ROLLBACK-BACKUP.md)
+- **Vizualni pregled + testni podatki** — 10 demo najemnikov pokriva vseh 11 panog s popolnimi katalogi (storitve/izdelki s slikami, preset portreti osebja, hero slike po panogi); praktični testi rezervacije, trgovine in lastniške plošče na produkciji; DOM preverba slik 10/10 brez napak; popravljene najdene napake: CTA puščanje med najemniki, mrtev checkout gumb, mrtvi sidri, podvojeni jezikovni preklopnik, slugify č/š/ž, a11y nalaganja slik — [docs/EPIC-4/PLAN.md](docs/EPIC-4/PLAN.md)
 
 ### 🏢 Večnajemniškost (multi-tenant)
 - Vsak salon dobi svojo javno stran pod `/s/[slug]` (npr. `/s/salon-luna/rezervacija`)
@@ -89,24 +95,24 @@ React Email predloge: potrdilo rezervacije, opomnik 24 h, prestavitev, zaključe
 - **Plačila:** Stripe (ključi na nivoju organizacije)
 - **E-pošta:** React Email
 - **Obrazci:** React Hook Form + Zod
-- **Paketni upravitelj:** pnpm
+- **Paketni upravitelj:** Bun (zgodovinsko tudi pnpm — `bun.lock` je aktualen)
 
 ## 📦 Lokalna namestitev
 
 ```bash
 # 1. Namesti odvisnosti
-pnpm install
+bun install           # ali: pnpm install
 
 # 2. Nastavi okolje
 cp .env.example .env   # izpolni spodnje spremenljivke
 
 # 3. Baza
-pnpm prisma generate
-pnpm db:push           # ali: pnpm db:migrate
-pnpm db:seed           # (neobvezno) vzorčni podatki
+bun prisma generate
+bun run db:push        # ali: bun run db:migrate
+bun run db:seed        # (neobvezno) vzorčni podatki
 
 # 4. Zaženi
-pnpm dev               # http://localhost:3000
+bun run dev            # http://localhost:3000
 ```
 
 ### Okoljske spremenljivke
@@ -188,22 +194,45 @@ Neon ✅ · Supabase · Railway — katerikoli PostgreSQL
 ## 🛠️ Razvoj
 
 ```bash
-pnpm dev          # dev strežnik (Turbopack)
-pnpm build        # produkcijski build
-pnpm lint         # ESLint
-pnpm test         # vitest — profilni motor, razširitve, unija dejavnosti, zgodovina konfiguracije, viri v razporejevalniku, obrazni FormData vrata, platformna + najemniška analitika (302 testov)
+bun run dev          # dev strežnik (Turbopack)
+bun run build        # produkcijski build
+bun run lint         # ESLint
+bun run test         # vitest — profilni motor, razširitve, unija dejavnosti, zgodovina konfiguracije, viri v razporejevalniku, obrazni FormData vrata, platformna + najemniška analitika, čarovniški osnutek, orgPath predpone (389 testov)
 DATABASE_URL=… bun scripts/verify-tenant-isolation.ts   # runtime preverba izolacije najemnikov
-pnpm format       # Prettier
-pnpm db:studio    # Prisma Studio (GUI za bazo)
-pnpm db:seed      # vzorčni podatki
+bun run format       # Prettier
+bun run db:studio    # Prisma Studio (GUI za bazo)
+bun run db:seed      # vzorčni podatki
 ```
 
 Arhitektura in fazni načrti:
 - EPIC #1 (univerzalna platforma): [`docs/EPIC-1/ARCHITECTURE.md`](docs/EPIC-1/ARCHITECTURE.md)
 - EPIC #2 (razširitve po panogah): [`docs/EPIC-2/PLAN.md`](docs/EPIC-2/PLAN.md)
 - EPIC #3 (SaaS platforma): [`docs/EPIC-3/PLAN.md`](docs/EPIC-3/PLAN.md)
-- EPIC #4 (analitika + zdravje): [`docs/EPIC-4/PLAN.md`](docs/EPIC-4/PLAN.md)
+- EPIC #4 (analitika + zdravje + vizualni pregled): [`docs/EPIC-4/PLAN.md`](docs/EPIC-4/PLAN.md)
 - **Nov profil/razširitev v 1 datoteki + 1 testu:** [`docs/ADD-NEW-TEMPLATE.md`](docs/ADD-NEW-TEMPLATE.md)
+
+## 🧪 Testni najemniki (demo podatki)
+
+Produkcija vsebuje 10 demo najemnikov — po enega za vsako panogo, s popolnimi katalogi (storitve/izdelki s slikami), preset portreti osebja in hero slikami:
+
+| Panoga | Javna stran | | Panoga | Javna stran |
+|---|---|---|---|---|
+| Frizer | [`/s/demo-frizer`](https://rcbeautysalon-phi.vercel.app/s/demo-frizer) | | Epilacija | [`/s/demo-epilacija`](https://rcbeautysalon-phi.vercel.app/s/demo-epilacija) |
+| Barber | [`/s/demo-barber`](https://rcbeautysalon-phi.vercel.app/s/demo-barber) | | Lepotni salon | [`/s/demo-lepotni`](https://rcbeautysalon-phi.vercel.app/s/demo-lepotni) |
+| Naili | [`/s/demo-nails`](https://rcbeautysalon-phi.vercel.app/s/demo-nails) | | Šiviljstvo | [`/s/demo-siviljstvo`](https://rcbeautysalon-phi.vercel.app/s/demo-siviljstvo) |
+| Kozmetika | [`/s/demo-kozmetika`](https://rcbeautysalon-phi.vercel.app/s/demo-kozmetika) | | Vulkanizer | [`/s/demo-vulkanizer`](https://rcbeautysalon-phi.vercel.app/s/demo-vulkanizer) |
+| Masaža | [`/s/demo-masaza`](https://rcbeautysalon-phi.vercel.app/s/demo-masaza) | | Čebelarstvo | [`/s/demo-cebelarstvo`](https://rcbeautysalon-phi.vercel.app/s/demo-cebelarstvo) |
+
+Prijavni računi za testiranje:
+
+| Vloga | E-pošta | Geslo | Opis |
+|---|---|---|---|
+| Platformni admin | `admin@rcbeautysalon.org` | `admin123` | konzola `/platform` + nadzorna plošča glavnega salona |
+| Lastnik salona (frizer) | `nika@demo.si` | `demo1234` | nadzorna plošča za `/s/studio-nika` |
+| Lastnik salona (naili) | `luna@demo.si` | `demo1234` | nadzorna plošča za `/s/nail-studio-luna` |
+| Stranka | `cliente@rcbeautysalon.org` | `cliente123` | rezervacije, naročila, ocene |
+
+> 💡 Plačila v demo najemnikih niso nastavljena (noben Stripe ključ) — rezervacijski polog in checkout prikažeta iskreno sporočilo »Spletna plačila še niso nastavljena«, kar je pričakovano vedenje (E4-3b).
 
 ## 📄 Licenca
 
