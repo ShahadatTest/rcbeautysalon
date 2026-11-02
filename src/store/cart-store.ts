@@ -151,20 +151,28 @@ export const useCartStore = create<CartState>(
         const old = persisted as
           | (Partial<CartState> & { items?: CartItem[] })
           | null
-        if (old && Array.isArray(old.items)) {
-          // v0 stored one flat, cross-tenant cart — it belonged to no
-          // specific tenant, so it stays reachable on bare routes only.
-          return { cartsByOrg: { [ORG_FALLBACK]: old.items } }
-        }
+        // v0 stored one flat, cross-tenant cart — its items could MIX
+        // products from different salons, so they are intentionally
+        // DISCARDED (never surfaced under any org).
         return { cartsByOrg: old?.cartsByOrg ?? {} }
       },
       onRehydrateStorage: () => (state) => {
-        // After localStorage hydration, re-sync the transient mirror.
-        if (state) {
+        if (!state) return
+        // Early builds of the per-org store parked legacy flat-cart items
+        // under the "" key — unreachable in the UI (bare routes bind to the
+        // default org's slug). Purge it so storage stays clean.
+        if (state.cartsByOrg[""]) {
+          const rest = { ...state.cartsByOrg }
+          delete rest[""]
           useCartStore.setState({
-            items: state.cartsByOrg[state.activeOrg] ?? [],
+            cartsByOrg: rest,
+            items: rest[state.activeOrg] ?? [],
           })
+          return
         }
+        useCartStore.setState({
+          items: state.cartsByOrg[state.activeOrg] ?? [],
+        })
       },
     }
   )
