@@ -35,6 +35,20 @@ import { modulesForVertical } from "@/lib/profiles/modules"
 export interface GuidedEntryInput {
   vertical: string
   palette?: string
+  /** P2 second-level answers — optional, never blocking. */
+  teamSize?: "solo" | "small" | "team"
+  onlineBooking?: "yes" | "no"
+}
+
+/**
+ * P2 answers shape persisted on Organization.onboardingAnswers. The
+ * answers VISIBLY change the product: "solo" removes the staff step
+ * from the activation checklist; onlineBooking "no" rewords the publish
+ * step (no 24/7 bookings promised).
+ */
+export interface OnboardingAnswers {
+  teamSize?: "solo" | "small" | "team"
+  onlineBooking?: "yes" | "no"
 }
 
 export interface GuidedEntryResult {
@@ -56,6 +70,8 @@ export interface GuidedEntryContext {
   currentPalette: string
   /** ISO timestamp or null — null means the wizard has not been completed yet. */
   verticalChosenAt: string | null
+  /** Previously saved P2 answers — the wizard pre-fills them on re-run. */
+  answers: OnboardingAnswers
 }
 
 export async function getGuidedEntryContext(): Promise<GuidedEntryContext | { error: string }> {
@@ -65,11 +81,25 @@ export async function getGuidedEntryContext(): Promise<GuidedEntryContext | { er
       currentVertical: org.vertical,
       currentPalette: org.palette,
       verticalChosenAt: org.verticalChosenAt?.toISOString() ?? null,
+      answers: parseOnboardingAnswers(org.onboardingAnswers),
     }
   } catch (error) {
     console.error("getGuidedEntryContext failed:", error)
     return { error: "Ni mogoče naložiti vodenega vstopa." }
   }
+}
+
+function parseOnboardingAnswers(value: unknown): OnboardingAnswers {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+  const obj = value as Record<string, unknown>
+  const out: OnboardingAnswers = {}
+  if (obj.teamSize === "solo" || obj.teamSize === "small" || obj.teamSize === "team") {
+    out.teamSize = obj.teamSize
+  }
+  if (obj.onlineBooking === "yes" || obj.onlineBooking === "no") {
+    out.onlineBooking = obj.onlineBooking
+  }
+  return out
 }
 
 export async function completeGuidedEntry(input: GuidedEntryInput): Promise<GuidedEntryResult> {
@@ -126,6 +156,13 @@ export async function completeGuidedEntry(input: GuidedEntryInput): Promise<Guid
         palette,
         verticalChosenAt: new Date(),
         profileVersion: String(materialized.profile.version),
+        // P2 second-level answers persist even when the owner leaves the
+        // questions untouched (undefined keys keep the old value).
+        onboardingAnswers: {
+          ...parseOnboardingAnswers(org.onboardingAnswers),
+          ...(input.teamSize ? { teamSize: input.teamSize } : {}),
+          ...(input.onlineBooking ? { onlineBooking: input.onlineBooking } : {}),
+        },
         // Owner overrides belonged to the OLD capability matrix — a
         // different vertical starts from its own clean defaults; the
         // owner re-tunes modules afterwards in Settings → Moduli.

@@ -20,7 +20,7 @@
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Check, ChevronDown, ChevronUp, LayoutGrid, Sparkles, X } from "lucide-react"
+import { Check, ChevronDown, ChevronUp, Info, LayoutGrid, Sparkles, X } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -49,6 +49,12 @@ export interface SetupChecklistCardProps {
   dismissed: boolean
   /** firstJob label switches to the work-order variant for non-booking profiles. */
   appointmentsCapable: boolean
+  /**
+   * P2: the owner answered "no" to 24/7 online bookings — the publish
+   * step is reworded (no bookings promised) instead of hiding it (the
+   * published page still makes them findable).
+   */
+  onlineBookingOptIn: boolean
   dict: DashboardDict["setupChecklist"]
   guidedEntryDict: SettingsDict["guidedEntry"]
 }
@@ -64,6 +70,7 @@ export function SetupChecklistCard({
   allDone,
   dismissed,
   appointmentsCapable,
+  onlineBookingOptIn,
   dict,
   guidedEntryDict,
 }: SetupChecklistCardProps) {
@@ -99,11 +106,18 @@ export function SetupChecklistCard({
   }
   const stepDescription = (key: SetupStepKey) => {
     if (key === "firstJob" && !appointmentsCapable) return dict.steps.firstJobOrder.description
+    // P2: owner declined 24/7 online bookings — do not promise bookings
+    // in the publish step copy.
+    if (key === "publish" && !onlineBookingOptIn) return dict.steps.publishNoBooking.description
     return dict.steps[key].description
   }
   const stepCta = (key: SetupStepKey) => {
     if (key === "firstJob" && !appointmentsCapable) return dict.steps.firstJobOrder.cta
     return dict.steps[key].cta
+  }
+  const stepHint = (key: SetupStepKey) => {
+    if (key === "firstJob" && !appointmentsCapable) return dict.steps.firstJobOrder.hint
+    return dict.steps[key].hint
   }
 
   const Icon = PROFILE_ICONS[profileId] ?? LayoutGrid
@@ -296,6 +310,18 @@ export function SetupChecklistCard({
                         {!step.done && (
                           <p className="text-muted-foreground mt-0.5 text-xs">
                             {stepDescription(step.key)}
+                          </p>
+                        )}
+                        {/* P2-b help at the step — a single calm hint line on
+                            the next-best-action only (never on every row). */}
+                        {isNext && stepHint(step.key) && (
+                          <p className="text-muted-foreground mt-1.5 flex items-start gap-1.5 text-xs">
+                            <Info
+                              size={13}
+                              className="text-primary/70 mt-0.5 shrink-0"
+                              aria-hidden="true"
+                            />
+                            <span>{stepHint(step.key)}</span>
                           </p>
                         )}
                       </div>

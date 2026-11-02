@@ -41,6 +41,20 @@ export const settingsSl = {
     reopenButton: "Zaženi vodeni vstop",
     contentsNote:
       "Besedila in slike vaše spletne strani ostanejo — urejate jih v Izgled in vsebina.",
+    aboutYouTitle: "Nekaj o vašem podjetju",
+    aboutYouNote:
+      "Dve hitri vprašanji — odgovora prilagodita kontrolni seznam namestitve. Preskok je v redu.",
+    teamSizeQuestion: "Koliko ljudi dela pri vas?",
+    teamSizeSolo: "Samo jaz",
+    teamSizeSmall: "2–5",
+    teamSizeTeam: "6 ali več",
+    teamSizeSoloEffect:
+      "Razumevano — kontrolni seznam ne bo zahteval dodajanja osebja.",
+    onlineBookingQuestion: "Želite, da stranke termine rezervirajo prek spleta (24/7)?",
+    onlineBookingYes: "Da — spletna rezervacija",
+    onlineBookingNo: "Ne — po dogovoru",
+    onlineBookingNoEffect:
+      "Objava strani bo še vedno priporočena — brez obljub o spletnih rezervacijah.",
   },
   activities: {
     title: "Dejavnosti",
@@ -574,6 +588,20 @@ export const settingsEn: SettingsDict = {
     reopenButton: "Run guided entry",
     contentsNote:
       "Your website texts and images are untouched — edit them in Look & content.",
+    aboutYouTitle: "A little about your business",
+    aboutYouNote:
+      "Two quick questions — the answers shape your setup checklist. Skipping is fine too.",
+    teamSizeQuestion: "How many people work here?",
+    teamSizeSolo: "Just me",
+    teamSizeSmall: "2–5",
+    teamSizeTeam: "6 or more",
+    teamSizeSoloEffect:
+      "Got it — the checklist won't ask you to add staff.",
+    onlineBookingQuestion: "Do you want customers to book appointments online (24/7)?",
+    onlineBookingYes: "Yes — online booking",
+    onlineBookingNo: "No — by arrangement",
+    onlineBookingNoEffect:
+      "Publishing your page will still be recommended — without promising online bookings.",
   },
   activities: {
     title: "Activities",

@@ -77,6 +77,13 @@ model Organization {
   // Shape: { dismissedAt?: string } (ISO timestamp).
   setupChecklist Json?
 
+  // Guided entry second-level answers (P2, the Shopify "prove you listened"
+  // pattern): { teamSize?: "solo"|"small"|"team", onlineBooking?: "yes"|"no" }.
+  // The answers VISIBLY change the product: "solo" removes the staff step
+  // from the activation checklist; onlineBooking "no" rewords the publish
+  // step (no 24/7 bookings promised). See src/lib/profiles/setup-checklist.ts.
+  onboardingAnswers Json?
+
   // Secondary activity (EPIC #2 E2-4, G4): optional second activity profile id.
   // Capability UNION (primary ∪ secondary) while the PRIMARY profile stays the
   // owner of terminology, forms, workflows and site content — no "ugly" merged

@@ -39,6 +39,7 @@ import { ShareLinkCard } from "@/components/dashboard/share-link-card"
 import { GuidedEntryGate } from "@/components/dashboard/guided-entry"
 import { SetupChecklistCard } from "@/components/dashboard/setup-checklist"
 import { buildSetupChecklist } from "@/lib/profiles/setup-checklist"
+import type { OnboardingAnswers } from "@/app/actions/guided-entry"
 import { listProfileOptions } from "@/lib/profiles/registry"
 import { prisma } from "@/lib/prisma"
 
@@ -84,6 +85,7 @@ export default async function AdminDashboard() {
         profiles={listProfileOptions()}
         currentVertical={shareOrg.vertical}
         currentPalette={shareOrg.palette}
+        answers={parseOnboardingAnswers(shareOrg.onboardingAnswers)}
         dict={t.settings.guidedEntry}
       />
     )
@@ -151,9 +153,13 @@ export default async function AdminDashboard() {
   // activated → one highlighted next-best-action). Step completion is
   // DERIVED from real business data on every render — nothing to store,
   // nothing to fake. Only the dismiss/reopen preference persists.
+  // P2 answers from the wizard VISIBLY shape the checklist: "solo"
+  // removes the staff step; onlineBooking "no" rewords the publish step.
   let checklist: ReturnType<typeof buildSetupChecklist> | null = null
   let checklistDismissed = false
+  let onboardingAnswers: OnboardingAnswers = {}
   if (canManageSettings && shareOrg) {
+    onboardingAnswers = parseOnboardingAnswers(shareOrg.onboardingAnswers)
     const catalogRef = shareOrg.verticalChosenAt ?? shareOrg.createdAt
     const [touchedServices, touchedProducts, staffCount, customerCount, appointmentCount, orderCount] =
       await Promise.all([
@@ -177,6 +183,7 @@ export default async function AdminDashboard() {
         profile.capabilities.inventory !== "disabled",
       staffCount,
       staffCapable: profile.capabilities.staff !== "disabled",
+      soloMode: onboardingAnswers.teamSize === "solo",
       customerCount,
       customersCapable: profile.capabilities.customers !== "disabled",
       appointmentCount,
@@ -224,6 +231,7 @@ export default async function AdminDashboard() {
           allDone={checklist.allDone}
           dismissed={checklistDismissed}
           appointmentsCapable={profile.capabilities.appointments !== "disabled"}
+          onlineBookingOptIn={onboardingAnswers.onlineBooking !== "no"}
           dict={t.dashboard.setupChecklist}
           guidedEntryDict={t.settings.guidedEntry}
         />
@@ -630,4 +638,19 @@ export default async function AdminDashboard() {
       {publicUrl && <ShareLinkCard publicUrl={publicUrl} copy={t.dashboard.shareLink} />}
     </div>
   )
+}
+
+// P2 guided-entry answers — tolerate junk stored by older versions:
+// only the known literal values survive parsing.
+function parseOnboardingAnswers(value: unknown): OnboardingAnswers {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+  const obj = value as Record<string, unknown>
+  const out: OnboardingAnswers = {}
+  if (obj.teamSize === "solo" || obj.teamSize === "small" || obj.teamSize === "team") {
+    out.teamSize = obj.teamSize
+  }
+  if (obj.onlineBooking === "yes" || obj.onlineBooking === "no") {
+    out.onlineBooking = obj.onlineBooking
+  }
+  return out
 }

@@ -45,6 +45,13 @@ export interface SetupChecklistInput {
   catalogCapable: boolean
   staffCount: number
   staffCapable: boolean
+  /**
+   * Owner answered "solo" to the wizard's team-size question (P2):
+   * a one-person business has no staff step at all — the step is
+   * REMOVED from the checklist (the honest "prove you listened"
+   * behavior), so progress counts it nowhere.
+   */
+  soloMode: boolean
   customerCount: number
   customersCapable: boolean
   appointmentCount: number
@@ -87,7 +94,7 @@ export function buildSetupChecklist(input: SetupChecklistInput): SetupChecklist 
   const doneByKey: Record<SetupStepKey, boolean> = {
     vertical: input.verticalChosen,
     catalog: !input.catalogCapable ? true : input.catalogTouched,
-    staff: !input.staffCapable ? true : input.staffCount > 1, // 1 = owner seeded by the wizard
+    staff: !input.staffCapable || input.soloMode ? true : input.staffCount > 1, // 1 = owner seeded by the wizard
     customers: !input.customersCapable ? true : input.customerCount > 0,
     publish: input.published,
     firstJob: firstJobDone,
@@ -104,7 +111,13 @@ export function buildSetupChecklist(input: SetupChecklistInput): SetupChecklist 
       : "/dashboard/work-orders",
   }
 
-  const steps = STEP_ORDER.map((key) => ({
+  // "solo" (P2): the owner told the wizard nobody else works here —
+  // the staff step is REMOVED, never shown as an obligation.
+  const visibleKeys = STEP_ORDER.filter(
+    (key) => !(key === "staff" && input.soloMode),
+  )
+
+  const steps = visibleKeys.map((key) => ({
     key,
     done: doneByKey[key],
     href: hrefByKey[key],

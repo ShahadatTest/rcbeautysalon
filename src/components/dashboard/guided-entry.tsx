@@ -39,12 +39,15 @@ import { PROFILE_ICONS } from "@/lib/profiles/profile-icons"
 import { PALETTE_OPTIONS, type PaletteOption } from "@/lib/palettes-client"
 import { listProfileOptions, type ProfileOption } from "@/lib/profiles/registry"
 import type { SettingsDict } from "@/lib/i18n/dict/settings"
+import type { OnboardingAnswers } from "@/app/actions/guided-entry"
 import { completeGuidedEntry, getGuidedEntryContext } from "@/app/actions/guided-entry"
 
 export interface GuidedEntryProps {
   profiles: ProfileOption[]
   currentVertical: string
   currentPalette: string
+  /** P2 second-level answers (previous run) — pre-fills the questions. */
+  answers?: OnboardingAnswers
   dict: SettingsDict["guidedEntry"]
   variant?: "gate" | "dialog"
   onDone?: () => void
@@ -54,12 +57,19 @@ export function GuidedEntryBody({
   profiles,
   currentVertical,
   currentPalette,
+  answers,
   dict,
   onDone,
 }: Omit<GuidedEntryProps, "variant">) {
   const router = useRouter()
   const [selected, setSelected] = useState(currentVertical)
   const [palette, setPalette] = useState(currentPalette)
+  const [teamSize, setTeamSize] = useState<OnboardingAnswers["teamSize"] | null>(
+    answers?.teamSize ?? null,
+  )
+  const [onlineBooking, setOnlineBooking] = useState<
+    OnboardingAnswers["onlineBooking"] | null
+  >(answers?.onlineBooking ?? null)
   const [pending, startTransition] = useTransition()
 
   // "Kaj je zakupil" — module list for the selected activity, memoized
@@ -70,7 +80,12 @@ export function GuidedEntryBody({
 
   const confirm = () => {
     startTransition(async () => {
-      const res = await completeGuidedEntry({ vertical: selected, palette })
+      const res = await completeGuidedEntry({
+        vertical: selected,
+        palette,
+        ...(teamSize ? { teamSize } : {}),
+        ...(onlineBooking ? { onlineBooking } : {}),
+      })
       if (!res.success) {
         toast.error(res.error ?? dict.error)
         return
@@ -215,6 +230,91 @@ export function GuidedEntryBody({
         </div>
       </div>
 
+      {/* Step 3 — second-level questions (P2, optional). The Shopify
+          "prove you listened" pattern: the answers VISIBLY change the
+          product afterwards — "solo" removes the staff step from the
+          activation checklist; no-online-booking rewords the publish
+          step (no 24/7 bookings promised). Both questions are optional
+          and never block confirmation. */}
+      <div>
+        <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold">
+          <span className="bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold">
+            3
+          </span>
+          {dict.aboutYouTitle}
+        </h2>
+        <p className="text-muted-foreground mt-1 text-xs">{dict.aboutYouNote}</p>
+
+        {/* Q1 — team size */}
+        <p className="mt-4 text-sm font-medium">{dict.teamSizeQuestion}</p>
+        <div
+          role="radiogroup"
+          aria-label={dict.teamSizeQuestion}
+          className="mt-2 flex flex-wrap gap-2"
+        >
+          {(
+            [
+              ["solo", dict.teamSizeSolo],
+              ["small", dict.teamSizeSmall],
+              ["team", dict.teamSizeTeam],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={teamSize === value}
+              onClick={() => setTeamSize(value)}
+              className={cn(
+                "rounded-full border px-4 py-1.5 text-sm transition-all",
+                teamSize === value
+                  ? "border-primary bg-primary/5 ring-2 ring-primary/30"
+                  : "hover:border-primary/40",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {teamSize === "solo" && (
+          <p className="text-muted-foreground mt-2 text-xs">{dict.teamSizeSoloEffect}</p>
+        )}
+
+        {/* Q2 — online booking */}
+        <p className="mt-5 text-sm font-medium">{dict.onlineBookingQuestion}</p>
+        <div
+          role="radiogroup"
+          aria-label={dict.onlineBookingQuestion}
+          className="mt-2 flex flex-wrap gap-2"
+        >
+          {(
+            [
+              ["yes", dict.onlineBookingYes],
+              ["no", dict.onlineBookingNo],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={onlineBooking === value}
+              onClick={() => setOnlineBooking(value)}
+              className={cn(
+                "rounded-full border px-4 py-1.5 text-sm transition-all",
+                onlineBooking === value
+                  ? "border-primary bg-primary/5 ring-2 ring-primary/30"
+                  : "hover:border-primary/40",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {onlineBooking === "no" && (
+          <p className="text-muted-foreground mt-2 text-xs">{dict.onlineBookingNoEffect}</p>
+        )}
+      </div>
+
       {/* Confirm — one honest action: switch (or keep) and enter. */}
       <div>
         <Button onClick={confirm} disabled={pending} size="lg" className="w-full sm:w-auto">
@@ -255,11 +355,12 @@ export function GuidedEntryDialog({
 }) {
   const [open, setOpen] = useState(false)
   // Self-contained: profiles come from the client-safe registry; the
-  // current vertical/palette arrive from the server action on open.
+  // current vertical/palette/P2 answers arrive from the server action on open.
   const profiles = useMemo(() => listProfileOptions(), [])
   const [context, setContext] = useState<{
     currentVertical: string
     currentPalette: string
+    answers: OnboardingAnswers
   } | null>(null)
 
   useEffect(() => {
@@ -271,7 +372,11 @@ export function GuidedEntryDialog({
         toast.error(res.error)
         return
       }
-      setContext({ currentVertical: res.currentVertical, currentPalette: res.currentPalette })
+      setContext({
+        currentVertical: res.currentVertical,
+        currentPalette: res.currentPalette,
+        answers: res.answers,
+      })
     })
     return () => {
       cancelled = true
@@ -295,6 +400,7 @@ export function GuidedEntryDialog({
             profiles={profiles}
             currentVertical={context.currentVertical}
             currentPalette={context.currentPalette}
+            answers={context.answers}
             dict={dict}
             onDone={() => setOpen(false)}
           />

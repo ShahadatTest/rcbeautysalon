@@ -8,6 +8,7 @@ const freshSalon: SetupChecklistInput = {
   catalogCapable: true,
   staffCount: 1,
   staffCapable: true,
+  soloMode: false,
   customerCount: 0,
   customersCapable: true,
   appointmentCount: 0,
@@ -111,6 +112,40 @@ describe("buildSetupChecklist", () => {
     // A salon with orders (shop sales) but zero BOOKINGS still needs the
     // first booking — the milestone follows the profile's primary capability.
     const c = buildSetupChecklist({ ...freshSalon, orderCount: 4 })
+    expect(c.steps.find((s) => s.key === "staff")?.done).toBe(false)
     expect(c.steps.find((s) => s.key === "firstJob")?.done).toBe(false)
+  })
+})
+
+describe("buildSetupChecklist — P2 solo mode (second-level wizard answers)", () => {
+  it("solo mode REMOVES the staff step from the checklist (prove you listened)", () => {
+    const c = buildSetupChecklist({ ...freshSalon, soloMode: true })
+    // The step is gone entirely — progress counts 5 steps, not 6.
+    expect(c.steps.find((s) => s.key === "staff")).toBeUndefined()
+    expect(c.total).toBe(5)
+    expect(c.doneCount).toBe(1)
+    // next-best-action skips staff and points at catalog.
+    expect(c.nextKey).toBe("catalog")
+  })
+
+  it("solo mode does not break completion: 4 done → allDone with staff gone", () => {
+    const c = buildSetupChecklist({
+      ...freshSalon,
+      soloMode: true,
+      catalogTouched: true,
+      customerCount: 2,
+      appointmentCount: 1,
+      published: true,
+    })
+    expect(c.allDone).toBe(true)
+    expect(c.total).toBe(5)
+    expect(c.doneCount).toBe(5)
+    expect(c.nextKey).toBeNull()
+  })
+
+  it("without solo mode the staff step stays (backward compatible)", () => {
+    const c = buildSetupChecklist({ ...freshSalon })
+    expect(c.steps.find((s) => s.key === "staff")?.done).toBe(false)
+    expect(c.total).toBe(6)
   })
 })
