@@ -14,6 +14,7 @@ import { FeatureCards } from "@/components/landing/feature-cards"
 import { CTAButton } from "@/components/landing/cta-button"
 import { ProductCard } from "@/components/landing/product-card"
 import { StaffAvatar } from "@/components/landing/staff-avatar"
+import { HowItWorksSection } from "@/components/landing/how-it-works-section"
 import { TestimonialsSection, type LandingTestimonial } from "@/components/landing/testimonials-section"
 import { SectionWrapper } from "@/components/layouts/section-wrapper"
 import { AccentSpan, splitLastWord, splitOnComma } from "./section-title"
@@ -63,6 +64,11 @@ interface HomeContentProps {
   featuredStaff: Staff[]
   /** Real moderated reviews for the tenant — section renders only when non-empty. */
   testimonials?: LandingTestimonial[]
+  /** True when the tenant's website CTA is real booking (not inquiry/quote)
+   *  and the appointments capability is enabled — gates the "Kako deluje"
+   *  trust section, which would otherwise describe a flow the tenant
+   *  does not offer. */
+  bookingEnabled?: boolean
   /** Whether the tenant has ANY services/products at all (catalog counts).
    * Empty-catalog sections render no markup at all — an empty "Naše
    * storitve" heading with only a button confused product-only verticals
@@ -81,6 +87,7 @@ export function HomeContent({
   featuredProducts,
   featuredStaff,
   testimonials = [],
+  bookingEnabled = false,
   hasServices,
   hasProducts,
 }: HomeContentProps) {
@@ -422,6 +429,9 @@ export function HomeContent({
           {/* Social proof rides right after the team section (trust cluster),
               without being an owner-configurable section key yet. */}
           {key === "team" && <TestimonialsSection testimonials={testimonials} />}
+          {/* "Kako deluje" trust cluster rides right after the features
+              section — only for tenants whose CTA really is online booking. */}
+          {key === "features" && bookingEnabled && <HowItWorksSection />}
         </Fragment>
       ))}
     </div>

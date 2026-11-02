@@ -25,6 +25,10 @@ export default async function HomePage() {
   }
 
   const { org, content } = site
+  const profile = resolveEffectiveProfile(org)
+  const bookingEnabled =
+    profile.website.ctaMode === "booking" &&
+    profile.capabilities.appointments !== "disabled"
   const [featuredServices, featuredProducts, featuredStaff, testimonials] = await Promise.all([
     getPublicFeaturedServices(org.id),
     getPublicFeaturedProducts(org.id),
@@ -39,14 +43,13 @@ export default async function HomePage() {
       ctaLinks={resolveCtaLinks(org.vertical, content, org.profileOverrides)}
       ctaSectionHref={resolveCtaSectionHref(org.vertical, content.cta.buttonHref, org.profileOverrides)}
       serviceCtaLabel={
-        resolveEffectiveProfile(org).capabilities.appointments !== "disabled"
-          ? "Rezerviraj"
-          : "Poglej"
+        bookingEnabled ? "Rezerviraj" : "Poglej"
       }
       featuredServices={featuredServices}
       featuredProducts={featuredProducts}
       featuredStaff={featuredStaff}
       testimonials={testimonials}
+      bookingEnabled={bookingEnabled}
       // Sections render only when their featured grid will have content —
       // a catalog that exists but has nothing featured would otherwise
       // render an empty grid with a bare button (EPIC #4 visual pass).
