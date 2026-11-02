@@ -193,7 +193,10 @@ export function BookingForm(props: BookingFormProps) {
             router.push(`/my-appointments?new=${result.appointmentId}`)
             return { ok: true }
           }
-          setFlowError(result.error || "Ustvarjanje termina ni uspelo")
+          const employeeError =
+            result.error || "Ustvarjanje termina ni uspelo. Poskusite znova."
+          setFlowError(employeeError)
+          toast.error(employeeError)
           return { ok: false }
         }
 
@@ -217,11 +220,18 @@ export function BookingForm(props: BookingFormProps) {
           window.location.assign(result.checkoutUrl)
           return { ok: true }
         }
-        setFlowError(result.error || "Ustvarjanje plačila ni uspelo")
+        // Failure must be visible NEXT TO the button AND as a toast —
+        // the summary card sits below the fold on mobile, so an inline
+        // box alone reads as "nothing happened" (real-world finding).
+        const message =
+          result.error || "Ustvarjanje plačila ni uspelo. Poskusite znova."
+        setFlowError(message)
+        toast.error(message)
         return { ok: false }
       } catch (err) {
         console.error("Error creating booking:", err)
         setFlowError("Prišlo je do nepričakovane napake. Poskusite znova.")
+        toast.error("Prišlo je do nepričakovane napake. Poskusite znova.")
         return { ok: false }
       }
     },
