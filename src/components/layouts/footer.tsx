@@ -14,9 +14,9 @@ function truncate(text: string, max = 160): string {
 }
 
 const legalLinks = [
-  { href: "#", label: "Zasebnost" },
-  { href: "#", label: "Pogoji uporabe" },
-  { href: "#", label: "Piškotki" },
+  { href: "/privacy", label: "Zasebnost" },
+  { href: "/terms", label: "Pogoji uporabe" },
+  { href: "/cookies", label: "Piškotki" },
 ]
 
 const Footer = async () => {

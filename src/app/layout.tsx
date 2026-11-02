@@ -17,6 +17,7 @@ import { CurrencyProvider } from "@/lib/currency"
 import { resolvePublishGate } from "@/lib/publish-gate"
 import {
   buildTenantMetadata,
+  buildTenantJsonLd,
   resolveAppUrl,
   type SeoContext,
 } from "@/lib/seo"
@@ -121,6 +122,7 @@ export default async function RootLayout({
   const org = await resolveBrandOrg()
   let themeCss = ""
   let orgCurrency = "EUR"
+  let jsonLd: Record<string, unknown> | null = null
   if (org) {
     const paletteId = org.palette && PALETTES[org.palette] ? org.palette : "rose"
     const palette: Palette = PALETTES[paletteId]
@@ -130,9 +132,30 @@ export default async function RootLayout({
       .join(";")}}`
     const config = await prisma.salonConfig.findUnique({
       where: { organizationId: org.id },
-      select: { currency: true },
+      select: { currency: true, siteContent: true },
     })
     orgCurrency = config?.currency || "EUR"
+
+    // JSON-LD samo za javne kontekste (tenant/bare) objavljenih najemnikov.
+    const tenantSlugHeader = await headers().then((h) => h.get("x-org-slug"))
+    const session = await auth()
+    const context: SeoContext = tenantSlugHeader
+      ? "tenant"
+      : session
+        ? "private"
+        : "bare"
+    if (context !== "private") {
+      const gate = await resolvePublishGate(org)
+      if (gate === "published") {
+        const content = mergeSiteContent(config?.siteContent, org.vertical)
+        jsonLd = buildTenantJsonLd({
+          org: { name: org.name, slug: org.slug, logo: org.logo, vertical: org.vertical },
+          content,
+          appUrl: resolveAppUrl(),
+          indexable: true,
+        })
+      }
+    }
   }
 
   const htmlLocale = await getLocaleFromCookies()
@@ -146,6 +169,12 @@ export default async function RootLayout({
     >
       <head>
         {themeCss && <style id="org-theme" dangerouslySetInnerHTML={{ __html: themeCss }} />}
+        {jsonLd && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+        )}
       </head>
       <body
         className={`${rougeScript.variable} ${poppins.variable} ${playfair.variable} ${cormorant.variable} ${oswald.variable} ${montserrat.variable} ${inter.variable} ${lora.variable} antialiased`}

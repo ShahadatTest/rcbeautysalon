@@ -24,6 +24,7 @@ export { LockIcon } from "./lock-icon"
 export { CheckCircleIcon } from "./check-circle-icon"
 export { XCircleIcon } from "./x-circle-icon"
 export { WarningCircleIcon } from "./warning-circle-icon"
+export { InfoIcon } from "./info-icon"
 export { SpinnerIcon } from "./spinner-icon"
 export { SpinnerGapIcon } from "./spinner-gap-icon"
 

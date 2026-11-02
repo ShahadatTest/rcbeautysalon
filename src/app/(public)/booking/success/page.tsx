@@ -146,10 +146,10 @@ export default async function BookingSuccessPage({
               </div>
               <CardTitle className="text-2xl">Rezervacija oddana!</CardTitle>
               <CardDescription className="text-base">
-                Vaša rezervacija je bila posredovana salonu — potrditveno e-poštno
-                sporočilo smo poslali. Salon bo termin potrdil, polog (
-                {appointment.depositAmount.toNumber().toFixed(2).replace(".", ",")} €)
-                pa poravnajte ob obisku.
+                Vaša rezervacija je bila posredovana salonu. Salon bo termin
+                potrdil, znesek (
+                {appointment.totalPrice.toNumber().toFixed(2).replace(".", ",")}{" "}
+                €) pa poravnajte ob obisku.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">

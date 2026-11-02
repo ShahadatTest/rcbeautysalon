@@ -8,11 +8,14 @@ import { describe, it, expect } from "vitest"
 import type { Metadata } from "next"
 import {
   absoluteMediaUrl,
+  buildTenantJsonLd,
   buildTenantMetadata,
   resolveAppUrl,
   tenantDescription,
+  tenantOgImageUrl,
   tenantTitle,
 } from "@/lib/seo"
+import { isEmailServiceConfigured } from "@/lib/email/config"
 import { DEFAULT_VERTICAL_CONTENT } from "./helpers/site-content"
 import type { SiteContent } from "@/lib/site-content"
 
@@ -83,13 +86,13 @@ describe("absoluteMediaUrl", () => {
   })
 })
 
-describe("buildTenantMetadata", () => {
-  const appUrl = "https://rcbeautysalon-phi.vercel.app"
-  const content = contentWith({
-    hero: { ...DEFAULT_VERTICAL_CONTENT.hero, imageUrl: "/api/media/hero.jpg" },
-    seo: { title: "Salon Luna — frizerstvo", description: "Rezervirajte online" },
-  })
+const appUrl = "https://rcbeautysalon-phi.vercel.app"
+const content = contentWith({
+  hero: { ...DEFAULT_VERTICAL_CONTENT.hero, imageUrl: "/api/media/hero.jpg" },
+  seo: { title: "Salon Luna — frizerstvo", description: "Rezervirajte online" },
+})
 
+describe("buildTenantMetadata", () => {
   // Next Metadata tipi so široki zveze (OGImage | OGImage[] ipd.) —
   // v testih jih preberemo prek ozkih prilagajanj.
   function ogImages(md: Metadata): { url: string }[] | undefined {
@@ -153,7 +156,7 @@ describe("buildTenantMetadata", () => {
     expect(md.title).toBe("Salon Luna — frizerstvo")
   })
 
-  it("falls back to logo when hero image missing; summary card without image", () => {
+  it("falls back to logo when hero image missing; platform OG image as last resort", () => {
     const noHero = contentWith({
       hero: { ...DEFAULT_VERTICAL_CONTENT.hero, imageUrl: undefined },
     })
@@ -167,6 +170,8 @@ describe("buildTenantMetadata", () => {
     expect(md.alternates?.canonical).toBe(`${appUrl}/s/salon-luna`)
     expect(ogImages(md)?.[0]?.url).toBe(`${appUrl}/img/logo.png`)
 
+    // Brez hero in logotipa — platforma vedno ponudi OG sliko (družabni
+    // predogled na WhatsApp/Facebook), kartica pa velika.
     const noLogoOrg = { ...org, logo: null }
     const md2 = buildTenantMetadata({
       org: noLogoOrg,
@@ -175,7 +180,77 @@ describe("buildTenantMetadata", () => {
       context: "tenant",
       indexable: true,
     })
-    expect(md2.openGraph?.images).toBeUndefined()
-    expect(twitterCard(md2)).toBe("summary")
+    expect(ogImages(md2)?.[0]?.url).toBe(`${appUrl}/og-default.png`)
+    expect(twitterCard(md2)).toBe("summary_large_image")
+  })
+})
+
+describe("tenantOgImageUrl", () => {
+  it("hero > logo > default platform OG image", () => {
+    expect(tenantOgImageUrl(content, org.logo, appUrl)).toBe(
+      `${appUrl}/api/media/hero.jpg`
+    )
+    const noHero = contentWith({
+      hero: { ...DEFAULT_VERTICAL_CONTENT.hero, imageUrl: undefined },
+    })
+    expect(tenantOgImageUrl(noHero, org.logo, appUrl)).toBe(
+      `${appUrl}/img/logo.png`
+    )
+    expect(tenantOgImageUrl(noHero, null, appUrl)).toBe(
+      `${appUrl}/og-default.png`
+    )
+  })
+})
+
+describe("buildTenantJsonLd", () => {
+  it("returns null when not indexable (draft/private)", () => {
+    expect(
+      buildTenantJsonLd({ org, content, appUrl, indexable: false })
+    ).toBeNull()
+  })
+
+  it("builds LocalBusiness with vertical @type, URL, image and opening hours", () => {
+    const ld = buildTenantJsonLd({
+      org: { ...org, vertical: "frizer" },
+      content,
+      appUrl,
+      indexable: true,
+    }) as Record<string, unknown>
+    expect(ld["@context"]).toBe("https://schema.org")
+    expect(ld["@type"]).toBe("HairSalon")
+    expect(ld.name).toBe("Salon Luna")
+    expect(ld.url).toBe(`${appUrl}/s/salon-luna`)
+    expect(ld.image).toBe(`${appUrl}/api/media/hero.jpg`)
+    const hours = ld.openingHoursSpecification as Array<Record<string, unknown>>
+    expect(hours.length).toBeGreaterThan(0)
+    expect(hours[0]["@type"]).toBe("OpeningHoursSpecification")
+  })
+
+  it("unknown vertical falls back to BeautySalon; empty hours/s social omitted", () => {
+    const bare = contentWith({
+      openingHours: [],
+      social: { instagram: "", facebook: undefined } as unknown as SiteContent["social"],
+    })
+    const ld = buildTenantJsonLd({
+      org: { ...org, vertical: "generic" },
+      content: bare,
+      appUrl,
+      indexable: true,
+    }) as Record<string, unknown>
+    expect(ld["@type"]).toBe("BeautySalon")
+    expect(ld.openingHoursSpecification).toBeUndefined()
+    expect(ld.sameAs).toBeUndefined()
+  })
+})
+
+describe("isEmailServiceConfigured", () => {
+  it("false without key or with placeholder key", () => {
+    expect(isEmailServiceConfigured({})).toBe(false)
+    expect(isEmailServiceConfigured({ RESEND_API_KEY: "re_placeholder_not_configured" })).toBe(false)
+    expect(isEmailServiceConfigured({ RESEND_API_KEY: "   " })).toBe(false)
+  })
+
+  it("true with a real key", () => {
+    expect(isEmailServiceConfigured({ RESEND_API_KEY: "re_abc123" })).toBe(true)
   })
 })

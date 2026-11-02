@@ -14,6 +14,7 @@ import {
   CalendarIcon,
   ClockIcon,
   CurrencyDollarIcon,
+  InfoIcon,
   SpinnerGapIcon,
 } from "@/components/icons"
 import { format } from "date-fns"
@@ -135,21 +136,45 @@ export function BookingSummaryCard({
             )}
             <Separator className="my-2 bg-border/50" />
             <div className="flex justify-between text-lg font-bold">
-              <span className="text-foreground">{t.booking.requiredDeposit}</span>
+              <span className="text-foreground">
+                {paymentsEnabled || isEmployee
+                  ? t.booking.requiredDeposit
+                  : t.booking.depositInSalon}
+              </span>
               {isEmployee ? (
                 <span className="text-emerald-600 dark:text-emerald-400">
                   {t.booking.notRequired}
                 </span>
-              ) : (
+              ) : paymentsEnabled ? (
                 <span className="text-primary">
                   {fmt(salonConfig.bookingDeposit)}
                 </span>
+              ) : (
+                <span className="text-primary">{t.booking.depositInSalonValue}</span>
               )}
             </div>
           </div>
 
-          {/* Non-refundable warning - only show for non-employees */}
-          {!isEmployee ? (
+          {/* Payment info box — honest state per payment availability */}
+          {!isEmployee && !paymentsEnabled ? (
+            <div className="rounded-xl border-2 border-sky-300 bg-sky-50 p-4 dark:border-sky-700 dark:bg-sky-950/40">
+              <div className="flex gap-3">
+                <InfoIcon
+                  size={32}
+                  weight="fill"
+                  className="shrink-0 text-sky-700 dark:text-sky-400"
+                />
+                <div className="space-y-1">
+                  <p className="text-base font-bold text-sky-950 dark:text-sky-300">
+                    {t.booking.depositInSalonBoxTitle}
+                  </p>
+                  <p className="text-sm text-sky-900 dark:text-sky-400">
+                    {t.booking.depositInSalonBoxBody}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : !isEmployee ? (
             <div className="rounded-xl border-2 border-amber-400 bg-white p-4 dark:border-amber-600 dark:bg-amber-950/40!">
               <div className="flex gap-3">
                 <WarningCircleIcon

@@ -16,6 +16,7 @@ import crypto from "crypto"
 import { sendPasswordResetEmail } from "@/lib/email/password-reset"
 import { sendVerificationEmail } from "@/lib/email/email-verification"
 import { sendAccountActivatedEmail } from "@/lib/email/account-activated"
+import { isEmailServiceConfigured } from "@/lib/email/config"
 
 // Server action to handle user registration
 export async function registerUser(data: RegisterInput) {
@@ -103,9 +104,21 @@ export async function registerUser(data: RegisterInput) {
     })
     revalidatePath("/dashboard/users")
 
+    // Brez konfiguriranega e-poštnega servisa sporočilo nikoli ne prispe —
+    // vrni povezavo, da UI lahko uporabniku pokaze dostopen način potrditve.
+    if (!isEmailServiceConfigured()) {
+      return {
+        success: true,
+        user: { id: newUser.id, name: newUser.name, email: newUser.email },
+        verificationUrl: `/verify-email?token=${verificationToken}`,
+        emailSent: false,
+      }
+    }
+
     return {
       success: true,
       user: { id: newUser.id, name: newUser.name, email: newUser.email },
+      emailSent: true,
     }
   } catch (error) {
     console.error("Registration error:", error)
@@ -151,7 +164,12 @@ export async function forgotPassword(data: ForgotPasswordInput) {
       await sendPasswordResetEmail(email, token)
     })
 
-    return { success: true }
+    // Brez e-poštnega servisa povezava prikaži v UI (glej registerUser).
+    if (!isEmailServiceConfigured()) {
+      return { success: true, resetUrl: `/reset-password?token=${token}`, emailSent: false }
+    }
+
+    return { success: true, emailSent: true }
   } catch (error) {
     console.error("Password reset error:", error)
     return {

@@ -2,6 +2,7 @@
 
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -14,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
 import { SpinnerIcon, EnvelopeIcon } from "@/components/icons"
 import { Logo } from "@/components/ui/logo"
@@ -27,6 +29,7 @@ import { useI18n } from "@/lib/i18n/provider"
 
 export function ForgotPasswordForm() {
   const { t } = useI18n()
+  const [fallbackResetUrl, setFallbackResetUrl] = useState<string | null>(null)
   const {
     register,
     handleSubmit,
@@ -43,9 +46,53 @@ export function ForgotPasswordForm() {
       return
     }
 
+    // Brez e-poštnega servisa povezavo pokaži direktno (uporabniku dostopno).
+    if (!result.emailSent && result.resetUrl) {
+      setFallbackResetUrl(result.resetUrl)
+      return
+    }
+
     toast.success(t.auth.forgot.toast.checkEmail, {
       description: t.auth.forgot.toast.checkEmailDescription,
     })
+  }
+
+  if (fallbackResetUrl) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1">
+            <div className="mb-6 flex justify-center">
+              <Logo variant="auth" />
+            </div>
+            <CardTitle className="text-center text-2xl">
+              {t.auth.forgot.fallbackTitle}
+            </CardTitle>
+            <CardDescription className="text-center">
+              {t.auth.forgot.fallbackDescription}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Alert>
+              <AlertTitle>{t.auth.forgot.fallbackCta}</AlertTitle>
+              <AlertDescription>
+                <Link
+                  href={fallbackResetUrl}
+                  className="text-primary font-medium underline underline-offset-4"
+                >
+                  {t.auth.forgot.fallbackLink}
+                </Link>
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+          <CardFooter className="justify-center">
+            <Button asChild variant="outline">
+              <Link href="/login">{t.auth.forgot.backToLogin}</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    )
   }
 
   return (

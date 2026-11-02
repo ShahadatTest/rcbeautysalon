@@ -60,6 +60,11 @@ export const bookingSl = {
   nonRefundableIntro: (amount: string) =>
     `Polog ${amount} je potreben za potrditev termina in je `,
   nonRefundableStrong: "nepovraten",
+  depositInSalon: "Polog",
+  depositInSalonValue: "V salonu",
+  depositInSalonBoxTitle: "Plačilo v salonu",
+  depositInSalonBoxBody:
+    "Spletna plačila za ta salon še niso omogočena. Rezervacijo oddate brez pologa, znesek pa poravnate ob obisku.",
   employeeBoxTitle: "Rezervacija zaposlenega",
   employeeBoxBody:
     "Polog ni potreben. Plačilo bo obračunano po opravljeni storitvi.",
@@ -160,6 +165,11 @@ export const bookingEn: BookingDict = {
   nonRefundableIntro: (amount: string) =>
     `The deposit of ${amount} is required to confirm the appointment and is `,
   nonRefundableStrong: "non-refundable",
+  depositInSalon: "Deposit",
+  depositInSalonValue: "At the salon",
+  depositInSalonBoxTitle: "Pay at the salon",
+  depositInSalonBoxBody:
+    "Online payments are not yet enabled for this salon. Submit your booking without a deposit and settle the amount during your visit.",
   employeeBoxTitle: "Employee booking",
   employeeBoxBody:
     "No deposit required. Payment will be charged after the service.",

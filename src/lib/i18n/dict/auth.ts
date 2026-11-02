@@ -44,6 +44,12 @@ export const authSl = {
       createdDescription:
         "Preverite svoj e-poštni nabiralnik in potrdite račun pred prijavo.",
     },
+    fallbackTitle: "Skoraj končano",
+    fallbackDescription:
+      "E-poštni servis še ni nastavljen, zato vam povezavo za potrditev računa prikažemo tukaj.",
+    fallbackCta: "Potrdite svoj e-poštni naslov:",
+    fallbackLink: "Potrdi račun zdaj",
+    fallbackToLogin: "Nazaj na prijavo",
   },
   forgot: {
     title: "Pozabljeno geslo?",
@@ -59,6 +65,11 @@ export const authSl = {
       checkEmailDescription:
         "Če račun obstaja, boste prejeli povezavo za ponastavitev gesla.",
     },
+    fallbackTitle: "Povezava za ponastavitev",
+    fallbackDescription:
+      "E-poštni servis še ni nastavljen, zato povezavo za ponastavitev gesla prikažemo tukaj.",
+    fallbackCta: "Nadaljujte s ponastavitvijo:",
+    fallbackLink: "Ponastavi geslo zdaj",
   },
   reset: {
     title: "Ponastavite geslo",
@@ -135,6 +146,12 @@ export const authEn: AuthDict = {
       createdDescription:
         "Please check your email to verify your account before logging in.",
     },
+    fallbackTitle: "Almost done",
+    fallbackDescription:
+      "The email service is not yet configured, so we're showing your account verification link here.",
+    fallbackCta: "Verify your email address:",
+    fallbackLink: "Verify account now",
+    fallbackToLogin: "Back to sign in",
   },
   forgot: {
     title: "Forgot your password?",
@@ -150,6 +167,11 @@ export const authEn: AuthDict = {
       checkEmailDescription:
         "If an account exists, you'll receive a reset link.",
     },
+    fallbackTitle: "Reset link",
+    fallbackDescription:
+      "The email service is not yet configured, so we're showing your password reset link here.",
+    fallbackCta: "Continue with the reset:",
+    fallbackLink: "Reset password now",
   },
   reset: {
     title: "Reset your password",

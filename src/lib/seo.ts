@@ -20,6 +20,8 @@ export interface TenantSeoOrg {
   name: string
   slug: string
   logo: string | null
+  /** Vertikala (beauty/frizer/nails/cosmetica/seamstress) — določa JSON-LD @type. */
+  vertical?: string | null
 }
 
 export interface TenantSeoInput {
@@ -72,6 +74,91 @@ export function absoluteMediaUrl(
   return `${appUrl}/${trimmed}`
 }
 
+/**
+ * OG slika najemnika: hero slika > logotip > privzeta platforma OG slika.
+ * Brez slike družabni deljenje (WhatsApp/Facebook — v Sloveniji ključni
+ * kanal) ne pokaže predogleda, zato imamo vedno zanesljiv zadnji pregled.
+ */
+export function tenantOgImageUrl(
+  content: SiteContent,
+  orgLogo: string | null,
+  appUrl: string
+): string {
+  return (
+    absoluteMediaUrl(content.hero.imageUrl, appUrl) ??
+    absoluteMediaUrl(orgLogo, appUrl) ??
+    `${appUrl}/og-default.png`
+  )
+}
+
+export interface JsonLdOpeningHour {
+  day: number
+  open: string | null
+  close: string | null
+}
+
+/**
+ * JSON-LD LocalBusiness (HairSalon/BeautySalon po vertikali) — Google
+ * bogati rezultati (delovni čas, povezave, opis) brez ročnega vnosa.
+ * Vključuje samo podatke, ki jih lastnik dejansko je nastavil (brez izmišljenih naslovov).
+ */
+export function buildTenantJsonLd({
+  org,
+  content,
+  appUrl,
+  indexable,
+}: {
+  org: TenantSeoOrg
+  content: SiteContent
+  appUrl: string
+  indexable: boolean
+}): Record<string, unknown> | null {
+  if (!indexable) return null
+
+  const typeByVertical: Record<string, string> = {
+    beauty: "BeautySalon",
+    frizer: "HairSalon",
+    nails: "NailSalon",
+    cosmetica: "BeautySalon",
+    seamstress: "ClothingStore",
+  }
+  const jsonLdType =
+    (org.vertical && typeByVertical[org.vertical]) || "BeautySalon"
+
+  const days = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ]
+  const hours = (content.openingHours || [])
+    .filter((h) => h.open && h.close)
+    .map((h) => ({
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: days[h.day % 7],
+      opens: h.open,
+      closes: h.close,
+    }))
+
+  const sameAs = Object.values(content.social || {}).filter(
+    (u): u is string => typeof u === "string" && /^https?:\/\//.test(u)
+  )
+
+  return {
+    "@context": "https://schema.org",
+    "@type": jsonLdType,
+    name: org.name,
+    description: tenantDescription(content, org.name),
+    url: `${appUrl}/s/${org.slug}`,
+    image: tenantOgImageUrl(content, org.logo, appUrl),
+    ...(hours.length > 0 ? { openingHoursSpecification: hours } : {}),
+    ...(sameAs.length > 0 ? { sameAs } : {}),
+  }
+}
+
 export function buildTenantMetadata({
   org,
   content,
@@ -97,9 +184,7 @@ export function buildTenantMetadata({
     return base
   }
 
-  const ogImage =
-    absoluteMediaUrl(content.hero.imageUrl, appUrl) ??
-    absoluteMediaUrl(org.logo, appUrl)
+  const ogImage = tenantOgImageUrl(content, org.logo, appUrl)
 
   return {
     ...base,

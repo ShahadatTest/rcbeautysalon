@@ -3,6 +3,7 @@
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -15,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
 import { SpinnerIcon } from "@/components/icons"
 import { toast } from "sonner"
@@ -26,6 +28,9 @@ import { useI18n } from "@/lib/i18n/provider"
 export function RegisterForm() {
   const router = useRouter()
   const { t } = useI18n()
+  const [fallbackVerificationUrl, setFallbackVerificationUrl] = useState<
+    string | null
+  >(null)
 
   const {
     register,
@@ -47,12 +52,58 @@ export function RegisterForm() {
       return
     }
 
+    // E-poštni servis ni konfiguriran — povezavo za potrditev pokaži direktno,
+    // sicer uporabnik ostane brez dostopa (sporočilo nikoli ne prispe).
+    if (!result.emailSent && result.verificationUrl) {
+      setFallbackVerificationUrl(result.verificationUrl)
+      return
+    }
+
     toast.success(t.auth.register.toast.created, {
       description: t.auth.register.toast.createdDescription,
       duration: 6000,
     })
 
     router.push("/login")
+  }
+
+  // Dostopen potrditveni korak, ko e-pošta ne deluje (pogojno, brez laži).
+  if (fallbackVerificationUrl) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1">
+            <div className="mb-6 flex justify-center">
+              <Logo variant="auth" />
+            </div>
+            <CardTitle className="text-center text-2xl">
+              {t.auth.register.fallbackTitle}
+            </CardTitle>
+            <CardDescription className="text-center">
+              {t.auth.register.fallbackDescription}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Alert>
+              <AlertTitle>{t.auth.register.fallbackCta}</AlertTitle>
+              <AlertDescription className="break-all">
+                <Link
+                  href={fallbackVerificationUrl}
+                  className="text-primary font-medium underline underline-offset-4"
+                >
+                  {t.auth.register.fallbackLink}
+                </Link>
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+          <CardFooter className="justify-center">
+            <Button asChild variant="outline">
+              <Link href="/login">{t.auth.register.fallbackToLogin}</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    )
   }
 
   return (
