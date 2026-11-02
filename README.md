@@ -14,7 +14,7 @@ Ena namestitev streže **več neodvisnim salonom** — vsak s svojo domeno (`/s/
 - **Matrika zmožnosti `required | optional | disabled`** — irelevantni moduli se nikjer ne izrisujejo (npr. čebelarstvo brez terminov, delovnih nalog in storitev)
 - **Univerzalna delovna naročila** s konfigurabilnimi procesi (stopnje, validirani prehodi, popolna sled dogodkov)
 - **Dinamični obrazci** — javna povpraševanja + admin inbox, urejanje polj brez kode, strežniška validacija vsakega polja
-- **Evidence po razširitvah** (§13) — evidenca vozil in gum za vulanizerja, serije/žetev za čebelarstvo, mere za šiviljstvo; nova razširitev = samo vnos v register, brez kode in brez migracije
+- **Evidence po razširitvah** (§13) — evidenca vozil in gum za vulkanizerja, serije/žetev za čebelarstvo, mere za šiviljstvo; nova razširitev = samo vnos v register, brez kode in brez migracije
 - **Katalog**: storitve, izdelki, variante, paketi (storitve + izdelki), ponudbe in računi s številčenjem po najemniku
 - **Lastniška prilagoditev**: moduli vklop/izklop, dashboard widgeti, urejevalniki obrazcev in procesov — vse verzionirano, brez programiranja
 
@@ -71,7 +71,7 @@ Varnost:
 - Webhook preverja podpis s skrivnostmi organizacij (vsak salon registrira endpoint v svojem Stripe računu) — brez platformne/env skrivnosti (E4-3b)
 - Fallback na okolje je **namenoma odstranjen** (E4-3b): brez lastnega ključa se plačila elegantno degradirajo (prijazno sporočilo, brez sesutja)
 
-### 🈸 Dvojezičnost (i18n)
+### 🌐 Dvojezičnost (i18n)
 - **Slovenščina (privzeto)** + angleščina, preklopnik v glavi
 - Preveden celoten vmesnik: javne strani, rezervacije, trgovina, košarica, nadzorna plošča, staff portal, avtentikacija
 
@@ -122,7 +122,7 @@ DATABASE_URL="postgresql://user:password@localhost:5432/beauty_salon"
 AUTH_SECRET=""              # openssl rand -base64 32
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
-# Stripe — NEOBVEZNO in NEDOSTOJNO za najemniška plačila: ključe vnese
+# Stripe — NEOBVEZNO in NEDOSTOPNO za najemniška plačila: ključe vnese
 # vsak salon lastnik v Nastavitve → Plačila (E4-3b: env fallback je odstranjen)
 # PLATFORM_STRIPE_* pa so izključno platformin lastni račun za naročnine SaaS
 ```
