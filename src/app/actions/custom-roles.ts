@@ -26,7 +26,7 @@ export type CustomRoleInput = z.infer<typeof roleDataSchema>
 
 /** All custom roles of the salon, newest first, with member counts. */
 export async function listCustomRoles() {
-  const { org } = await requireUnrestrictedAdmin()
+  const { org } = await requirePermissionOrg("staff.manage")
 
   return prisma.customRole.findMany({
     where: { organizationId: org.id },
@@ -135,7 +135,9 @@ export async function assignCustomRole(
   userId: string,
   customRoleId: string | null
 ) {
-  const { org } = await requirePermissionOrg("staff.manage")
+  // E4-6b: assigning a role GRANTS its permissions to a member — a
+  // restricted admin must never grant what they do not hold.
+  const { session, org } = await requireUnrestrictedAdmin()
 
   const member = await prisma.user.findFirst({
     where: { id: userId, organizationId: org.id },
@@ -143,6 +145,17 @@ export async function assignCustomRole(
   })
   if (!member || member.role === "CLIENTE") {
     return { success: false as const, error: "Član ne obstaja." }
+  }
+
+  // E4-6b: no self-assignment — an admin who restricts themselves could
+  // no longer reach this editor (requireUnrestrictedAdmin) and, in a
+  // single-owner salon, nobody could undo it. Use another unrestricted
+  // admin or the platform console for such changes.
+  if (member.id === session.user.id) {
+    return {
+      success: false as const,
+      error: "Svoje vloge po meri ne morete spremeniti.",
+    }
   }
 
   if (customRoleId !== null) {
