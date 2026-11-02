@@ -42,6 +42,21 @@ export const dashboardSl = {
     order: (name: string) => `Zaključeno naročilo: ${name}`,
     customer: (name: string) => `Nova stranka: ${name}`,
   },
+  shareLink: {
+    title: "Vaša povezava za stranke",
+    description:
+      "To je javni naslov vaše spletne strani. Prilepite ga, kamor koli želite nove stranke.",
+    copy: "Kopiraj povezavo",
+    copied: "Povezava kopirana!",
+    copyFailed: "Kopiranje ni uspelo — povezavo označite in kopirajte ročno.",
+    instagramTitle: "Instagram",
+    instagramTip:
+      "Prilepite povezavo v svojo Instagram bio — to je najmočnejši brezplačni kanal za nove stranke.",
+    googleTitle: "Google Business Profile",
+    googleTip:
+      "Dodajte povezavo k svojemu Google poslovnemu profilu, da vas stranke najdejo v iskanju in na zemljevidu.",
+    openGoogle: "Upravljaj Google profil",
+  },
 }
 
 export type DashboardDict = typeof dashboardSl
@@ -76,5 +91,20 @@ export const dashboardEn: DashboardDict = {
     appointment: (name: string) => `New booking: ${name}`,
     order: (name: string) => `Order completed: ${name}`,
     customer: (name: string) => `New customer: ${name}`,
+  },
+  shareLink: {
+    title: "Your customer-facing link",
+    description:
+      "This is the public address of your website. Paste it wherever you want new customers to come from.",
+    copy: "Copy link",
+    copied: "Link copied!",
+    copyFailed: "Copy failed — select the link and copy it manually.",
+    instagramTitle: "Instagram",
+    instagramTip:
+      "Paste the link into your Instagram bio — the strongest free channel for new customers.",
+    googleTitle: "Google Business Profile",
+    googleTip:
+      "Add the link to your Google Business Profile so customers can find you in Search and on Maps.",
+    openGoogle: "Manage Google profile",
   },
 }

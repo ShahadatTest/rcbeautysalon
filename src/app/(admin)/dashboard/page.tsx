@@ -34,6 +34,8 @@ import { getSessionEffectiveProfile } from "@/lib/profiles/resolve"
 import { auth } from "@/lib/auth/auth"
 import { getEffectivePermissions } from "@/lib/permissions/effective"
 import { hasPermission } from "@/lib/permissions/roles"
+import { getSessionOrg } from "@/lib/tenant"
+import { ShareLinkCard } from "@/components/dashboard/share-link-card"
 
 type DashboardStats = Awaited<ReturnType<typeof getDashboardStats>>
 type TodaysAppointments = Awaited<ReturnType<typeof getTodaysAppointments>>
@@ -55,6 +57,13 @@ export default async function AdminDashboard() {
     : []
   const canAppointments = hasPermission(perms, "appointments.view")
   const canFinances = hasPermission(perms, "finances.view")
+  // Share-link helper (owner growth tool): only for members who manage
+  // settings — staff members do not run the Instagram/GBP channels.
+  const canManageSettings = hasPermission(perms, "settings.manage")
+  const shareOrg = canManageSettings ? await getSessionOrg() : null
+  const publicUrl = shareOrg?.slug
+    ? `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/s/${shareOrg.slug}`
+    : null
 
   const [stats, todaysAppointments, recentActivities, revenueStats] =
     await Promise.all([
@@ -521,6 +530,10 @@ export default async function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Owner growth helper (research-backed): public link + Instagram bio
+          + Google Business Profile — visible only to settings managers. */}
+      {publicUrl && <ShareLinkCard publicUrl={publicUrl} copy={t.dashboard.shareLink} />}
     </div>
   )
 }
