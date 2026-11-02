@@ -4,16 +4,26 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { SalonSettingsInput } from "@/lib/interfaces"
 import { UnauthorizedError } from "@/lib/auth/guards"
-import { requireAdminOrg, getPublicOrg, getSessionOrg } from "@/lib/tenant"
+import { requireAdminOrg } from "@/lib/tenant"
+import type { Organization } from "@prisma/client"
 
 /**
- * Get salon settings for the current context:
- * dashboard (admin) -> session org; public pages -> tenant/default org.
+ * Get salon settings for the current admin's organization.
  * Creates the config row on first access.
+ *
+ * SECURITY (E4-6b): admin-only. Previously this fell back to the public
+ * org for anonymous callers and CREATED a SalonConfig row — an
+ * unauthenticated write path. The only caller is the guarded settings
+ * page, so the action itself now enforces the admin gate (null instead
+ * of data for any non-admin caller).
  */
 export async function getSalonSettings() {
-  let org = await getSessionOrg()
-  if (!org) org = await getPublicOrg()
+  let org: Organization | null = null
+  try {
+    org = (await requireAdminOrg()).org
+  } catch {
+    return null
+  }
 
   if (!org) return null
 

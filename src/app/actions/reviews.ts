@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
 import { ReviewFormData } from "@/lib/interfaces"
 import { getPublicOrg, ORG_HEADER } from "@/lib/tenant"
+import { isValidRating, isValidReviewComment } from "@/lib/reviews/rules"
 
 // Create a new review for a service
 export async function createReview(data: ReviewFormData) {
@@ -19,17 +20,17 @@ export async function createReview(data: ReviewFormData) {
     }
   }
 
-  // Validate rating (1-5)
-  if (data.rating < 1 || data.rating > 5) {
+  // Validate rating (1-5, integer — shared rule with updateReview)
+  if (!isValidRating(data.rating)) {
     return {
       success: false,
       error: "Ocena mora biti med 1 in 5.",
     }
   }
 
-  // Validate comment (minimum 10 characters, maximum 1000)
+  // Validate comment (minimum 10 characters, maximum 1000 — shared rule)
   const comment = data.comment.trim()
-  if (comment.length < 10 || comment.length > 1000) {
+  if (!isValidReviewComment(data.comment)) {
     return {
       success: false,
       error: "Komentar mora imeti med 10 in 1000 znakov.",
@@ -214,8 +215,18 @@ export async function updateReview(
       return { success: false, error: "Posodobiti lahko samo svoje ocene." }
     }
 
+    // SECURITY (E4-6b): rating must pass the same rule as createReview —
+    // previously ANY number (e.g. 999) could be written, corrupting the
+    // public aggregate rating of the service.
+    if (!isValidRating(data.rating)) {
+      return {
+        success: false,
+        error: "Ocena mora biti med 1 in 5.",
+      }
+    }
+
     // Validate comment length
-    if (data.comment.length < 10 || data.comment.length > 1000) {
+    if (!isValidReviewComment(data.comment)) {
       return {
         success: false,
         error: "Komentar mora imeti med 10 in 1000 znakov.",

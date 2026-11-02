@@ -10,6 +10,10 @@ import {
   adminSetPasswordSchema,
   type AdminSetPasswordInput,
 } from "@/lib/validations/auth"
+import {
+  canAdminManageTarget,
+  type MemberManageBlockReason,
+} from "@/lib/permissions/guard-rules"
 
 type UserRole = "ADMIN" | "STAFF" | "CLIENTE"
 
@@ -196,7 +200,35 @@ export async function getCustomerTotalSpent(customerId: string) {
 // Admin: Update user role
 export async function updateUserRole(userId: string, role: UserRole) {
   try {
-    const { org } = await requireAdminOrg()
+    const { session, org } = await requireAdminOrg()
+
+    // SECURITY (E4-6b): the target must be a member of THIS organization.
+    // Role management may never touch platform-wide accounts (previously
+    // this could promote an arbitrary user AND attach them to this org).
+    const target = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        role: true,
+        organizationId: true,
+        staff: { select: { organizationId: true } },
+        customer: { select: { organizationId: true } },
+      },
+    })
+
+    if (!target) {
+      return { success: false, error: "Uporabnik ni najden." }
+    }
+
+    const decision = canAdminManageTarget(session.user, target, org.id)
+    if (!decision.ok) {
+      const messages: Record<MemberManageBlockReason, string> = {
+        self: "Svoje vloge ne morete spremeniti tukaj.",
+        "not-member": "Uporabnik ni član tega salona.",
+        "admin-target": "Vloge drugih administratorjev ni mogoče spreminjati.",
+      }
+      return { success: false, error: messages[decision.reason] }
+    }
 
     // If changing to STAFF, create staff profile if doesn't exist
     if (role === "STAFF") {
@@ -206,7 +238,7 @@ export async function updateUserRole(userId: string, role: UserRole) {
       })
 
       if (!user) {
-        return { success: false, error: "User not found" }
+        return { success: false, error: "Uporabnik ni najden." }
       }
 
       // Create staff profile if doesn't exist
@@ -224,15 +256,9 @@ export async function updateUserRole(userId: string, role: UserRole) {
       }
     }
 
-    // Assign the user to the admin's organization if they have none yet
-    const target = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { organizationId: true },
-    })
-
     await prisma.user.update({
       where: { id: userId },
-      data: { role, ...(target && !target.organizationId ? { organizationId: org.id } : {}) },
+      data: { role },
     })
 
     revalidatePath(`/dashboard/users/${userId}`)

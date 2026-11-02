@@ -22,8 +22,19 @@ import { getSessionPlanContext, type PlanContext } from "@/lib/plans/resolve"
 import { isPlatformBillingConfigured } from "@/lib/payments/provider"
 import { revalidatePath } from "next/cache"
 
-/** Fresh plan + usage context for the Settings card (client refresh). */
+/**
+ * Fresh plan + usage context for the Settings card (client refresh).
+ *
+ * SECURITY (E4-6b): admin-only — previously any signed-in member could
+ * read the org's plan and usage counters. Non-admins get null (honest
+ * empty state), matching the settings page gate.
+ */
 export async function getPlanContext(): Promise<PlanContext | null> {
+  try {
+    await requireAdminOrg()
+  } catch {
+    return null
+  }
   return getSessionPlanContext()
 }
 

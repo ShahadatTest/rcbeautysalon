@@ -67,8 +67,8 @@ export async function createProductCheckoutSession(
       }
     }
 
-    // Validate stock (scoped to this organization)
-    const stockValidation = await validateCartStock(items, org.id)
+    // Validate stock (tenant resolved from the request inside the action)
+    const stockValidation = await validateCartStock(items)
     if (!stockValidation.valid) {
       return {
         success: false,

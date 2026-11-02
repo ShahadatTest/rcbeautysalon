@@ -34,6 +34,7 @@ import { sendAppointmentCancelledEmail } from "@/lib/email/appointment-cancelled
 import { sendAppointmentRescheduledEmail } from "@/lib/email/appointment-rescheduled"
 import { sendAppointmentExpiredEmail } from "@/lib/email/appointment-expired"
 import { getSessionOrg, requireAdminOrg, getResolvedOrg } from "@/lib/tenant"
+import { isAdminForOrg } from "@/lib/permissions/guard-rules"
 import { resolveEffectiveProfile } from "@/lib/profiles/resolve"
 import {
   WORKSPACE_ENTITY_KEY,
@@ -1298,8 +1299,17 @@ export async function rescheduleAppointment(
     }
   }
 
-  // Check permissions: owner or admin
-  const isAdmin = session.user.role === "ADMIN"
+  // Check permissions: owner or ADMIN OF THE APPOINTMENT'S ORGANIZATION.
+  // SECURITY (E4-6b): previously "any ADMIN" passed — an admin of tenant A
+  // browsing /s/tenant-b could reschedule tenant-b appointments by id.
+  // The admin check is now bound to the request-resolved org (legacy
+  // admins without organizationId keep access only to their default org).
+  const sessionOrg = await getSessionOrg()
+  const isAdmin = isAdminForOrg(
+    session.user,
+    org.id,
+    sessionOrg?.id ?? null
+  )
   const isOwner = appointment.customer?.userId === session.user.id
 
   if (!isAdmin && !isOwner) {

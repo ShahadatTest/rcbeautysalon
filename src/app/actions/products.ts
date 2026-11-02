@@ -110,9 +110,15 @@ export async function getProductStats() {
   return { totalProducts, inStock, lowStock, outOfStock }
 }
 
-// Get product by ID (public shop detail + admin edit)
+// Get product by ID (admin edit)
+// SECURITY (E4-6b): admin-only — previously any caller with an id could
+// read inactive products, stock quantities and variant data. The only
+// caller is the guarded dashboard edit page; the comment claiming a
+// public shop detail use was stale (public reads use getShopProducts /
+// getFeaturedProducts, active-only).
 // Cached to avoid duplicate fetches in generateMetadata + page component
 export const getProductById = cache(async (id: string) => {
+  await requireAdminOrg()
   const org = await resolveRequestOrg()
   if (!org) return null
 

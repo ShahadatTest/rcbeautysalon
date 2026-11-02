@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { getPublicOrg } from "@/lib/tenant"
 import { CartItem } from "@/store/cart-store";
 
-export async function validateCartStock(items: CartItem[], orgId?: string) {
+export async function validateCartStock(items: CartItem[]) {
   const errors: {
     productId: string
     name: string
@@ -12,8 +12,10 @@ export async function validateCartStock(items: CartItem[], orgId?: string) {
     requested: number
   }[] = []
 
-  // Resolve the tenant organization (public shop checkout)
-  const org = orgId ? { id: orgId } : await getPublicOrg()
+  // SECURITY (E4-6b): the tenant is ALWAYS resolved from the request
+  // (proxy header / custom domain / session). A client-supplied orgId
+  // would allow cross-tenant product probing, so the parameter was removed.
+  const org = await getPublicOrg()
 
   if (!org) {
     // No organization -> no products can be validated
