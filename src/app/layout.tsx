@@ -15,6 +15,11 @@ import { paletteCssVars, PALETTES, type Palette } from "@/lib/verticals"
 import { mergeSiteContent } from "@/lib/site-content"
 import { CurrencyProvider } from "@/lib/currency"
 import { resolvePublishGate } from "@/lib/publish-gate"
+import {
+  buildTenantMetadata,
+  resolveAppUrl,
+  type SeoContext,
+} from "@/lib/seo"
 import type { Organization } from "@prisma/client"
 
 const rougeScript = Rouge_Script({
@@ -69,23 +74,42 @@ async function resolveBrandOrg(): Promise<Organization | null> {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
+  const appUrl = resolveAppUrl()
   const org = await resolveBrandOrg()
+
   if (!org) {
+    // Skriti osnutek ali brez organizacij — generična platforma, brez indeksa.
     return {
       title: "Salon Platform",
       description: "Rezervacije, trgovina in predstavitev vašega salona",
+      robots: { index: false, follow: false },
     }
   }
-  const config = await prisma.salonConfig.findUnique({ where: { organizationId: org.id } })
+
+  const [config, gate, headersList] = await Promise.all([
+    prisma.salonConfig.findUnique({ where: { organizationId: org.id } }),
+    resolvePublishGate(org),
+    headers(),
+  ])
   const content = mergeSiteContent(config?.siteContent, org.vertical)
-  const title = content.seo.title || org.name
-  const description = content.seo.description || content.hero.subtitle
-  return {
-    title,
-    description,
-    icons: { icon: org.logo || "/favicon.svg" },
-    manifest: "/manifest.json",
-  }
+
+  // Kontekst: /s/[slug] prek proxyja > goli javni dostop (prva objavljena) >
+  // prijavljena seja (dashboard) — zasebno.
+  const tenantSlugHeader = headersList.get("x-org-slug")
+  const session = await auth()
+  const context: SeoContext = tenantSlugHeader
+    ? "tenant"
+    : session
+      ? "private"
+      : "bare"
+
+  return buildTenantMetadata({
+    org: { name: org.name, slug: org.slug, logo: org.logo },
+    content,
+    appUrl,
+    context,
+    indexable: context === "bare" ? true : gate === "published",
+  })
 }
 
 export default async function RootLayout({
