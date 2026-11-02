@@ -3,8 +3,7 @@ import { getPublicSiteData, getPublicStaffMembers } from "@/lib/public-site"
 import { orgPath } from "@/lib/org-path"
 import { splitLastWord } from "@/components/landing/section-title"
 import Link from "next/link"
-import Image from "next/image"
-import { cloudinaryPresets } from "@/lib/utils/cloudinary"
+import { StaffAvatar } from "@/components/landing/staff-avatar"
 
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getPublicSiteData()
@@ -100,17 +99,11 @@ const StaffPage = async () => {
                   className="group relative block aspect-3/4 overflow-hidden rounded-2xl shadow-lg transition-all duration-500 hover:shadow-2xl hover:-translate-y-2"
                 >
                   {/* Background Image */}
-                  {staff.image ? (
-                    <Image
-                      src={cloudinaryPresets.staffCard(staff.image)}
-                      alt={staff.name}
-                      fill
-                      className="object-cover transition-transform duration-700 group-hover:scale-110"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-linear-to-br from-primary/20 to-accent/20" />
-                  )}
+                  <StaffAvatar
+                    image={staff.image}
+                    name={staff.name}
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  />
 
                   {/* Gradient Overlay */}
                   <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />

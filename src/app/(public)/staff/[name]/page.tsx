@@ -1,10 +1,9 @@
 import type { Metadata } from "next"
 import { getPublicSiteData, getPublicStaffBySlug } from "@/lib/public-site"
 import { notFound } from "next/navigation"
-import Image from "next/image"
 import Link from "next/link"
 import { orgPath } from "@/lib/org-path"
-import { cloudinaryPresets } from "@/lib/utils/cloudinary"
+import { StaffAvatar } from "@/components/landing/staff-avatar"
 import {
   EnvelopeIcon,
   PhoneIcon,
@@ -78,22 +77,12 @@ const StaffDetailPage = async ({ params }: StaffDetailPageProps) => {
             {/* Image */}
             <div className="relative mx-auto w-full max-w-md lg:max-w-none">
               <div className="relative aspect-3/4 overflow-hidden rounded-3xl shadow-2xl">
-                {staffMember.image ? (
-                  <Image
-                    src={cloudinaryPresets.staffCard(staffMember.image)}
-                    alt={staffMember.name}
-                    fill
-                    className="object-cover"
-                    priority
-                    sizes="(max-width: 1024px) 100vw, 50vw"
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-primary/20 to-accent/20">
-                    <span className="text-6xl text-muted-foreground">
-                      {staffMember.name.charAt(0)}
-                    </span>
-                  </div>
-                )}
+                <StaffAvatar
+                  image={staffMember.image}
+                  name={staffMember.name}
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                />
                 {/* Decorative border */}
                 <div className="absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/20" />
               </div>

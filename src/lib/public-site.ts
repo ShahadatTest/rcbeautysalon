@@ -132,6 +132,26 @@ export async function getPublicFeaturedStaff(orgId: string) {
   })
 }
 
+/**
+ * Latest moderated reviews for the tenant landing ("Izjave strank").
+ * Only isActive (auto-approved) reviews of the tenant's services; the
+ * section hides entirely while the tenant has none — no fake social proof.
+ */
+export async function getPublicTestimonials(orgId: string) {
+  return prisma.review.findMany({
+    where: { isActive: true, service: { organizationId: orgId } },
+    orderBy: { createdAt: "desc" },
+    take: 6,
+    select: {
+      id: true,
+      rating: true,
+      comment: true,
+      user: { select: { name: true, image: true } },
+      service: { select: { name: true } },
+    },
+  })
+}
+
 /** All active services grouped by category (services page). */
 export async function getPublicServicesGrouped(orgId: string) {
   const services = await prisma.service.findMany({

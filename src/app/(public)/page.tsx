@@ -3,6 +3,7 @@ import {
   getPublicFeaturedServices,
   getPublicFeaturedProducts,
   getPublicFeaturedStaff,
+  getPublicTestimonials,
 } from "@/lib/public-site"
 import { HomeContent } from "@/components/landing/home-content"
 import { resolveCtaLinks, resolveCtaSectionHref } from "@/lib/public-cta"
@@ -24,10 +25,11 @@ export default async function HomePage() {
   }
 
   const { org, content } = site
-  const [featuredServices, featuredProducts, featuredStaff] = await Promise.all([
+  const [featuredServices, featuredProducts, featuredStaff, testimonials] = await Promise.all([
     getPublicFeaturedServices(org.id),
     getPublicFeaturedProducts(org.id),
     getPublicFeaturedStaff(org.id),
+    getPublicTestimonials(org.id),
   ])
 
   return (
@@ -44,6 +46,7 @@ export default async function HomePage() {
       featuredServices={featuredServices}
       featuredProducts={featuredProducts}
       featuredStaff={featuredStaff}
+      testimonials={testimonials}
       // Sections render only when their featured grid will have content —
       // a catalog that exists but has nothing featured would otherwise
       // render an empty grid with a bare button (EPIC #4 visual pass).

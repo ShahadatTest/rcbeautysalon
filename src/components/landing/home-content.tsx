@@ -13,6 +13,8 @@ import { HeroActions } from "@/components/landing/hero-actions"
 import { FeatureCards } from "@/components/landing/feature-cards"
 import { CTAButton } from "@/components/landing/cta-button"
 import { ProductCard } from "@/components/landing/product-card"
+import { StaffAvatar } from "@/components/landing/staff-avatar"
+import { TestimonialsSection, type LandingTestimonial } from "@/components/landing/testimonials-section"
 import { SectionWrapper } from "@/components/layouts/section-wrapper"
 import { AccentSpan, splitLastWord, splitOnComma } from "./section-title"
 import { useNavigationStore } from "@/store/navigation-store"
@@ -59,6 +61,8 @@ interface HomeContentProps {
   featuredServices: Service[]
   featuredProducts: Product[]
   featuredStaff: Staff[]
+  /** Real moderated reviews for the tenant — section renders only when non-empty. */
+  testimonials?: LandingTestimonial[]
   /** Whether the tenant has ANY services/products at all (catalog counts).
    * Empty-catalog sections render no markup at all — an empty "Naše
    * storitve" heading with only a button confused product-only verticals
@@ -76,6 +80,7 @@ export function HomeContent({
   featuredServices,
   featuredProducts,
   featuredStaff,
+  testimonials = [],
   hasServices,
   hasProducts,
 }: HomeContentProps) {
@@ -308,22 +313,11 @@ export function HomeContent({
                   >
                     <div className="border-primary/10 hover:border-primary/30 overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300 hover:shadow-xl">
                       <div className="relative aspect-3/4 overflow-hidden">
-                        {staff.image ? (
-                          <Image
-                            src={staff.image.startsWith('http') ? staff.image : cloudinaryPresets.staffCard(staff.image)}
-                            alt={staff.name}
-                            fill
-                            className="object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="bg-muted flex h-full w-full items-center justify-center">
-                            <div className="bg-primary/10 flex h-20 w-20 items-center justify-center rounded-full">
-                              <span className="text-primary text-2xl font-bold">
-                                {staff.name.split(" ").map((n) => n[0]).join("")}
-                              </span>
-                            </div>
-                          </div>
-                        )}
+                        <StaffAvatar
+                          image={staff.image}
+                          name={staff.name}
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        />
                         <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                       </div>
                       <div className="p-4 text-center">
@@ -423,7 +417,12 @@ export function HomeContent({
   return (
     <div className="flex min-h-screen flex-col">
       {homeSectionOrder(content.sections).map((key) => (
-        <Fragment key={key}>{sectionNodes[key]}</Fragment>
+        <Fragment key={key}>
+          {sectionNodes[key]}
+          {/* Social proof rides right after the team section (trust cluster),
+              without being an owner-configurable section key yet. */}
+          {key === "team" && <TestimonialsSection testimonials={testimonials} />}
+        </Fragment>
       ))}
     </div>
   )

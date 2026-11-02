@@ -17,6 +17,10 @@ export const publicSl = {
   logout: "Odjava",
   login: "Prijava",
   toggleMenu: "Preklopi meni",
+  testimonialsTitle: "Izjave naših strank",
+  testimonialsSubtitle: "Prave izkušnje strank, ki nam zaupajo svoj videz.",
+  reviewAnonym: "Stranka",
+  reviewsSectionTitle: "Mnenja strank",
 }
 
 export type PublicDict = typeof publicSl
@@ -37,4 +41,8 @@ export const publicEn: PublicDict = {
   logout: "Sign out",
   login: "Sign in",
   toggleMenu: "Toggle menu",
+  testimonialsTitle: "What Our Clients Say",
+  testimonialsSubtitle: "Real experiences from clients who trust us with their look.",
+  reviewAnonym: "Client",
+  reviewsSectionTitle: "Customer Reviews",
 }
