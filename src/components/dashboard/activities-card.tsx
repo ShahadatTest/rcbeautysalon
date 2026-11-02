@@ -31,6 +31,7 @@ import {
   setOrgSecondaryVertical,
   type OrgActivitiesInfo,
 } from "@/app/actions/profile"
+import { GuidedEntryDialog } from "@/components/dashboard/guided-entry"
 
 const CAPABILITY_LABELS: Record<string, { sl: string; en: string }> = {
   appointments: { sl: "Termini in rezervacije", en: "Appointments & bookings" },
@@ -135,8 +136,15 @@ export function ActivitiesCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t.settings.activities.title}</CardTitle>
-        <CardDescription>{t.settings.activities.description}</CardDescription>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <CardTitle>{t.settings.activities.title}</CardTitle>
+            <CardDescription>{t.settings.activities.description}</CardDescription>
+          </div>
+          {/* Guided entry ("vodeni vstop"): switch the PRIMARY activity —
+              modules, terminology and forms all follow. */}
+          <GuidedEntryDialog triggerLabel={t.settings.guidedEntry.reopenButton} dict={t.settings.guidedEntry} />
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">

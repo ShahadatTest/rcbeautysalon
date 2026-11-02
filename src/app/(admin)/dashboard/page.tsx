@@ -36,6 +36,8 @@ import { getEffectivePermissions } from "@/lib/permissions/effective"
 import { hasPermission } from "@/lib/permissions/roles"
 import { getSessionOrg } from "@/lib/tenant"
 import { ShareLinkCard } from "@/components/dashboard/share-link-card"
+import { GuidedEntryGate } from "@/components/dashboard/guided-entry"
+import { listProfileOptions } from "@/lib/profiles/registry"
 
 type DashboardStats = Awaited<ReturnType<typeof getDashboardStats>>
 type TodaysAppointments = Awaited<ReturnType<typeof getTodaysAppointments>>
@@ -66,6 +68,23 @@ export default async function AdminDashboard() {
   const publicUrl = shareOrg?.slug
     ? `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/s/${shareOrg.slug}`
     : null
+
+  // GUIDED ENTRY ("vodeni vstop"): settings managers who have not yet
+  // confirmed their activity see ONLY the wizard — the workspace opens
+  // with that activity's modules after the choice (sidebar, terminology
+  // and forms all resolve from the profile).
+  const guidedEntryPending = canManageSettings && shareOrg?.verticalChosenAt == null
+
+  if (guidedEntryPending && shareOrg) {
+    return (
+      <GuidedEntryGate
+        profiles={listProfileOptions()}
+        currentVertical={shareOrg.vertical}
+        currentPalette={shareOrg.palette}
+        dict={t.settings.guidedEntry}
+      />
+    )
+  }
 
   const [stats, todaysAppointments, recentActivities, revenueStats] =
     await Promise.all([

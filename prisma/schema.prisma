@@ -63,6 +63,13 @@ model Organization {
   profileVersion   String?
   profileOverrides Json?
 
+  // Guided entry ("vodeni vstop"): timestamp of the moment the owner
+  // CONFIRMED the activity inside the dashboard wizard. NULL = the wizard
+  // is still shown first for settings managers (existing pre-wizard
+  // tenants confirm their current vertical with one click — the wizard
+  // is non-destructive for the same-vertical confirmation).
+  verticalChosenAt DateTime?
+
   // Secondary activity (EPIC #2 E2-4, G4): optional second activity profile id.
   // Capability UNION (primary ∪ secondary) while the PRIMARY profile stays the
   // owner of terminology, forms, workflows and site content — no "ugly" merged
