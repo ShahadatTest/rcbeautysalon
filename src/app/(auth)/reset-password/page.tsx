@@ -7,6 +7,7 @@ import { ResetPasswordSkeleton } from "@/components/auth/reset-password-skeleton
 export const metadata: Metadata = {
   title: "Ponastavitev gesla | Poslovna platforma",
   description: "Ustvarite novo geslo za svoj račun.",
+  robots: { index: false, follow: false },
 }
 
 interface ResetPasswordPageProps {

@@ -156,23 +156,28 @@ export function LoginForm() {
               </Link>
             </div>
 
-            <div className="rounded-lg bg-muted p-3 text-xs text-muted-foreground">
-              <p className="font-semibold mb-2">{t.auth.login.demoCredentials}</p>
-              <div className="space-y-2">
-                <div>
-                  <p className="font-medium text-foreground">{t.auth.login.adminFullAccess}</p>
-                  <p>admin@rcbeautysalon.org / admin123</p>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">{t.auth.login.staffAccess}</p>
-                  <p>staff@rcbeautysalon.org / staff123</p>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">{t.auth.login.clientAccess}</p>
-                  <p>cliente@rcbeautysalon.org / cliente123</p>
+            {/* Demo credentials are a DEVELOPMENT aid only. They must never
+                render in production — printed admin passwords on a public
+                login page let anyone log in (security + professionalism). */}
+            {process.env.NODE_ENV !== "production" && (
+              <div className="rounded-lg bg-muted p-3 text-xs text-muted-foreground">
+                <p className="font-semibold mb-2">{t.auth.login.demoCredentials}</p>
+                <div className="space-y-2">
+                  <div>
+                    <p className="font-medium text-foreground">{t.auth.login.adminFullAccess}</p>
+                    <p>admin@rcbeautysalon.org / admin123</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">{t.auth.login.staffAccess}</p>
+                    <p>staff@rcbeautysalon.org / staff123</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">{t.auth.login.clientAccess}</p>
+                    <p>cliente@rcbeautysalon.org / cliente123</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </CardFooter>
         </form>
       </Card>

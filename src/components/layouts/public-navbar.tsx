@@ -112,6 +112,12 @@ export function PublicNavbar({ org, cta, availableSections }: PublicNavbarProps)
             <LanguageSwitcher />
             <ThemeToggle />
             <NavCartButton />
+            {/*
+             * Auth surface rule (interface logic): the salon's customer-facing
+             * interface must NOT offer login to anonymous visitors — booking is
+             * guest-first and staff/owners reach /login via the discreet footer
+             * link. Logged-in users keep their own account menu.
+             */}
             {isLoading ? (
               <Button variant="ghost" disabled size="sm" className="w-10">
                 <SpinnerGapIcon size={18} className="animate-spin" />
@@ -179,13 +185,7 @@ export function PublicNavbar({ org, cta, availableSections }: PublicNavbarProps)
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : (
-              <Link href="/login">
-                <Button variant="ghost" size="sm" className="text-foreground/80 hover:bg-secondary hover:text-primary">
-                  {t.public.login}
-                </Button>
-              </Link>
-            )}
+            ) : null}
             {cta && (
               <Link href={orgPath(org.slug, cta.href)}>
                 <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-md">
@@ -241,6 +241,7 @@ export function PublicNavbar({ org, cta, availableSections }: PublicNavbarProps)
             <div className="my-3 border-t border-border/50" />
 
             {/* Auth Section */}
+            {/* Auth surface rule: same as desktop — no login entry for guests. */}
             {isLoading ? (
               <Button variant="ghost" disabled className="w-full h-11">
                 <SpinnerGapIcon size={20} className="animate-spin" />
@@ -308,13 +309,7 @@ export function PublicNavbar({ org, cta, availableSections }: PublicNavbarProps)
                   {t.public.logout}
                 </Button>
               </div>
-            ) : (
-              <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="ghost" className="w-full h-11 text-foreground/80 hover:bg-secondary hover:text-primary">
-                  {t.public.login}
-                </Button>
-              </Link>
-            )}
+            ) : null}
 
             {/* Profile-resolved CTA (hidden when module disabled) */}
             {cta && (

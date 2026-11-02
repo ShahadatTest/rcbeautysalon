@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Prijava | Poslovna platforma",
   description:
     "Prijavite se v svoj račun za upravljanje terminov, ogled storitev in dostop do posebnih funkcij.",
+  robots: { index: false, follow: false },
 }
 
 export default function LoginPage() {

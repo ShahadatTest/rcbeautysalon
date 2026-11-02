@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Globe, Music2 } from "lucide-react"
 import { Logo } from "@/components/ui/logo"
+import { auth } from "@/lib/auth/auth"
 import { getPublicSiteData } from "@/lib/public-site"
 import { orgPath } from "@/lib/org-path"
 import { formatOpeningHours } from "@/lib/site-content"
@@ -19,7 +20,16 @@ const legalLinks = [
   { href: "/cookies", label: "Piškotki" },
 ]
 
+/**
+ * Auth surface rule (interface logic): anonymous visitors must not see a
+ * prominent login entry on the salon's customer-facing site. Staff, owners
+ * and returning customers reach /login through this single discreet footer
+ * link (same visual weight as the legal links).
+ */
+const staffLoginLink = { href: "/login", label: "Prijava" }
+
 const Footer = async () => {
+  const session = await auth()
   const site = await getPublicSiteData()
   const org = site?.org ?? null
   const config = site?.config ?? null
@@ -40,6 +50,7 @@ const Footer = async () => {
 
   // Profile-aware footer links (EPIC #1 §21): irrelevant modules never render.
   // Phase 5: effective profile = shared profile + owner overrides.
+  // "Moji termini" is an account surface — hidden from anonymous visitors.
   const profile = resolveEffectiveProfile(org)
   const cap = (k: keyof typeof profile.capabilities) =>
     profile.capabilities[k] !== "disabled"
@@ -48,7 +59,8 @@ const Footer = async () => {
     cap("shop") && { href: "/shop", label: "Trgovina" },
     profile.website.ctaMode === "booking" &&
       cap("appointments") && { href: "/booking", label: "Rezerviraj termin" },
-    cap("appointments") && { href: "/my-appointments", label: "Moji termini" },
+    session &&
+      cap("appointments") && { href: "/my-appointments", label: "Moji termini" },
     (profile.website.ctaMode === "inquiry" || profile.website.ctaMode === "quote") && {
       href: "/inquiry",
       label: profileTerm(profile, "bookingCta", "sl"),
@@ -298,7 +310,10 @@ const Footer = async () => {
             — Oblikovano s ❤ na Poslovni platformi
           </p>
           <div className="flex gap-6 text-sm">
-            {legalLinks.map((link) => (
+            {(session
+              ? legalLinks
+              : [...legalLinks, staffLoginLink]
+            ).map((link) => (
               <Link
                 key={link.label}
                 href={link.href}

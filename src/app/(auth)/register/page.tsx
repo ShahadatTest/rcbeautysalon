@@ -6,6 +6,7 @@ import { RegisterSkeleton } from "@/components/auth/register-skeleton"
 export const metadata: Metadata = {
   title: "Registracija | Poslovna platforma",
   description: "Ustvarite račun za rezervacijo terminov, nakup izdelkov in upravljanje svoje lepote izkušnje.",
+  robots: { index: false, follow: false },
 }
 
 export default function RegisterPage() {

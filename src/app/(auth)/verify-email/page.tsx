@@ -21,6 +21,7 @@ import { XCircleIcon } from "@/components/icons/x-circle-icon"
 export const metadata: Metadata = {
   title: "Potrditev e-pošte | Poslovna platforma",
   description: "Potrdite e-poštni naslov svojega računa.",
+  robots: { index: false, follow: false },
 }
 
 interface VerifyEmailPageProps {

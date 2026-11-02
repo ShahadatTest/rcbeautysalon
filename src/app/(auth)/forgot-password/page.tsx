@@ -6,6 +6,7 @@ import { ForgotPasswordSkeleton } from "@/components/auth/forgot-password-skelet
 export const metadata: Metadata = {
   title: "Pozabljeno geslo | Poslovna platforma",
   description: "Ponastavite geslo za svoj račun.",
+  robots: { index: false, follow: false },
 }
 
 export default function ForgotPasswordPage() {
