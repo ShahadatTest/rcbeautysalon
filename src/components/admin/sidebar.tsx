@@ -31,10 +31,13 @@ import {
   SettingsIcon,
   CloseIcon,
   FolderIcon,
+  LockIcon,
 } from "@/components/icons"
+import { usePermissions } from "@/components/admin/permissions-provider"
+import type { PermissionKey } from "@/lib/permissions/roles"
 
 interface NavItem {
-  nameKey: "dashboard" | "analytics" | "appointments" | "customers" | "services" | "products" | "packages" | "shopOrders" | "workOrders" | "documents" | "forms" | "records" | "projects" | "staff" | "settings"
+  nameKey: "dashboard" | "analytics" | "appointments" | "customers" | "services" | "products" | "packages" | "shopOrders" | "workOrders" | "documents" | "forms" | "records" | "projects" | "staff" | "roles" | "settings"
   href: string
   icon: React.ComponentType<{ size?: number; className?: string }>
   /** Capability that must not be "disabled" for this item to render. */
@@ -47,24 +50,26 @@ interface NavItem {
   extension?: string
   /** Terminology key overriding the generic dictionary label. */
   termKey?: "appointmentPlural" | "servicePlural" | "productPlural" | "orderPlural"
+  /** Custom-role permission required (G8). Absent → visible to all members. */
+  permission?: PermissionKey
 }
 
 const navigation: NavItem[] = [
   { nameKey: "dashboard", href: "/dashboard", icon: LayoutDashboardIcon },
-  { nameKey: "analytics", href: "/dashboard/analytics", icon: ChartBarIcon, capability: "analytics" },
-  { nameKey: "appointments", href: "/dashboard/appointments", icon: CalendarIcon, capability: "appointments", termKey: "appointmentPlural" },
-  { nameKey: "customers", href: "/dashboard/users", icon: UsersIcon, capability: "customers" },
-  { nameKey: "services", href: "/dashboard/services", icon: ScissorsIcon, capability: "services", termKey: "servicePlural" },
-  { nameKey: "products", href: "/dashboard/products", icon: PackageIcon, capability: "shop", termKey: "productPlural" },
+  { nameKey: "analytics", href: "/dashboard/analytics", icon: ChartBarIcon, capability: "analytics", permission: "analytics.view" },
+  { nameKey: "appointments", href: "/dashboard/appointments", icon: CalendarIcon, capability: "appointments", termKey: "appointmentPlural", permission: "appointments.view" },
+  { nameKey: "customers", href: "/dashboard/users", icon: UsersIcon, capability: "customers", permission: "customers.manage" },
+  { nameKey: "services", href: "/dashboard/services", icon: ScissorsIcon, capability: "services", termKey: "servicePlural", permission: "services.manage" },
+  { nameKey: "products", href: "/dashboard/products", icon: PackageIcon, capability: "shop", termKey: "productPlural", permission: "products.manage" },
   // Packages (bundles of services and/or products) — shown when either exists
   { nameKey: "packages", href: "/dashboard/packages", icon: ToteIcon, anyCapabilities: ["shop", "services"] },
   // Work orders (workflow-driven jobs) — terminology comes from the profile
-  { nameKey: "workOrders", href: "/dashboard/work-orders", icon: ReceiptIcon, capability: "workOrders", termKey: "orderPlural" },
+  { nameKey: "workOrders", href: "/dashboard/work-orders", icon: ReceiptIcon, capability: "workOrders", termKey: "orderPlural", permission: "workorders.manage" },
   // Documents (quotes/invoices) — gated by the documents capability (§13)
-  { nameKey: "documents", href: "/dashboard/documents", icon: FileTextIcon, capability: "documents" },
+  { nameKey: "documents", href: "/dashboard/documents", icon: FileTextIcon, capability: "documents", permission: "finances.view" },
   // E-commerce shop orders — generic label, only for shop-capable tenants
-  { nameKey: "shopOrders", href: "/dashboard/orders", icon: ShoppingBagIcon, capability: "shop" },
-  { nameKey: "forms", href: "/dashboard/forms", icon: SlidersIcon, capability: "forms" },
+  { nameKey: "shopOrders", href: "/dashboard/orders", icon: ShoppingBagIcon, capability: "shop", permission: "orders.manage" },
+  { nameKey: "forms", href: "/dashboard/forms", icon: SlidersIcon, capability: "forms", permission: "inquiries.manage" },
   // Extension entity registries (vehicles, batches, …) — §13, rendered
   // only when the profile enables extensions that contribute entities
   { nameKey: "records", href: "/dashboard/records", icon: StackIcon, requiresExtensions: true },
@@ -72,8 +77,10 @@ const navigation: NavItem[] = [
   // the `projects` extension (runtime shipped in E2-3; other profiles
   // keep today's experience verbatim).
   { nameKey: "projects", href: "/dashboard/projects", icon: FolderIcon, extension: "projects" },
-  { nameKey: "staff", href: "/dashboard/staff", icon: UserCogIcon, capability: "staff" },
-  { nameKey: "settings", href: "/dashboard/settings", icon: SettingsIcon },
+  { nameKey: "staff", href: "/dashboard/staff", icon: UserCogIcon, capability: "staff", permission: "staff.manage" },
+  // Custom roles (G8) — admin-only, gated in the filter below by isAdmin.
+  { nameKey: "roles", href: "/dashboard/roles", icon: LockIcon },
+  { nameKey: "settings", href: "/dashboard/settings", icon: SettingsIcon, permission: "settings.manage" },
 ]
 
 interface SidebarNavProps {
@@ -83,9 +90,18 @@ interface SidebarNavProps {
 function SidebarNav({ onNavigate }: SidebarNavProps) {
   const pathname = usePathname()
   const { t, term, profile } = useI18n()
+  const { permissions, isAdmin } = usePermissions()
 
   // Capability-gated navigation (EPIC #1 §21): irrelevant modules never render.
+  // G8: items may additionally require a custom-role permission; the
+  // "roles" item is admin-only. Members WITHOUT a custom role hold the
+  // full legacy set (see effectivePermissionKeys), so their chrome is
+  // byte-for-byte unchanged.
   const visible = navigation.filter((item) => {
+    if (item.nameKey === "roles" && !isAdmin) return false
+    if (item.permission && !permissions.includes(item.permission)) {
+      return false
+    }
     if (item.extension) {
       return profile.extensions.includes(item.extension)
     }

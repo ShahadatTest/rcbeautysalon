@@ -11,12 +11,15 @@ import { getAdminStaffMembers, getAdminStaffStats } from "@/app/actions/staff"
 import { getServerI18n } from "@/lib/i18n/server"
 import { StaffSearch } from "@/components/dashboard/staff-search"
 import { DeleteStaffButton } from "@/components/dashboard/delete-staff-button"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 interface StaffPageProps {
   searchParams: Promise<{ search?: string }>
 }
 
 export default async function StaffPage({ searchParams }: StaffPageProps) {
+  // Custom roles (G8): server-side page guard
+  await requirePagePermission("staff.manage")
   const { search } = await searchParams
   const [{ t }, staffMembers, stats] = await Promise.all([
     getServerI18n(),

@@ -118,6 +118,7 @@ model Organization {
   stockMovements       StockMovement[]
   projects             Project[]
   projectTasks         ProjectTask[]
+  customRoles          CustomRole[]
 
   @@index([slug])
   @@index([status])
@@ -283,8 +284,15 @@ model User {
   // Projects created by this user (E2-3)
   projectsCreated Project[] @relation("ProjectCreatedBy")
 
+  // Custom role (EPIC #4 G8) — when set, RESTRICTS this member to the
+  // role's explicit permission set (org-scoped). Without it the legacy
+  // ADMIN/STAFF behaviour is fully preserved.
+  customRoleId String?
+  customRole   CustomRole? @relation(fields: [customRoleId], references: [id], onDelete: SetNull)
+
   @@index([email])
   @@index([role])
+  @@index([customRoleId])
 }
 
 model NotificationPreferences {
@@ -305,6 +313,32 @@ enum UserRole {
   ADMIN
   STAFF
   CLIENTE
+}
+
+// ============================================================
+// CUSTOM ROLES (EPIC #4 G8) — org-scoped permission presets.
+// "Admin brez financ", "senior frizer" … A CustomRole RESTRICTS
+// the members assigned to it to an explicit permission set
+// (catalog: src/lib/permissions/roles.ts). Users WITHOUT a
+// custom role keep the legacy ADMIN/STAFF behaviour unchanged.
+// ============================================================
+model CustomRole {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  // JSON array of PermissionKey strings — validated against the
+  // catalog on every write (never trusted from the client raw).
+  permissions Json     @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
+
+  @@index([organizationId])
 }
 
 model VerificationToken {

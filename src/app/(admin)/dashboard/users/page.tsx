@@ -7,12 +7,15 @@ import { getAdminUsers, getUserStats } from "@/app/actions/users"
 import { UserSearch } from "@/components/dashboard/user-search"
 import { ExportUsersButton } from "@/components/dashboard/export-users-button"
 import { getServerI18n } from "@/lib/i18n/server"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 interface UsersPageProps {
   searchParams: Promise<{ search?: string }>
 }
 
 export default async function UsersPage({ searchParams }: UsersPageProps) {
+  // Custom roles (G8): server-side page guard
+  await requirePagePermission("customers.manage")
   const { search } = await searchParams
   const [{ t, locale }, users, stats] = await Promise.all([
     getServerI18n(),

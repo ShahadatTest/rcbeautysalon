@@ -18,12 +18,15 @@ import { getSessionOrg } from "@/lib/tenant"
 import { getSessionPlanContext } from "@/lib/plans/resolve"
 import { loadBillingOverview } from "@/lib/payments/billing-overview"
 import { getDomainsStatus } from "@/app/actions/domains"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 export default async function SettingsPage({
   searchParams,
 }: {
   searchParams: Promise<{ billing?: string }>
 }) {
+  // Custom roles (G8): server-side page guard
+  await requirePagePermission("settings.manage")
   const [{ t }, params, settings, publication, org, planContext, domains] = await Promise.all([
     getServerI18n(),
     searchParams,

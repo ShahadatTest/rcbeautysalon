@@ -1,8 +1,11 @@
 import { AdminSidebar } from "@/components/admin/sidebar"
 import { AdminHeader } from "@/components/admin/header"
+import { PermissionsProvider } from "@/components/admin/permissions-provider"
 import { AdminI18nProvider } from "@/lib/i18n/provider"
 import { getLocaleFromCookies } from "@/lib/i18n/server"
 import { getSessionOrg } from "@/lib/tenant"
+import { auth } from "@/lib/auth/auth"
+import { getEffectivePermissions } from "@/lib/permissions/effective"
 
 export const dynamic = "force-dynamic"
 
@@ -18,6 +21,13 @@ export default async function AdminLayout({
   const org = await getSessionOrg()
   const profileId = org?.vertical
 
+  // Effective permissions for the signed-in member (G8). Computed fresh
+  // server-side so the sidebar chrome reflects role edits immediately.
+  const session = await auth()
+  const permissions = session?.user?.id
+    ? await getEffectivePermissions(session.user.id)
+    : []
+
   return (
     <AdminI18nProvider
       initialLocale={locale}
@@ -25,6 +35,12 @@ export default async function AdminLayout({
       secondaryVertical={org?.secondaryVertical}
       profileOverrides={org?.profileOverrides}
     >
+      <PermissionsProvider
+        value={{
+          permissions,
+          isAdmin: session?.user?.role === "ADMIN",
+        }}
+      >
       <div className="admin-sans-headings flex h-screen overflow-hidden bg-background">
         {/* Desktop Sidebar */}
         <AdminSidebar />
@@ -39,6 +55,7 @@ export default async function AdminLayout({
           </main>
         </div>
       </div>
+      </PermissionsProvider>
     </AdminI18nProvider>
   )
 }

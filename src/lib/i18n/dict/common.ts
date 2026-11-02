@@ -20,6 +20,7 @@ export const commonSl = {
     records: "Evidence",
     projects: "Projekti",
     staff: "Osebje",
+    roles: "Vloge",
     settings: "Nastavitve",
   },
   header: {
@@ -93,6 +94,7 @@ export const commonEn: CommonDict = {
     records: "Records",
     projects: "Projects",
     staff: "Staff",
+    roles: "Roles",
     settings: "Settings",
   },
   header: {

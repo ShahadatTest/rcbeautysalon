@@ -11,6 +11,7 @@ import {
 } from "@/app/actions/analytics"
 import { PeriodType } from "@/lib/interfaces"
 import { AnalyticsSkeleton } from "@/components/analytics/analytics-skeleton"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 export const metadata = {
   title: "Analytics | Poslovna platforma",
@@ -22,6 +23,8 @@ interface AnalyticsPageProps {
 }
 
 export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps) {
+  // Custom roles (G8): server-side page guard
+  await requirePagePermission("analytics.view")
   const params = await searchParams
   const period = (params.period as PeriodType) || "30d"
 
