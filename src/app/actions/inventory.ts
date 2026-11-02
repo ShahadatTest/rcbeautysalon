@@ -1,9 +1,10 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
+import { requirePermissionOrg } from "@/lib/auth/guards"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
-import { requireAdminOrg } from "@/lib/tenant"
+
 import { getSessionEffectiveProfile } from "@/lib/profiles/resolve"
 import { computeStockDelta, type StockDirectionValue } from "@/lib/inventory/stock"
 
@@ -12,7 +13,7 @@ import { computeStockDelta, type StockDirectionValue } from "@/lib/inventory/sto
 // Manual receipts/issues update the product/variant stock AND
 // append a ledger row in ONE transaction; negative stock is
 // rejected (§11). All queries/actions are strictly org-scoped
-// via requireAdminOrg. Traceability links (supplier/batch) must
+// via requirePermissionOrg. Traceability links (supplier/batch) must
 // belong to the same tenant AND to an extension the profile
 // actually enables — the client can never inject foreign ids.
 // ============================================================
@@ -81,7 +82,7 @@ export async function createStockMovement(
   }
   const data = parsed.data
 
-  const { session, org } = await requireAdminOrg()
+  const { session, org } = await requirePermissionOrg("products.manage")
 
   // Product must belong to THIS tenant (§3 isolation).
   const product = await prisma.product.findFirst({
@@ -200,7 +201,7 @@ export async function createStockMovement(
 export async function listStockMovements(
   productId: string
 ): Promise<StockMovementItem[]> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("products.manage")
 
   // Guard: product must belong to this tenant — never serve foreign rows.
   const product = await prisma.product.findFirst({
@@ -245,7 +246,7 @@ export async function listStockMovements(
  * both only when the effective profile enables them.
  */
 export async function getStockLinkOptions(): Promise<StockLinkOptions> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("products.manage")
   const profile = await getSessionEffectiveProfile()
 
   const suppliers = profile.extensions.includes("suppliers")
@@ -285,7 +286,7 @@ export interface StockSummary {
  * the products page thresholds (in > 10, low 1–10, out 0).
  */
 export async function getStockSummary(): Promise<StockSummary> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("products.manage")
 
   const [inStock, low, out, lowItems] = await Promise.all([
     prisma.product.count({

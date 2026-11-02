@@ -1,14 +1,20 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
+import { requirePermissionOrg } from "@/lib/auth/guards"
 import { requireAdminOrg } from "@/lib/tenant"
+
 import { endOfWeek } from "date-fns"
 import { startOfWeek } from "date-fns"
 import { subMonths } from "date-fns"
 import { endOfMonth } from "date-fns"
 import { startOfMonth } from "date-fns"
 
-// Get dashboard statistics
+// Get dashboard statistics — LANDING-PAGE COUNTS available to EVERY admin
+// (restricted or not): the dashboard root is every member's home and shows
+// non-financial counts. FINANCIAL aggregates are split into
+// `getRevenueStats` (finances.view) so "admin brez financ" never sees
+// revenue anywhere (E4-6b).
 export async function getDashboardStats() {
   const { org } = await requireAdminOrg()
 
@@ -28,8 +34,6 @@ export async function getDashboardStats() {
     totalOrders,
     currentMonthOrders,
     lastMonthOrders,
-    currentMonthRevenue,
-    lastMonthRevenue,
   ] = await Promise.all([
     prisma.customer.count({ where: { organizationId: org.id } }),
     prisma.customer.count({
@@ -56,6 +60,31 @@ export async function getDashboardStats() {
         createdAt: { gte: lastMonthStart, lte: lastMonthEnd },
       },
     }),
+  ])
+
+  const ordersChange =
+    lastMonthOrders > 0
+      ? ((currentMonthOrders - lastMonthOrders) / lastMonthOrders) * 100
+      : 0
+
+  return {
+    appointments: { total: totalAppointments, monthly: monthlyAppointments },
+    customers: { total: totalCustomers, weekly: weeklyCustomers },
+    orders: { total: totalOrders, change: ordersChange },
+  }
+}
+
+// Revenue this month vs. last — FINANCIAL aggregate, finances.view only.
+export async function getRevenueStats() {
+  const { org } = await requirePermissionOrg("finances.view")
+
+  const now = new Date()
+  const currentMonthStart = startOfMonth(now)
+  const currentMonthEnd = endOfMonth(now)
+  const lastMonthStart = startOfMonth(subMonths(now, 1))
+  const lastMonthEnd = endOfMonth(subMonths(now, 1))
+
+  const [currentMonthRevenue, lastMonthRevenue] = await Promise.all([
     prisma.order.aggregate({
       where: {
         organizationId: org.id,
@@ -78,22 +107,15 @@ export async function getDashboardStats() {
   const lastRevenue = Number(lastMonthRevenue._sum.total || 0)
   const revenueChange =
     lastRevenue > 0 ? ((currentRevenue - lastRevenue) / lastRevenue) * 100 : 0
-  const ordersChange =
-    lastMonthOrders > 0
-      ? ((currentMonthOrders - lastMonthOrders) / lastMonthOrders) * 100
-      : 0
 
   return {
     revenue: { total: currentRevenue, change: revenueChange },
-    appointments: { total: totalAppointments, monthly: monthlyAppointments },
-    customers: { total: totalCustomers, weekly: weeklyCustomers },
-    orders: { total: totalOrders, change: ordersChange },
   }
 }
 
 //Get Today's Appointments
 export async function getTodaysAppointments() {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("appointments.view")
 
   const startOfToday = new Date()
   startOfToday.setHours(0, 0, 0, 0)
@@ -128,7 +150,7 @@ export async function getTodaysAppointments() {
 
 //Get Recent Activity
 export async function getRecentActivities() {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("appointments.view")
 
   const [recentAppointments, recentOrders, recentCustomers] = await Promise.all(
     [

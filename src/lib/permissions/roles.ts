@@ -130,3 +130,14 @@ export function hasPermission(
 ): boolean {
   return keys.includes(key)
 }
+
+/**
+ * True when the key set covers EVERYTHING the platform knows about.
+ * Only unrestricted admins may escalate: create ADMIN accounts or
+ * administer the custom-roles catalog itself (E4-6b). A restricted
+ * admin ("admin brez financ") must never be able to grant permissions
+ * they do not hold.
+ */
+export function hasAllPermissions(keys: PermissionKey[]): boolean {
+  return ALL_PERMISSION_KEYS.every((key) => keys.includes(key))
+}

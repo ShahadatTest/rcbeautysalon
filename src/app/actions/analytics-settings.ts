@@ -11,8 +11,8 @@
 
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
-import { requireAdminOrg } from "@/lib/tenant"
-import { UnauthorizedError } from "@/lib/auth/guards"
+
+import { UnauthorizedError, requirePermissionOrg } from "@/lib/auth/guards"
 import { parseMeasurementIdInput } from "@/lib/analytics/measurement-id"
 
 export type AnalyticsIntegrationState = {
@@ -29,7 +29,7 @@ export async function getAnalyticsIntegration(): Promise<{
   error: string | null
 }> {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("settings.manage")
     const config = await prisma.salonConfig.findUnique({
       where: { organizationId: org.id },
       select: { analyticsMeasurementId: true },
@@ -55,7 +55,7 @@ export async function updateAnalyticsIntegration(
   formData: FormData
 ): Promise<AnalyticsIntegrationState> {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("settings.manage")
 
     const raw = formData.get("measurementId")
     const parsed = parseMeasurementIdInput(

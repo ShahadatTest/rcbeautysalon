@@ -1,7 +1,8 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
-import { requireAdminOrg } from "@/lib/tenant"
+import { requirePermissionOrg } from "@/lib/auth/guards"
+
 import {
   KPIData,
   RevenueDataPoint,
@@ -72,7 +73,7 @@ function calculateChange(current: number, previous: number): number {
 }
 
 export async function getKPIData(period: PeriodType = "30d"): Promise<KPIData> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("analytics.view")
 
   const { startDate, endDate, previousStartDate, previousEndDate } = getAnalyticsPeriod(period)
 
@@ -248,7 +249,7 @@ export async function getKPIData(period: PeriodType = "30d"): Promise<KPIData> {
 }
 
 export async function getRevenueChartData(period: PeriodType = "30d"): Promise<RevenueDataPoint[]> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("analytics.view")
 
   const { startDate, endDate } = getAnalyticsPeriod(period)
 
@@ -328,7 +329,7 @@ export async function getRevenueChartData(period: PeriodType = "30d"): Promise<R
 }
 
 export async function getTopServices(period: PeriodType = "30d"): Promise<TopService[]> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("analytics.view")
 
   const { startDate, endDate } = getAnalyticsPeriod(period)
 
@@ -379,7 +380,7 @@ export async function getTopServices(period: PeriodType = "30d"): Promise<TopSer
 }
 
 export async function getTopProducts(period: PeriodType = "30d"): Promise<TopProduct[]> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("analytics.view")
 
   const { startDate, endDate } = getAnalyticsPeriod(period)
 
@@ -427,7 +428,7 @@ export async function getTopProducts(period: PeriodType = "30d"): Promise<TopPro
 }
 
 export async function getAppointmentsByStatus(period: PeriodType = "30d"): Promise<AppointmentsByStatus[]> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("analytics.view")
 
   const { startDate, endDate } = getAnalyticsPeriod(period)
 
@@ -449,7 +450,7 @@ export async function getAppointmentsByStatus(period: PeriodType = "30d"): Promi
 }
 
 export async function getStaffPerformance(period: PeriodType = "30d"): Promise<StaffPerformance[]> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("analytics.view")
 
   const { startDate, endDate } = getAnalyticsPeriod(period)
 
@@ -496,11 +497,11 @@ export async function getStaffPerformance(period: PeriodType = "30d"): Promise<S
 
 // E4-2a — enquiries (form submissions) by workflow status for the
 // selected period. Derived only: a groupBy over existing rows, no
-// counters are written. Org-scoped via requireAdminOrg.
+// counters are written. Org-scoped via requirePermissionOrg.
 export async function getEnquiriesByStatus(
   period: PeriodType = "30d"
 ): Promise<EnquiriesByStatus[]> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("analytics.view")
 
   const { startDate, endDate } = getAnalyticsPeriod(period)
 

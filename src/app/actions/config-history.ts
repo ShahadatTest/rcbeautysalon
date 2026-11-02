@@ -6,14 +6,15 @@
 // configuration history. Append-only invariant: a revert applies
 // a stored snapshot and appends a NEW version entry — history is
 // never rewritten or deleted. All queries are strictly
-// org-scoped via requireAdminOrg.
+// org-scoped via requirePermissionOrg.
 // ============================================================
 
 import { Prisma } from "@prisma/client"
 import { z } from "zod"
 import { revalidatePath } from "next/cache"
-import { requireAdminOrg } from "@/lib/tenant"
+
 import { prisma } from "@/lib/prisma"
+import { requirePermissionOrg } from "@/lib/auth/guards"
 import {
   describeEntityKey,
   formSnapshot,
@@ -58,7 +59,7 @@ export type ConfigHistoryResult =
  */
 export async function getConfigEntities(): Promise<ConfigEntitiesResult> {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("settings.manage")
     // Config edits are rare (small dataset): one plain query, grouped in
     // memory to the latest row per entity.
     const rows = await prisma.configChangeLog.findMany({
@@ -116,7 +117,7 @@ export async function getConfigHistory(
   input: z.input<typeof historySchema>
 ): Promise<ConfigHistoryResult> {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("settings.manage")
     const parsed = historySchema.safeParse(input)
     if (!parsed.success) return { ok: false, error: "INVALID" }
 
@@ -163,7 +164,7 @@ export async function revertConfigChange(
   input: z.input<typeof revertSchema>
 ): Promise<RevertResult> {
   try {
-    const { org, session } = await requireAdminOrg()
+    const { org, session } = await requirePermissionOrg("settings.manage")
     const parsed = revertSchema.safeParse(input)
     if (!parsed.success) return { ok: false, error: "INVALID" }
 

@@ -13,6 +13,11 @@ import {
   isAdminForOrg,
   type MemberTargetInfo,
 } from "@/lib/permissions/guard-rules"
+import {
+  hasAllPermissions,
+  ALL_PERMISSION_KEYS,
+  type PermissionKey,
+} from "@/lib/permissions/roles"
 
 function member(overrides: Partial<MemberTargetInfo> = {}): MemberTargetInfo {
   return {
@@ -131,5 +136,28 @@ describe("isAdminForOrg", () => {
     expect(
       isAdminForOrg({ role: "ADMIN", organizationId: null }, "org-b", "org-a")
     ).toBe(false)
+  })
+})
+
+describe("hasAllPermissions (escalation gate, E4-6b)", () => {
+  it("accepts the full catalog (unrestricted admin)", () => {
+    expect(hasAllPermissions([...ALL_PERMISSION_KEYS])).toBe(true)
+  })
+
+  it("accepts an explicit set containing every key (equivalent to unrestricted)", () => {
+    const explicit: PermissionKey[] = [...ALL_PERMISSION_KEYS].reverse()
+    expect(hasAllPermissions(explicit)).toBe(true)
+  })
+
+  it("rejects a restricted set missing even ONE key (the escalation hole)", () => {
+    const withoutFinances = ALL_PERMISSION_KEYS.filter(
+      (k) => k !== "finances.view"
+    )
+    expect(hasAllPermissions(withoutFinances)).toBe(false)
+  })
+
+  it("rejects empty and single-key sets", () => {
+    expect(hasAllPermissions([])).toBe(false)
+    expect(hasAllPermissions(["staff.manage"])).toBe(false)
   })
 })

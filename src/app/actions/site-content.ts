@@ -2,8 +2,8 @@
 
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
-import { requireAdminOrg } from "@/lib/tenant"
-import { UnauthorizedError } from "@/lib/auth/guards"
+
+import { UnauthorizedError, requirePermissionOrg } from "@/lib/auth/guards"
 import { mergeSiteContent, type SiteContent } from "@/lib/site-content"
 import { computeRevert, hasUnpublishedChanges, parsePublishState } from "@/lib/publication"
 import type { PublicationStatus } from "@/app/actions/publication"
@@ -12,7 +12,7 @@ import { PALETTES } from "@/lib/verticals"
 /** Full branding + content payload for the "Izgled in vsebina" editor. */
 export async function getOrgBranding() {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("settings.manage")
     const config = await prisma.salonConfig.findUnique({
       where: { organizationId: org.id },
       select: {
@@ -59,7 +59,7 @@ export async function getOrgBranding() {
  */
 export async function updateSiteContent(content: SiteContent) {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("settings.manage")
 
     // Minimal server-side sanitization: plain strings only, bounded lengths.
     const clean = JSON.parse(JSON.stringify(content)) as SiteContent
@@ -106,7 +106,7 @@ export async function revertSiteContentToPublished(): Promise<
   { success: true } | { success: false; error: string }
 > {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("settings.manage")
     const config = await prisma.salonConfig.findUnique({
       where: { organizationId: org.id },
       select: { publishedSiteContent: true, publishedContentVersion: true },
@@ -149,7 +149,7 @@ export async function revertSiteContentToPublished(): Promise<
 /** Palette switch (rose, amber, charcoal, ...). */
 export async function updateOrgPalette(palette: string) {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("settings.manage")
     if (!PALETTES[palette]) {
       return { success: false, error: "Neznana paleta." }
     }
@@ -171,7 +171,7 @@ export async function updateOrgPalette(palette: string) {
 /** Logo update (URL from /api/upload). */
 export async function updateOrgLogo(logo: string | null) {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("settings.manage")
     await prisma.organization.update({
       where: { id: org.id },
       data: { logo },
@@ -190,7 +190,7 @@ export async function updateOrgLogo(logo: string | null) {
 /** Vertical switch — optionally re-seeds the default catalog for the new vertical. */
 export async function updateOrgVertical(vertical: string, reseedCatalog: boolean) {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("settings.manage")
     const { getVertical, seedOrganizationCatalog } = await import("@/lib/verticals")
     const preset = getVertical(vertical)
     if (!preset) return { success: false, error: "Neznana panoga." }

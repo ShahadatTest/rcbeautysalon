@@ -1,7 +1,8 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
-import { requireAdminOrg } from "@/lib/tenant"
+import { requirePermissionOrg } from "@/lib/auth/guards"
+
 import { resolveEffectiveProfile } from "@/lib/profiles/resolve"
 import {
   hasUnpublishedChanges,
@@ -21,7 +22,7 @@ export interface PublicationStatus {
 
 /** Current publication state for the Settings card. */
 export async function getPublicationStatus(): Promise<PublicationStatus> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("settings.manage")
   const config = await prisma.salonConfig.findUnique({
     where: { organizationId: org.id },
     select: { publishedContentVersion: true },
@@ -50,7 +51,7 @@ export async function getPublicationStatus(): Promise<PublicationStatus> {
 export async function publishSite(): Promise<
   { success: true } | { success: false; errors: string[] }
 > {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("settings.manage")
 
   const [config, serviceCount, productCount] = await Promise.all([
     prisma.salonConfig.findUnique({
@@ -107,7 +108,7 @@ export async function publishSite(): Promise<
 
 /** Unpublish (take the site back to maintenance). Data is never touched. */
 export async function unpublishSite(): Promise<{ success: true }> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("settings.manage")
   await prisma.organization.update({
     where: { id: org.id },
     data: { publishState: "UNPUBLISHED" },

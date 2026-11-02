@@ -1,9 +1,10 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
+import { requirePermissionOrg } from "@/lib/auth/guards"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
-import { requireAdminOrg } from "@/lib/tenant"
+
 import { getSessionEffectiveProfile } from "@/lib/profiles/resolve"
 import {
   canTransitionProject,
@@ -23,7 +24,7 @@ import {
 // PROJECTS & TASKS ACTIONS (EPIC #2 E2-3).
 // Runtime for the `projects` extension — multi-day jobs with a
 // task checklist. Every action is strictly org-scoped via
-// requireAdminOrg; optional customer/work-order links must
+// requirePermissionOrg; optional customer/work-order links must
 // belong to the SAME tenant (the client can never inject
 // foreign ids). Every action re-checks that the effective
 // profile actually enables the `projects` extension — hiding
@@ -214,7 +215,7 @@ const PROJECT_INCLUDE = {
 /** All projects of the tenant, active first, then by nearest deadline. */
 export async function listProjects(): Promise<ProjectsOverview | { error: ProjectErrorCode }> {
   if (!(await requireProjectsEnabled())) return { error: "EXTENSION_OFF" }
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
 
   const now = new Date()
   const monthStart = new Date(
@@ -260,7 +261,7 @@ export async function getProjectDetail(
   id: string
 ): Promise<ProjectDetail | { error: ProjectErrorCode }> {
   if (!(await requireProjectsEnabled())) return { error: "EXTENSION_OFF" }
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
 
   const project = await prisma.project.findFirst({
     where: { id, organizationId: org.id },
@@ -302,7 +303,7 @@ export async function getProjectLinkOptions(): Promise<
   ProjectLinkOptions | { error: ProjectErrorCode }
 > {
   if (!(await requireProjectsEnabled())) return { error: "EXTENSION_OFF" }
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
 
   const [customers, workOrders] = await Promise.all([
     prisma.customer.findMany({
@@ -330,7 +331,7 @@ export async function createProject(input: ProjectInput): Promise<ProjectResult>
   const parsed = projectInputSchema.safeParse(input)
   if (!parsed.success) return { ok: false, error: "VALIDATION" }
   if (!(await requireProjectsEnabled())) return { ok: false, error: "EXTENSION_OFF" }
-  const { org, session } = await requireAdminOrg()
+  const { org, session } = await requirePermissionOrg("workorders.manage")
 
   const links = await resolveLinks(org.id, parsed.data)
   if (!links.ok) return { ok: false, error: "LINK_MISMATCH" }
@@ -359,7 +360,7 @@ export async function updateProject(id: string, input: ProjectInput): Promise<Pr
   const parsed = projectInputSchema.safeParse(input)
   if (!parsed.success) return { ok: false, error: "VALIDATION" }
   if (!(await requireProjectsEnabled())) return { ok: false, error: "EXTENSION_OFF" }
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
 
   const existing = await prisma.project.findFirst({
     where: { id, organizationId: org.id },
@@ -395,7 +396,7 @@ export async function setProjectStatus(
 ): Promise<ProjectResult> {
   if (!PROJECT_STATUSES.includes(status)) return { ok: false, error: "VALIDATION" }
   if (!(await requireProjectsEnabled())) return { ok: false, error: "EXTENSION_OFF" }
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
 
   const project = await prisma.project.findFirst({
     where: { id, organizationId: org.id },
@@ -430,7 +431,7 @@ export async function setProjectStatus(
 
 export async function deleteProject(id: string): Promise<ProjectResult> {
   if (!(await requireProjectsEnabled())) return { ok: false, error: "EXTENSION_OFF" }
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
 
   const existing = await prisma.project.findFirst({
     where: { id, organizationId: org.id },
@@ -457,7 +458,7 @@ export async function createProjectTask(
   const parsed = taskInputSchema.safeParse(input)
   if (!parsed.success) return { ok: false, error: "VALIDATION" }
   if (!(await requireProjectsEnabled())) return { ok: false, error: "EXTENSION_OFF" }
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
 
   const project = await prisma.project.findFirst({
     where: { id: projectId, organizationId: org.id },
@@ -499,7 +500,7 @@ export async function updateProjectTask(
   const parsed = taskInputSchema.safeParse(input)
   if (!parsed.success) return { ok: false, error: "VALIDATION" }
   if (!(await requireProjectsEnabled())) return { ok: false, error: "EXTENSION_OFF" }
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
 
   const task = await prisma.projectTask.findFirst({
     where: { id: taskId, organizationId: org.id },
@@ -529,7 +530,7 @@ export async function setProjectTaskStatus(
 ): Promise<ProjectResult> {
   if (!PROJECT_TASK_STATUSES.includes(status)) return { ok: false, error: "VALIDATION" }
   if (!(await requireProjectsEnabled())) return { ok: false, error: "EXTENSION_OFF" }
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
 
   const task = await prisma.projectTask.findFirst({
     where: { id: taskId, organizationId: org.id },
@@ -551,7 +552,7 @@ export async function setProjectTaskStatus(
 
 export async function deleteProjectTask(taskId: string): Promise<ProjectResult> {
   if (!(await requireProjectsEnabled())) return { ok: false, error: "EXTENSION_OFF" }
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
 
   const task = await prisma.projectTask.findFirst({
     where: { id: taskId, organizationId: org.id },

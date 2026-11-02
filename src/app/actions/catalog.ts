@@ -1,8 +1,9 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
+import { requirePermissionOrg } from "@/lib/auth/guards"
 import { revalidatePath } from "next/cache"
-import { requireAdminOrg } from "@/lib/tenant"
+
 
 // ============================================================
 // UNIVERSAL CATALOG: VARIANTS + PACKAGES (EPIC #1 Phase 4b, §11)
@@ -10,7 +11,7 @@ import { requireAdminOrg } from "@/lib/tenant"
 // optional price override and own stock. Packages: sellable
 // bundles combining services AND products at a package price
 // (salon treatment packages, production kits, …).
-// All queries/actions are strictly org-scoped via requireAdminOrg.
+// All queries/actions are strictly org-scoped via requirePermissionOrg.
 // ============================================================
 
 // ------------------------------------------------------------
@@ -63,7 +64,7 @@ function serializeVariant(v: {
 export async function getProductVariants(
   productId: string
 ): Promise<VariantItem[]> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("products.manage")
   // Verify the product belongs to this tenant.
   const product = await prisma.product.findFirst({
     where: { id: productId, organizationId: org.id },
@@ -90,7 +91,7 @@ export interface CreateVariantInput {
 export async function createProductVariant(
   input: CreateVariantInput
 ): Promise<VariantsActionResult> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("products.manage")
   const name = input.name?.trim()
   if (!name) return { ok: false, error: "MISSING_NAME" }
 
@@ -145,7 +146,7 @@ export interface UpdateVariantInput {
 export async function updateProductVariant(
   input: UpdateVariantInput
 ): Promise<VariantsActionResult> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("products.manage")
 
   const existing = await prisma.productVariant.findFirst({
     where: { id: input.id, organizationId: org.id },
@@ -189,7 +190,7 @@ export async function updateProductVariant(
 export async function deleteProductVariant(
   id: string
 ): Promise<VariantsActionResult> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("products.manage")
   const existing = await prisma.productVariant.findFirst({
     where: { id, organizationId: org.id },
     select: { id: true, productId: true },
@@ -248,7 +249,7 @@ export interface PackagesOverview {
 
 /** Packages + pickable catalog (services/products) for the manager page. */
 export async function getPackagesOverview(): Promise<PackagesOverview> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("products.manage")
 
   const [packages, services, products] = await Promise.all([
     prisma.package.findMany({
@@ -355,7 +356,7 @@ function validateLines(
 export async function createPackage(
   input: CreatePackageInput
 ): Promise<PackageActionResult> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("products.manage")
   const name = input.name?.trim()
   if (!name) return { ok: false, error: "MISSING_NAME" }
   if (!Number.isFinite(input.price) || input.price < 0)
@@ -391,7 +392,7 @@ export async function updatePackage(
   id: string,
   input: CreatePackageInput
 ): Promise<PackageActionResult> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("products.manage")
   const existing = await prisma.package.findFirst({
     where: { id, organizationId: org.id },
     select: { id: true },
@@ -435,7 +436,7 @@ export async function togglePackage(
   id: string,
   isActive: boolean
 ): Promise<PackageActionResult> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("products.manage")
   const existing = await prisma.package.findFirst({
     where: { id, organizationId: org.id },
     select: { id: true },
@@ -450,7 +451,7 @@ export async function togglePackage(
 export async function deletePackage(
   id: string
 ): Promise<PackageActionResult> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("products.manage")
   const existing = await prisma.package.findFirst({
     where: { id, organizationId: org.id },
     select: { id: true },

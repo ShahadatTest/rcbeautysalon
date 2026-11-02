@@ -4,8 +4,7 @@ import { cache } from "react"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import bcrypt from "bcryptjs"
-import { UnauthorizedError } from "@/lib/auth/guards"
-import { requireAdminOrg } from "@/lib/tenant"
+import { UnauthorizedError, requirePermissionOrg } from "@/lib/auth/guards"
 import {
   adminSetPasswordSchema,
   type AdminSetPasswordInput,
@@ -14,6 +13,8 @@ import {
   canAdminManageTarget,
   type MemberManageBlockReason,
 } from "@/lib/permissions/guard-rules"
+import { hasAllPermissions } from "@/lib/permissions/roles"
+import { getEffectivePermissions } from "@/lib/permissions/effective"
 
 type UserRole = "ADMIN" | "STAFF" | "CLIENTE"
 
@@ -24,7 +25,7 @@ export interface AdminUpdateUserInput {
 
 // Admin: Get all users with customer data (scoped to the admin's organization)
 export async function getAdminUsers(search?: string) {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("customers.manage")
 
   // A user belongs to this org directly, or via their customer profile
   const orgMembership = {
@@ -65,7 +66,7 @@ export async function getAdminUsers(search?: string) {
 
 // Admin: Get user statistics
 export async function getUserStats() {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("customers.manage")
 
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -108,7 +109,7 @@ export async function getUserStats() {
 // Admin: Get user by ID with full details
 // Cached to avoid duplicate fetches in generateMetadata + page component
 export const getUserById = cache(async (id: string) => {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("customers.manage")
 
   const user = await prisma.user.findUnique({
     where: { id },
@@ -158,7 +159,7 @@ export const getUserById = cache(async (id: string) => {
 
 // Calculate total spent by customer
 export async function getCustomerTotalSpent(customerId: string) {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("customers.manage")
 
   // Tenant check: the customer must belong to this organization
   const customer = await prisma.customer.findFirst({
@@ -200,7 +201,7 @@ export async function getCustomerTotalSpent(customerId: string) {
 // Admin: Update user role
 export async function updateUserRole(userId: string, role: UserRole) {
   try {
-    const { session, org } = await requireAdminOrg()
+    const { session, org } = await requirePermissionOrg("staff.manage")
 
     // SECURITY (E4-6b): the target must be a member of THIS organization.
     // Role management may never touch platform-wide accounts (previously
@@ -228,6 +229,20 @@ export async function updateUserRole(userId: string, role: UserRole) {
         "admin-target": "Vloge drugih administratorjev ni mogoče spreminjati.",
       }
       return { success: false, error: messages[decision.reason] }
+    }
+
+    // E4-6b: only an UNRESTRICTED admin may create a new ADMIN — a
+    // restricted admin ("admin brez financ") must never be able to
+    // escalate themselves or others past their own limits.
+    if (role === "ADMIN") {
+      const perms = await getEffectivePermissions(session.user.id)
+      if (!hasAllPermissions(perms)) {
+        return {
+          success: false,
+          error:
+            "Nove administratorje lahko ustvari samo administrator brez skrčene vloge.",
+        }
+      }
     }
 
     // If changing to STAFF, create staff profile if doesn't exist
@@ -289,7 +304,7 @@ export async function adminSetUserPassword(input: AdminSetPasswordInput) {
   }
 
   try {
-    const { session, org } = await requireAdminOrg()
+    const { session, org } = await requirePermissionOrg("staff.manage")
     const { userId, password } = validated.data
 
     if (session.user.id === userId) {
@@ -367,7 +382,7 @@ export async function adminSetUserPassword(input: AdminSetPasswordInput) {
 // Admin: Update customer notes
 export async function updateCustomerNotes(userId: string, notes: string) {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("customers.manage")
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -402,7 +417,7 @@ export async function updateCustomerNotes(userId: string, notes: string) {
 // Admin: Delete user
 export async function deleteUser(userId: string) {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("customers.manage")
 
     const user = await prisma.user.findUnique({
       where: { id: userId },

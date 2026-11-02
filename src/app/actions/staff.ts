@@ -5,8 +5,8 @@ import { prisma } from "@/lib/prisma"
 import { CreateStaffInput } from "@/lib/interfaces"
 import { revalidatePath } from "next/cache"
 import { auth } from "@/lib/auth/auth"
-import { UnauthorizedError } from "@/lib/auth/guards"
-import { getPublicOrg, getSessionOrg, requireAdminOrg } from "@/lib/tenant"
+import { UnauthorizedError, requirePermissionOrg } from "@/lib/auth/guards"
+import { getPublicOrg, getSessionOrg } from "@/lib/tenant"
 import { enforcePlanLimit } from "@/lib/plans/resolve"
 import { getLocaleFromCookies } from "@/lib/i18n/server"
 import {
@@ -160,7 +160,7 @@ export const getStaffMemberBySlug = cache(async (slug: string) => {
 
 //Get Admin Staff Members
 export const getAdminStaffMembers = async (search?: string) => {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("staff.manage")
 
   const staffMembers = await prisma.staff.findMany({
     where: {
@@ -192,7 +192,7 @@ export const getAdminStaffMembers = async (search?: string) => {
 
 //Get Admin Staff Stats
 export const getAdminStaffStats = async () => {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("staff.manage")
 
   const [totalStaff, activeStaff, inactiveStaff] = await Promise.all([
     prisma.staff.count({ where: { organizationId: org.id } }),
@@ -204,7 +204,7 @@ export const getAdminStaffStats = async () => {
 
 //Get Staff Member by ID (admin edit view)
 export const getStaffMemberById = async (id: string) => {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("staff.manage")
 
   const staffMember = await prisma.staff.findFirst({
     where: { id, organizationId: org.id },
@@ -232,7 +232,7 @@ export const getStaffMemberById = async (id: string) => {
 //Create Staff Member
 export const createStaffMember = async (data: UpdateStaffInput) => {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("staff.manage")
 
     // Plan entitlements (EPIC #3 E3-3): block NEW team members at the plan
     // limit — never touches existing content (downgrade tolerance).
@@ -341,7 +341,7 @@ export const createStaffMember = async (data: UpdateStaffInput) => {
 //Update Staff Member
 export const updateStaffMember = async (id: string, data: UpdateStaffInput) => {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("staff.manage")
 
     const { serviceIds, workingHours, ...staffData } = data
 
@@ -413,7 +413,7 @@ export const updateStaffMember = async (id: string, data: UpdateStaffInput) => {
 //Delete Staff Member (deactivates and changes user role to CLIENTE)
 export const deleteStaffMember = async (id: string) => {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("staff.manage")
 
     // Get staff with user info (must belong to admin's organization)
     const staff = await prisma.staff.findFirst({
@@ -456,7 +456,7 @@ export const deleteStaffMember = async (id: string) => {
 //Toggle Staff Active Status
 export const toggleStaffActiveStatus = async (id: string) => {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("staff.manage")
 
     const staffMember = await prisma.staff.findFirst({
       where: { id, organizationId: org.id },

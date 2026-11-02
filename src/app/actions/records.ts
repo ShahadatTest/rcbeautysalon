@@ -1,8 +1,9 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
+import { requirePermissionOrg } from "@/lib/auth/guards"
 import { revalidatePath } from "next/cache"
-import { requireAdminOrg } from "@/lib/tenant"
+
 import { getSessionEffectiveProfile } from "@/lib/profiles/resolve"
 import { validateFieldValues, deriveRecordTitle } from "@/lib/field-validation"
 import type { ProfileFieldDef } from "@/lib/profiles/types"
@@ -17,7 +18,7 @@ import type { Prisma } from "@prisma/client"
 // declaration, values are validated server-side against the
 // declarative field list, storage is one org-scoped table
 // (ExtensionRecord). Adding a new extension needs NO code here.
-// All queries/actions are strictly org-scoped via requireAdminOrg.
+// All queries/actions are strictly org-scoped via requirePermissionOrg.
 // ============================================================
 
 export interface ExtensionEntityInfo {
@@ -45,7 +46,7 @@ export interface ExtensionRecordItem {
 
 /** Entities contributed by the effective profile's extensions (+ counts). */
 export async function getExtensionEntities(): Promise<ExtensionEntityInfo[]> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
   const profile = await getSessionEffectiveProfile()
 
   const out: ExtensionEntityInfo[] = []
@@ -74,7 +75,7 @@ export async function getExtensionEntities(): Promise<ExtensionEntityInfo[]> {
 export async function listExtensionRecords(
   entityKey: string
 ): Promise<ExtensionRecordItem[]> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
   const profile = await getSessionEffectiveProfile()
 
   // Guard: entityKey must belong to one of the profile's enabled
@@ -146,7 +147,7 @@ export interface SaveRecordInput {
 export async function createExtensionRecord(
   input: SaveRecordInput
 ): Promise<SaveRecordResult> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
   const profile = await getSessionEffectiveProfile()
 
   const owning = await findEntityOwner(profile.extensions, input.entityKey)
@@ -188,7 +189,7 @@ export async function updateExtensionRecord(
   id: string,
   input: SaveRecordInput
 ): Promise<SaveRecordResult> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
   const profile = await getSessionEffectiveProfile()
 
   const record = await prisma.extensionRecord.findFirst({
@@ -230,7 +231,7 @@ export async function updateExtensionRecord(
 
 /** Delete an org-scoped extension record (linked work orders keep history). */
 export async function deleteExtensionRecord(id: string): Promise<{ ok: boolean }> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
   const record = await prisma.extensionRecord.findFirst({
     where: { id, organizationId: org.id },
     select: { id: true },
@@ -246,7 +247,7 @@ export async function deleteExtensionRecord(id: string): Promise<{ ok: boolean }
 export async function listRecordCustomers(): Promise<
   { id: string; name: string; email: string | null }[]
 > {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
   return prisma.customer.findMany({
     where: { organizationId: org.id },
     select: { id: true, name: true, email: true },
@@ -259,7 +260,7 @@ export async function listRecordCustomers(): Promise<
 export async function listExtensionRecordOptions(): Promise<
   { id: string; entityKey: string; entityName: string; title: string; customerName: string | null }[]
 > {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
   const profile = await getSessionEffectiveProfile()
   if (profile.extensions.length === 0) return []
 

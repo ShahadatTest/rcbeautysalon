@@ -1,8 +1,9 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
+import { requirePermissionOrg } from "@/lib/auth/guards"
 import { revalidatePath } from "next/cache"
-import { requireAdminOrg } from "@/lib/tenant"
+
 
 // ============================================================
 // DOCUMENTS: QUOTES + INVOICES (EPIC #1 Phase 4b, §13 documents
@@ -10,7 +11,7 @@ import { requireAdminOrg } from "@/lib/tenant"
 // transitions validated server-side, printable line-item layout.
 // Quotes: DRAFT → SENT → ACCEPTED | REJECTED.
 // Invoices: DRAFT → ISSUED → PAID | CANCELLED.
-// All queries/actions are strictly org-scoped via requireAdminOrg.
+// All queries/actions are strictly org-scoped via requirePermissionOrg.
 // ============================================================
 
 export type DocumentType = "QUOTE" | "INVOICE"
@@ -171,7 +172,7 @@ function computeStats(
 
 /** Overview for the documents page: both types, stats, work-order picker. */
 export async function getDocumentsOverview(): Promise<DocumentsOverview> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("finances.view")
 
   const [docs, openWorkOrders] = await Promise.all([
     prisma.document.findMany({
@@ -205,7 +206,7 @@ export async function getDocumentsOverview(): Promise<DocumentsOverview> {
 export async function getDocumentDetail(
   id: string
 ): Promise<DocumentDetail | null> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("finances.view")
 
   const doc = await prisma.document.findFirst({
     where: { id, organizationId: org.id },
@@ -297,7 +298,7 @@ function validateDocInput(
 export async function createDocument(
   input: CreateDocumentInput
 ): Promise<DocumentActionResult> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("finances.view")
   const v = validateDocInput(input)
   if (!v.ok) return { ok: false, error: v.error }
 
@@ -372,7 +373,7 @@ export async function changeDocumentStatus(
   id: string,
   status: string
 ): Promise<DocumentActionResult> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("finances.view")
 
   const doc = await prisma.document.findFirst({
     where: { id, organizationId: org.id },
@@ -402,7 +403,7 @@ export async function changeDocumentStatus(
 export async function convertQuoteToInvoice(
   id: string
 ): Promise<DocumentActionResult> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("finances.view")
 
   const quote = await prisma.document.findFirst({
     where: { id, organizationId: org.id, type: "QUOTE" },
@@ -452,7 +453,7 @@ export async function convertQuoteToInvoice(
 export async function listDocumentCustomers(): Promise<
   { id: string; name: string; email: string | null }[]
 > {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("finances.view")
   const customers = await prisma.customer.findMany({
     where: { organizationId: org.id },
     select: { id: true, name: true, email: true },

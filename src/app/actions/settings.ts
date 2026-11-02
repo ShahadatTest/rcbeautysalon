@@ -3,8 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { SalonSettingsInput } from "@/lib/interfaces"
-import { UnauthorizedError } from "@/lib/auth/guards"
-import { requireAdminOrg } from "@/lib/tenant"
+import { UnauthorizedError, requirePermissionOrg } from "@/lib/auth/guards"
 import type { Organization } from "@prisma/client"
 
 /**
@@ -20,7 +19,7 @@ import type { Organization } from "@prisma/client"
 export async function getSalonSettings() {
   let org: Organization | null = null
   try {
-    org = (await requireAdminOrg()).org
+    org = (await requirePermissionOrg("settings.manage")).org
   } catch {
     return null
   }
@@ -46,7 +45,7 @@ export async function getSalonSettings() {
 // Update salon settings (admin only, scoped to own organization)
 export async function updateSalonSettings(data: SalonSettingsInput) {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("settings.manage")
 
     const settings = await prisma.salonConfig.upsert({
       where: { organizationId: org.id },
@@ -80,7 +79,7 @@ export async function updateSalonSettings(data: SalonSettingsInput) {
 // Reset settings to defaults (keeps site content & theme)
 export async function resetSalonSettings() {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("settings.manage")
 
     await prisma.salonConfig.deleteMany({ where: { organizationId: org.id } })
 

@@ -14,7 +14,8 @@
 // ============================================================
 
 import { prisma } from "@/lib/prisma"
-import { requireAdminOrg } from "@/lib/tenant"
+import { requirePermissionOrg } from "@/lib/auth/guards"
+
 import { isPlanId } from "@/lib/plans/registry"
 import { siteConfig } from "@/lib/config"
 import { getPlatformPaymentProvider } from "@/lib/payments/provider"
@@ -23,7 +24,7 @@ import { revalidatePath } from "next/cache"
 
 /** Subscription state + billing history for the signed-in admin's tenant. */
 export async function getBillingOverview(): Promise<BillingOverview | null> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("finances.view")
   return loadBillingOverview(org.id)
 }
 
@@ -42,7 +43,7 @@ export type StartCheckoutResult =
  * change itself happens when the provider's webhook confirms.
  */
 export async function startPlanCheckout(planId: string): Promise<StartCheckoutResult> {
-  const { org, session } = await requireAdminOrg()
+  const { org, session } = await requirePermissionOrg("finances.view")
 
   if (!isPlanId(planId) || planId === "free") {
     return {
@@ -125,7 +126,7 @@ export type CancelSubscriptionResult =
  * moves to FREE only when the provider confirms the termination.
  */
 export async function cancelSubscription(): Promise<CancelSubscriptionResult> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("finances.view")
 
   const sub = await prisma.platformSubscription.findUnique({
     where: { organizationId: org.id },

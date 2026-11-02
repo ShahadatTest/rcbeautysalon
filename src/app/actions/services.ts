@@ -6,8 +6,8 @@ import { Prisma } from "@prisma/client"
 import { ServiceFilters } from "@/lib/interfaces"
 import { revalidatePath } from "next/cache"
 import { CreateServiceInput } from "@/lib/interfaces"
-import { UnauthorizedError } from "@/lib/auth/guards"
-import { getPublicOrg, requireAdminOrg, getResolvedOrg } from "@/lib/tenant"
+import { UnauthorizedError, requirePermissionOrg } from "@/lib/auth/guards"
+import { getPublicOrg, getResolvedOrg } from "@/lib/tenant"
 import { enforcePlanLimit } from "@/lib/plans/resolve"
 import { getLocaleFromCookies } from "@/lib/i18n/server"
 
@@ -430,7 +430,7 @@ export async function getActiveServicesForBooking() {
 
 // Admin: Get all services with counts for management
 export async function getAdminServices(search?: string) {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("services.manage")
 
   const services = await prisma.service.findMany({
     where: {
@@ -467,7 +467,7 @@ export async function getAdminServices(search?: string) {
 
 // Admin: Get service statistics
 export async function getServiceStats() {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("services.manage")
 
   const [totalServices, activeServices, featuredServices, categoriesCount] =
     await Promise.all([
@@ -487,7 +487,7 @@ export async function getServiceStats() {
 
 // Admin: Get service by ID with detailed info
 export async function getServiceById(id: string) {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("services.manage")
 
   const service = await prisma.service.findFirst({
     where: { id, organizationId: org.id },
@@ -514,7 +514,7 @@ export async function getServiceById(id: string) {
 //Create Service
 export async function createService(data: CreateServiceInput) {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("services.manage")
 
     // Plan entitlements (EPIC #3 E3-3): block NEW services at the plan
     // limit — never touches existing content (downgrade tolerance).
@@ -583,7 +583,7 @@ export async function createService(data: CreateServiceInput) {
 // Update Service
 export async function updateService(id: string, data: UpdateServiceInput) {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("services.manage")
 
     // Extract staffIds and categoryId from data
     const { staffIds, categoryId, ...serviceData } = data
@@ -661,7 +661,7 @@ export async function updateService(id: string, data: UpdateServiceInput) {
 // Delete Service
 export async function deleteService(id: string) {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("services.manage")
 
     // Verify ownership before mutating
     const existing = await prisma.service.findFirst({
@@ -703,7 +703,7 @@ export async function deleteService(id: string) {
 // Toggle service active status
 export async function toggleServiceStatus(id: string) {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("services.manage")
 
     const service = await prisma.service.findFirst({
       where: { id, organizationId: org.id },

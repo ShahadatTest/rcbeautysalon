@@ -19,6 +19,7 @@ import {
   getDashboardStats,
   getTodaysAppointments,
   getRecentActivities,
+  getRevenueStats,
 } from "@/app/actions/dashboard"
 import { getWorkOrdersOverview } from "@/app/actions/work-orders"
 import { getStockSummary } from "@/app/actions/inventory"
@@ -30,17 +31,46 @@ import { formatCurrency, formatChange } from "@/lib/utils/format"
 import { getServerI18n } from "@/lib/i18n/server"
 import { term as profileTerm } from "@/lib/profiles/registry"
 import { getSessionEffectiveProfile } from "@/lib/profiles/resolve"
+import { auth } from "@/lib/auth/auth"
+import { getEffectivePermissions } from "@/lib/permissions/effective"
+import { hasPermission } from "@/lib/permissions/roles"
+
+type DashboardStats = Awaited<ReturnType<typeof getDashboardStats>>
+type TodaysAppointments = Awaited<ReturnType<typeof getTodaysAppointments>>
+type RecentActivities = Awaited<ReturnType<typeof getRecentActivities>>
+type RevenueStats = Awaited<ReturnType<typeof getRevenueStats>>
 
 export default async function AdminDashboard() {
   const [{ t, locale, dateFnsLocale }, salonTz] = await Promise.all([
     getServerI18n(),
     getSessionSalonTimezone(),
   ])
-  const [stats, todaysAppointments, recentActivities] = await Promise.all([
-    getDashboardStats(),
-    getTodaysAppointments(),
-    getRecentActivities(),
-  ])
+
+  // E4-6b: widgets render ONLY the data the member's role may see —
+  // permission-gated fetches keep restricted roles on an honest,
+  // crash-free landing page.
+  const session = await auth()
+  const perms = session?.user
+    ? await getEffectivePermissions(session.user.id)
+    : []
+  const canAppointments = hasPermission(perms, "appointments.view")
+  const canFinances = hasPermission(perms, "finances.view")
+
+  const [stats, todaysAppointments, recentActivities, revenueStats] =
+    await Promise.all([
+      canAppointments
+        ? getDashboardStats()
+        : Promise.resolve(null as DashboardStats | null),
+      canAppointments
+        ? getTodaysAppointments()
+        : Promise.resolve(null as TodaysAppointments | null),
+      canAppointments
+        ? getRecentActivities()
+        : Promise.resolve(null as RecentActivities | null),
+      canFinances
+        ? getRevenueStats()
+        : Promise.resolve(null as RevenueStats | null),
+    ])
 
   // Capability-gated dashboard (EPIC #1 §21): irrelevant modules never render.
   // Phase 5: the EFFECTIVE profile (shared profile + owner overrides) drives gating.
@@ -98,7 +128,7 @@ export default async function AdminDashboard() {
 
       {/* Stats Cards — widget-configurable (Phase 5) */}
       <div className={`grid gap-4 md:grid-cols-2 ${statCardsVisible >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
-        {hasWidget("revenue") && (
+        {hasWidget("revenue") && revenueStats && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -108,25 +138,25 @@ export default async function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(stats.revenue.total)}
+              {formatCurrency(revenueStats.revenue.total)}
             </div>
             <p className="text-muted-foreground text-xs">
-              {stats.revenue.change !== 0 && (
+              {revenueStats.revenue.change !== 0 && (
                 <>
                   <TrendingUpIcon
                     size={12}
-                    className={`mr-1 inline ${stats.revenue.change >= 0 ? "text-green-600" : "text-red-600"}`}
+                    className={`mr-1 inline ${revenueStats.revenue.change >= 0 ? "text-green-600" : "text-red-600"}`}
                   />
-                  {formatChange(stats.revenue.change)} {t.dashboard.fromLastMonth}
+                  {formatChange(revenueStats.revenue.change)} {t.dashboard.fromLastMonth}
                 </>
               )}
-              {stats.revenue.change === 0 && t.dashboard.noPreviousData}
+              {revenueStats.revenue.change === 0 && t.dashboard.noPreviousData}
             </p>
           </CardContent>
         </Card>
         )}
 
-        {showAppointments && hasWidget("todayAppointments") && (
+        {showAppointments && hasWidget("todayAppointments") && stats && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -145,7 +175,7 @@ export default async function AdminDashboard() {
         </Card>
         )}
 
-        {hasWidget("customers") && (
+        {hasWidget("customers") && stats && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -164,7 +194,7 @@ export default async function AdminDashboard() {
         </Card>
         )}
 
-        {hasWidget("recentOrders") && (
+        {hasWidget("recentOrders") && stats && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -234,7 +264,7 @@ export default async function AdminDashboard() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         {/* Today's Appointments — only for appointment-capable profiles + widget enabled (Phase 5) */}
-        {showAppointments && hasWidget("todayAppointments") && (
+        {showAppointments && hasWidget("todayAppointments") && todaysAppointments && (
         <Card className="col-span-4">
           <CardHeader>
             <CardTitle>{t.dashboard.todaysAppointments}</CardTitle>
@@ -453,12 +483,12 @@ export default async function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3 text-sm">
-              {recentActivities.length === 0 ? (
+              {!recentActivities || recentActivities.length === 0 ? (
                 <p className="text-muted-foreground py-4 text-center">
                   {t.dashboard.noRecentActivity}
                 </p>
               ) : (
-                recentActivities.map((activity) => (
+                recentActivities.slice(0, 5).map((activity) => (
                   <div key={activity.id} className="flex items-start gap-2">
                     <div
                       className={`mt-0.5 h-2 w-2 rounded-full ${

@@ -1,10 +1,11 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
-import { requireAdminOrg } from "@/lib/tenant"
+import { requirePermissionOrg } from "@/lib/auth/guards"
+
 
 export async function getCustomers() {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("customers.manage")
 
   const customer = await prisma.customer.findMany({
     where: { organizationId: org.id },

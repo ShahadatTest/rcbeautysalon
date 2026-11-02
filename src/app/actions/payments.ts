@@ -2,8 +2,8 @@
 
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
-import { UnauthorizedError } from "@/lib/auth/guards"
-import { requireAdminOrg } from "@/lib/tenant"
+import { UnauthorizedError, requirePermissionOrg } from "@/lib/auth/guards"
+
 import {
   maskSecretKey,
   stripeKeyMode,
@@ -52,7 +52,7 @@ export async function getPaymentsSettings(): Promise<
   { success: true; settings: PaymentsSettings } | { success: false; error: string }
 > {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("settings.manage")
     return {
       success: true,
       settings: buildPaymentsSettings({
@@ -83,7 +83,7 @@ export async function saveStripeSettings(input: {
   | { success: false; error: string; errorKey?: "secretKey" | "webhookSecret" }
 > {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("settings.manage")
 
     const secretKey = input.secretKey.trim()
     const webhookSecret = input.webhookSecret?.trim() || null
@@ -145,7 +145,7 @@ export async function clearStripeSettings(): Promise<
   | { success: false; error: string }
 > {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("settings.manage")
 
     const updated = await prisma.organization.update({
       where: { id: org.id },

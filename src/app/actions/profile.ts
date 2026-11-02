@@ -1,10 +1,11 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
+import { requirePermissionOrg } from "@/lib/auth/guards"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { Prisma } from "@prisma/client"
-import { requireAdminOrg } from "@/lib/tenant"
+
 import { getProfile, listProfileOptions } from "@/lib/profiles/registry"
 import { EXTENSIONS } from "@/lib/profiles/extensions"
 import {
@@ -97,7 +98,7 @@ export interface OrgProfileOverview {
  */
 export async function getOrgProfileOverview(): Promise<OrgProfileOverview | { error: string }> {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("settings.manage")
     // Base for capability/widget validation = shared profile + secondary-activity
     // union (E2-4) — BEFORE owner overrides, mirroring the resolver order.
     const baseProfile = applySecondaryProfile(getProfile(org.vertical), org.secondaryVertical)
@@ -207,7 +208,7 @@ export async function updateOrgOverrides(
   input: z.input<typeof updateOverridesSchema>
 ): Promise<UpdateOverridesResult> {
   try {
-    const { org, session } = await requireAdminOrg()
+    const { org, session } = await requirePermissionOrg("settings.manage")
     const parsed = updateOverridesSchema.safeParse(input)
     if (!parsed.success) return { ok: false, error: "INVALID" }
 
@@ -286,7 +287,7 @@ export async function updateOrgOverrides(
 /** Remove all owner overrides — back to the shared profile defaults. */
 export async function resetOrgOverrides(): Promise<UpdateOverridesResult> {
   try {
-    const { org, session } = await requireAdminOrg()
+    const { org, session } = await requirePermissionOrg("settings.manage")
     const previousOverrides = overridesSnapshot(
       (await prisma.organization.findUnique({
         where: { id: org.id },
@@ -337,7 +338,7 @@ export interface OrgActivitiesInfo {
 /** Current primary/secondary activities + selectable options for the settings card. */
 export async function getOrgActivities(): Promise<OrgActivitiesInfo | { error: string }> {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("settings.manage")
     const primary = getProfile(org.vertical)
     const options = listProfileOptions()
       .filter((p) => p.id !== primary.id)
@@ -379,7 +380,7 @@ export async function setOrgSecondaryVertical(
   input: z.input<typeof setSecondaryVerticalSchema>
 ): Promise<UpdateOverridesResult> {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("settings.manage")
     const parsed = setSecondaryVerticalSchema.safeParse(input)
     if (!parsed.success) return { ok: false, error: "INVALID" }
 

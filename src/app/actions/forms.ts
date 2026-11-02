@@ -1,9 +1,10 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
+import { requirePermissionOrg } from "@/lib/auth/guards"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
-import { requireAdminOrg, requirePublicOrg } from "@/lib/tenant"
+import { requirePublicOrg } from "@/lib/tenant"
 import { formSnapshot, makeFormEntityKey } from "@/lib/config-history/logic"
 import { recordConfigChange } from "@/lib/config-history/record"
 import { validateFieldValues } from "@/lib/field-validation"
@@ -213,7 +214,7 @@ export async function submitPublicForm(
 
 /** Admin: definitions + submission counts for the forms page. */
 export async function listFormDefinitions(): Promise<AdminFormDefinition[]> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("inquiries.manage")
   const defs = await prisma.formDefinition.findMany({
     where: { organizationId: org.id },
     include: { _count: { select: { submissions: true } } },
@@ -234,7 +235,7 @@ export async function listFormDefinitions(): Promise<AdminFormDefinition[]> {
 
 /** Admin: submissions inbox (org-scoped, newest first). */
 export async function listFormSubmissions(): Promise<AdminFormSubmission[]> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("inquiries.manage")
   const subs = await prisma.formSubmission.findMany({
     where: { organizationId: org.id },
     include: {
@@ -268,7 +269,7 @@ export async function setSubmissionStatus(
   id: string,
   status: "NEW" | "IN_REVIEW" | "PROCESSED"
 ): Promise<{ ok: boolean }> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("inquiries.manage")
   const sub = await prisma.formSubmission.findFirst({
     where: { id, organizationId: org.id },
     select: { id: true },
@@ -285,7 +286,7 @@ export async function toggleFormDefinition(
   id: string,
   isActive: boolean
 ): Promise<{ ok: boolean }> {
-  const { org, session } = await requireAdminOrg()
+  const { org, session } = await requirePermissionOrg("inquiries.manage")
   const def = await prisma.formDefinition.findFirst({
     where: { id, organizationId: org.id },
     select: { id: true, key: true, name: true, fields: true, isActive: true },
@@ -352,7 +353,7 @@ export async function updateFormDefinition(
   input: { name?: string; fields: unknown }
 ): Promise<UpdateFormResult> {
   try {
-    const { org, session } = await requireAdminOrg()
+    const { org, session } = await requirePermissionOrg("inquiries.manage")
     const parsed = updateFormSchema.safeParse(input)
     if (!parsed.success) return { ok: false, error: "INVALID" }
 
@@ -425,7 +426,7 @@ export interface CreateFromSubmissionResult {
 export async function createWorkOrderFromSubmission(
   submissionId: string
 ): Promise<CreateFromSubmissionResult> {
-  const { org, session } = await requireAdminOrg()
+  const { org, session } = await requirePermissionOrg("inquiries.manage")
 
   const sub = await prisma.formSubmission.findFirst({
     where: { id: submissionId, organizationId: org.id },

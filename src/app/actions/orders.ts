@@ -1,15 +1,16 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
+import { requirePermissionOrg } from "@/lib/auth/guards"
 import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
 import { OrderStatus } from "@prisma/client"
 import { auth } from "@/lib/auth/auth"
-import { requireAdminOrg, ORG_HEADER } from "@/lib/tenant"
+import { ORG_HEADER } from "@/lib/tenant"
 
 // Admin: Get all orders with customer and items
 export async function getAdminOrders(search?: string) {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("orders.manage")
 
   const orders = await prisma.order.findMany({
     where: {
@@ -47,7 +48,7 @@ export async function getAdminOrders(search?: string) {
 
 // Admin: Get order statistics
 export async function getOrderStats() {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("orders.manage")
 
   const now = new Date()
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -91,7 +92,7 @@ export async function getOrderStats() {
 
 // Admin: Get order by ID with full details
 export async function getOrderById(id: string) {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("orders.manage")
 
   const order = await prisma.order.findFirst({
     where: { id, organizationId: org.id },
@@ -121,7 +122,7 @@ export async function getOrderById(id: string) {
 
 // Update order status
 export async function updateOrderStatus(id: string, status: OrderStatus) {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("orders.manage")
 
   try {
     // Verify ownership before mutating

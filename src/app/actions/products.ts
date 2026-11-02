@@ -4,9 +4,9 @@ import { cache } from "react"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { CreateProductInput } from "@/lib/interfaces"
-import { requireAdminOrg, getResolvedOrg } from "@/lib/tenant"
+import { getResolvedOrg } from "@/lib/tenant"
 import { getPublicOrg } from "@/lib/tenant"
-import { UnauthorizedError } from "@/lib/auth/guards"
+import { UnauthorizedError, requirePermissionOrg } from "@/lib/auth/guards"
 import { enforcePlanLimit } from "@/lib/plans/resolve"
 import { getLocaleFromCookies } from "@/lib/i18n/server"
 
@@ -61,7 +61,7 @@ export const getShopProducts = cache(async () => {
 
 // Admin: Get all products with counts
 export async function getAdminProducts(search?: string) {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("products.manage")
 
   const products = await prisma.product.findMany({
     where: {
@@ -92,7 +92,7 @@ export async function getAdminProducts(search?: string) {
 
 // Admin: Get product statistics
 export async function getProductStats() {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("products.manage")
 
   const [totalProducts, inStock, lowStock, outOfStock] = await Promise.all([
     prisma.product.count({ where: { organizationId: org.id } }),
@@ -118,7 +118,7 @@ export async function getProductStats() {
 // getFeaturedProducts, active-only).
 // Cached to avoid duplicate fetches in generateMetadata + page component
 export const getProductById = cache(async (id: string) => {
-  await requireAdminOrg()
+  await requirePermissionOrg("products.manage")
   const org = await resolveRequestOrg()
   if (!org) return null
 
@@ -147,7 +147,7 @@ export const getProductById = cache(async (id: string) => {
 // Create product
 export async function createProduct(data: CreateProductInput) {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("products.manage")
 
     // Plan entitlements (EPIC #3 E3-3): block NEW products at the plan
     // limit — never touches existing content (downgrade tolerance).
@@ -201,7 +201,7 @@ export async function createProduct(data: CreateProductInput) {
 // Update product
 export async function updateProduct(id: string, data: UpdateProductInput) {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("products.manage")
 
     // Extract categoryId from data
     const { categoryId, ...productData } = data
@@ -261,7 +261,7 @@ export async function updateProduct(id: string, data: UpdateProductInput) {
 // Delete product
 export async function deleteProduct(id: string) {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("products.manage")
 
     // Verify ownership before mutating
     const existing = await prisma.product.findFirst({
@@ -302,7 +302,7 @@ export async function deleteProduct(id: string) {
 // Toggle product active status
 export async function toggleProductStatus(id: string) {
   try {
-    const { org } = await requireAdminOrg()
+    const { org } = await requirePermissionOrg("products.manage")
 
     const product = await prisma.product.findFirst({
       where: { id, organizationId: org.id },

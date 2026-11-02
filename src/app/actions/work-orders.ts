@@ -1,8 +1,9 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
+import { requirePermissionOrg } from "@/lib/auth/guards"
 import { revalidatePath } from "next/cache"
-import { requireAdminOrg } from "@/lib/tenant"
+
 import { makeWorkflowEntityKey, workflowSnapshot } from "@/lib/config-history/logic"
 import { recordConfigChange } from "@/lib/config-history/record"
 
@@ -14,7 +15,7 @@ import { recordConfigChange } from "@/lib/config-history/record"
 // validated server-side (adjacent stages only — skipping stages
 // is rejected) and every change is appended to WorkOrderEvent,
 // giving a complete audit trail.
-// All queries/actions are strictly org-scoped via requireAdminOrg.
+// All queries/actions are strictly org-scoped via requirePermissionOrg.
 // ============================================================
 
 /** Stage keys treated as "waiting on the customer's approval/quote". */
@@ -137,7 +138,7 @@ function computeStats(
 
 /** Overview for the work orders page: definitions, orders, stats. */
 export async function getWorkOrdersOverview(): Promise<WorkOrdersOverview> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
 
   const [definitions, orders] = await Promise.all([
     prisma.workflowDefinition.findMany({
@@ -250,7 +251,7 @@ export interface WorkOrderDetail {
 
 /** Full detail of one work order (org-scoped) with the audit trail. */
 export async function getWorkOrderDetail(id: string): Promise<WorkOrderDetail | null> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
 
   const order = await prisma.workOrder.findFirst({
     where: { id, organizationId: org.id },
@@ -360,7 +361,7 @@ export interface WorkOrderActionResult {
 export async function createWorkOrder(
   input: CreateWorkOrderInput
 ): Promise<WorkOrderActionResult> {
-  const { org, session } = await requireAdminOrg()
+  const { org, session } = await requirePermissionOrg("workorders.manage")
   const title = input.title?.trim()
   if (!title) return { ok: false, error: "MISSING_TITLE" }
 
@@ -440,7 +441,7 @@ export async function advanceWorkOrder(
   id: string,
   toStageKey: string
 ): Promise<WorkOrderActionResult> {
-  const { org, session } = await requireAdminOrg()
+  const { org, session } = await requirePermissionOrg("workorders.manage")
 
   const order = await prisma.workOrder.findFirst({
     where: { id, organizationId: org.id },
@@ -492,7 +493,7 @@ export async function advanceWorkOrder(
 
 /** Cancel an open work order (audit event, history preserved). */
 export async function cancelWorkOrder(id: string): Promise<WorkOrderActionResult> {
-  const { org, session } = await requireAdminOrg()
+  const { org, session } = await requirePermissionOrg("workorders.manage")
 
   const order = await prisma.workOrder.findFirst({
     where: { id, organizationId: org.id },
@@ -528,7 +529,7 @@ export async function addWorkOrderNote(
   id: string,
   message: string
 ): Promise<WorkOrderActionResult> {
-  const { org, session } = await requireAdminOrg()
+  const { org, session } = await requirePermissionOrg("workorders.manage")
   const text = message?.trim()
   if (!text) return { ok: false, error: "EMPTY_NOTE" }
 
@@ -555,7 +556,7 @@ export async function addWorkOrderNote(
 export async function listWorkOrderCustomers(): Promise<
   { id: string; name: string; email: string | null }[]
 > {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("workorders.manage")
   const customers = await prisma.customer.findMany({
     where: { organizationId: org.id },
     select: { id: true, name: true, email: true },
@@ -596,7 +597,7 @@ export async function updateWorkflowStages(
   stages: StageInput[]
 ): Promise<UpdateStagesResult> {
   try {
-    const { org, session } = await requireAdminOrg()
+    const { org, session } = await requirePermissionOrg("workorders.manage")
 
     // Basic shape validation.
     const clean = stages

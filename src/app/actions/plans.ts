@@ -16,7 +16,7 @@
 // ============================================================
 
 import { prisma } from "@/lib/prisma"
-import { requireAdminOrg } from "@/lib/tenant"
+import { requirePermissionOrg } from "@/lib/auth/guards"
 import { getPlan, isPlanId } from "@/lib/plans/registry"
 import { getSessionPlanContext, type PlanContext } from "@/lib/plans/resolve"
 import { isPlatformBillingConfigured } from "@/lib/payments/provider"
@@ -31,7 +31,7 @@ import { revalidatePath } from "next/cache"
  */
 export async function getPlanContext(): Promise<PlanContext | null> {
   try {
-    await requireAdminOrg()
+    await requirePermissionOrg("settings.manage")
   } catch {
     return null
   }
@@ -69,7 +69,7 @@ const CANCEL_REQUIRED_MESSAGE = {
  * FREE requires cancelling the subscription first.
  */
 export async function changePlan(planId: string): Promise<ChangePlanResult> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("settings.manage")
 
   if (!isPlanId(planId)) {
     return {

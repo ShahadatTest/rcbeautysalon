@@ -17,7 +17,8 @@
 // ============================================================
 
 import { prisma } from "@/lib/prisma"
-import { requireAdminOrg } from "@/lib/tenant"
+import { requirePermissionOrg } from "@/lib/auth/guards"
+
 import { getPlan } from "@/lib/plans/registry"
 import { checkPlanLimit } from "@/lib/plans/types"
 import {
@@ -40,7 +41,7 @@ export interface DomainsStatus {
 }
 
 export async function getDomainsStatus(): Promise<DomainsStatus> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("settings.manage")
   const provider = getDomainProvider()
   const plan = getPlan(org.plan)
   const rows = await prisma.customDomain.findMany({
@@ -68,7 +69,7 @@ export type DomainActionResult =
  * honestly reports that verification needs the provider.
  */
 export async function addCustomDomain(raw: string): Promise<DomainActionResult> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("settings.manage")
   const provider = getDomainProvider()
   const plan = getPlan(org.plan)
 
@@ -157,7 +158,7 @@ export async function addCustomDomain(raw: string): Promise<DomainActionResult> 
  * honest SETUP_REQUIRED — nothing is guessed.
  */
 export async function verifyCustomDomain(id: string): Promise<DomainActionResult> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("settings.manage")
   const provider = getDomainProvider()
 
   const row = await prisma.customDomain.findFirst({ where: { id, organizationId: org.id } })
@@ -231,7 +232,7 @@ export async function verifyCustomDomain(id: string): Promise<DomainActionResult
  * provider to clean up).
  */
 export async function removeCustomDomain(id: string): Promise<DomainActionResult> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("settings.manage")
   const provider = getDomainProvider()
 
   const row = await prisma.customDomain.findFirst({ where: { id, organizationId: org.id } })
@@ -257,7 +258,7 @@ export async function removeCustomDomain(id: string): Promise<DomainActionResult
  * transaction: exactly one primary domain per tenant.
  */
 export async function setPrimaryDomain(id: string): Promise<DomainActionResult> {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("settings.manage")
 
   const row = await prisma.customDomain.findFirst({ where: { id, organizationId: org.id } })
   if (!row) {

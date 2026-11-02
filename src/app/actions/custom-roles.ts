@@ -2,7 +2,8 @@
 
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
-import { requireAdminOrg } from "@/lib/tenant"
+import { requirePermissionOrg, requireUnrestrictedAdmin } from "@/lib/auth/guards"
+
 import { isValidPermissionSet } from "@/lib/permissions/roles"
 
 // ============================================================
@@ -25,7 +26,7 @@ export type CustomRoleInput = z.infer<typeof roleDataSchema>
 
 /** All custom roles of the salon, newest first, with member counts. */
 export async function listCustomRoles() {
-  const { org } = await requireAdminOrg()
+  const { org } = await requireUnrestrictedAdmin()
 
   return prisma.customRole.findMany({
     where: { organizationId: org.id },
@@ -38,7 +39,7 @@ export async function listCustomRoles() {
 
 /** Org members that can receive a custom role (ADMIN/STAFF only). */
 export async function listAssignableMembers() {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("staff.manage")
 
   return prisma.user.findMany({
     where: {
@@ -57,7 +58,9 @@ export async function listAssignableMembers() {
 }
 
 export async function createCustomRole(input: CustomRoleInput) {
-  const { org } = await requireAdminOrg()
+  // E4-6b: administering the permission catalog escalates privileges —
+  // restricted admins must never grant what they do not hold.
+  const { org } = await requireUnrestrictedAdmin()
   const data = roleDataSchema.parse(input)
 
   const duplicate = await prisma.customRole.findFirst({
@@ -80,7 +83,7 @@ export async function createCustomRole(input: CustomRoleInput) {
 }
 
 export async function updateCustomRole(id: string, input: CustomRoleInput) {
-  const { org } = await requireAdminOrg()
+  const { org } = await requireUnrestrictedAdmin()
   const data = roleDataSchema.parse(input)
 
   const existing = await prisma.customRole.findFirst({
@@ -111,7 +114,7 @@ export async function updateCustomRole(id: string, input: CustomRoleInput) {
 }
 
 export async function deleteCustomRole(id: string) {
-  const { org } = await requireAdminOrg()
+  const { org } = await requireUnrestrictedAdmin()
 
   const existing = await prisma.customRole.findFirst({
     where: { id, organizationId: org.id },
@@ -132,7 +135,7 @@ export async function assignCustomRole(
   userId: string,
   customRoleId: string | null
 ) {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("staff.manage")
 
   const member = await prisma.user.findFirst({
     where: { id: userId, organizationId: org.id },

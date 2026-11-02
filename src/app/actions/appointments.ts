@@ -33,7 +33,10 @@ import { sendAppointmentCompletedEmail } from "@/lib/email/appointment-completed
 import { sendAppointmentCancelledEmail } from "@/lib/email/appointment-cancelled"
 import { sendAppointmentRescheduledEmail } from "@/lib/email/appointment-rescheduled"
 import { sendAppointmentExpiredEmail } from "@/lib/email/appointment-expired"
-import { getSessionOrg, requireAdminOrg, getResolvedOrg } from "@/lib/tenant"
+import { getSessionOrg, getResolvedOrg } from "@/lib/tenant"
+import { requirePermissionOrg, UnauthorizedError } from "@/lib/auth/guards"
+import { hasPermission } from "@/lib/permissions/roles"
+import { getEffectivePermissions } from "@/lib/permissions/effective"
 import { isAdminForOrg } from "@/lib/permissions/guard-rules"
 import { resolveEffectiveProfile } from "@/lib/profiles/resolve"
 import {
@@ -886,7 +889,7 @@ export async function cancelAppointment(appointmentId: string) {
 
 //Get admin appointments with filters
 export async function getAdminAppointments(filters?: AdminAppointmentsFilter) {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("appointments.view")
   const salonTz = await getOrgTimezone(org.id)
 
   // Automatically handle past appointments before fetching
@@ -1035,7 +1038,7 @@ export async function getAdminAppointments(filters?: AdminAppointmentsFilter) {
 
 // Cached version to avoid duplicate fetches in generateMetadata + page component
 export const getAppointmentById = cache(async (id: string) => {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("appointments.view")
 
   const appointment = await prisma.appointment.findFirst({
     where: { id, organizationId: org.id },
@@ -1074,7 +1077,7 @@ export const getAppointmentById = cache(async (id: string) => {
 
 // Mark past appointments as NO_SHOW
 export async function markNoShowAppointments() {
-  const { org } = await requireAdminOrg()
+  const { org } = await requirePermissionOrg("appointments.manage")
 
   const now = new Date()
 
@@ -1107,16 +1110,26 @@ export async function updateAppointmentStatus(
   id: string,
   status: AppointmentStatus
 ) {
+  // E4-6b: ADMIN callers need `appointments.manage` (a custom role may
+  // remove it). STAFF keeps the legacy staff-portal path — the
+  // own-appointment restriction below stays unchanged, and staff-portal
+  // status updates are core STAFF self-service, never admin surface.
   const session = await auth()
-
-  // Ensure user is authenticated (ADMIN or STAFF can update)
   if (!session?.user || !["ADMIN", "STAFF"].includes(session.user.role)) {
-    throw new Error("Unauthorized")
+    throw new UnauthorizedError("Unauthorized")
+  }
+  if (session.user.role === "ADMIN") {
+    const perms = await getEffectivePermissions(session.user.id)
+    if (!hasPermission(perms, "appointments.manage")) {
+      throw new UnauthorizedError(
+        "You do not have permission to perform this action"
+      )
+    }
   }
 
   const org = await getSessionOrg()
   if (!org) {
-    throw new Error("Unauthorized")
+    throw new UnauthorizedError("Unauthorized")
   }
   const salonTz = await getOrgTimezone(org.id)
 
