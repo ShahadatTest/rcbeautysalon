@@ -37,12 +37,12 @@ async function main() {
       id: 'salon_config',
       name: 'RC Beauty Salon',
       email: 'info@rcbeautysalon.org',
-      phone: '+1 (555) 123-4567',
-      address: '123 Beauty Street',
-      city: 'Houston',
-      state: 'TX',
-      zipCode: '77001',
-      country: 'US',
+      phone: '+386 40 123 456',
+      address: 'Slovenska ulica 5',
+      city: 'Ljubljana',
+      state: '',
+      zipCode: '1000',
+      country: 'SI',
       timezone: 'Europe/Ljubljana',
       currency: 'EUR',
       locale: 'sl',
@@ -54,7 +54,7 @@ async function main() {
       minBookingAdvance: 0,
       maxBookingAdvance: 30,
       cancellationPolicy:
-        'Cancellations must be made at least 24 hours in advance. The $50 deposit is non-refundable.',
+        'Odjava najkasneje 24 ur pred terminom. Polog (50 €) ni vračljiv.',
     },
   })
   console.log(`✅ Salon: ${salonConfig.name}`)
@@ -444,7 +444,7 @@ async function main() {
     create: {
       name: 'Laura Thompson',
       email: 'laura@rcbeautysalon.org',
-      phone: '+1 (555) 100-1001',
+      phone: '+386 41 100 101',
       bio: 'Višja frizerka z več kot 15 leti izkušenj, specializirana za striženje, barvanje in keratin glajenje',
       image: 'https://res.cloudinary.com/caballerorandy/image/upload/v1764141936/Beauty%20Salon/services/laura-thompson_asbi3t.avif',
       isActive: true,
@@ -460,7 +460,7 @@ async function main() {
     create: {
       name: 'Maria Rodriguez',
       email: 'maria@rcbeautysalon.org',
-      phone: '+1 (555) 111-2222',
+      phone: '+386 41 111 222',
       bio: 'Izkušena barvarka in balayage specialistka z strastjo do naravnih pramenov',
       image: 'https://res.cloudinary.com/caballerorandy/image/upload/v1764142469/Beauty%20Salon/services/maria-rodriguez_uzksdw.avif',
       isActive: true,
@@ -476,7 +476,7 @@ async function main() {
     create: {
       name: 'Sofia Martinez',
       email: 'sofia@rcbeautysalon.org',
-      phone: '+1 (555) 333-4444',
+      phone: '+386 41 333 444',
       bio: 'Certificirana tehničarka za nohte, specializirana za gel manikiro, nail art in spa pedikuro',
       image: 'https://res.cloudinary.com/caballerorandy/image/upload/v1764142586/Beauty%20Salon/services/sofia-martinez_vc28m8.avif',
       isActive: true,
@@ -492,7 +492,7 @@ async function main() {
     create: {
       name: 'Ana Garcia',
       email: 'ana@rcbeautysalon.org',
-      phone: '+1 (555) 555-6666',
+      phone: '+386 41 555 666',
       bio: 'Licencirana kozmetičarka in masažerka, specializirana za anti-aging tretmaje in terapevtske masaže',
       image: 'https://res.cloudinary.com/caballerorandy/image/upload/v1764142701/Beauty%20Salon/services/ana-garcia_cl0tgj.avif',
       isActive: true,
@@ -512,7 +512,7 @@ async function main() {
     create: {
       name: 'John Doe',
       email: 'cliente@rcbeautysalon.org',
-      phone: '+1 (555) 200-2002',
+      phone: '+386 40 200 202',
       notes: 'Redna stranka, za striženje raje izbere Laro',
       userId: clientUser.id,
     },
@@ -524,7 +524,7 @@ async function main() {
     create: {
       name: 'Emily Johnson',
       email: 'emily@example.com',
-      phone: '+1 (555) 300-3003',
+      phone: '+386 40 300 303',
       notes: 'Obožuje tretmaje obraza in spa tretmaje',
       userId: emilyUser.id,
     },
@@ -536,7 +536,7 @@ async function main() {
     create: {
       name: 'Michael Chen',
       email: 'michael@example.com',
-      phone: '+1 (555) 400-4004',
+      phone: '+386 40 400 404',
       userId: michaelUser.id,
     },
   })
@@ -549,7 +549,7 @@ async function main() {
       id: 'customer_jessica',
       name: 'Jessica Smith',
       email: 'jessica@example.com',
-      phone: '+1 (555) 777-8888',
+      phone: '+386 40 777 888',
       notes: 'Stranka brez predhodne prijave, raje pride zjutraj',
     },
   })
@@ -910,7 +910,7 @@ async function main() {
       staffId: staffAna.id,
       guestName: 'Sarah Williams',
       guestEmail: 'sarah.w@example.com',
-      guestPhone: '+1 (555) 999-0000',
+      guestPhone: '+386 40 999 000',
       startTime: setMinutes(setHours(twoWeeksAgo, 11), 0),
       endTime: setMinutes(setHours(twoWeeksAgo, 12), 0),
       status: 'COMPLETED',
@@ -1125,7 +1125,7 @@ async function main() {
     data: {
       guestName: 'Amanda Wilson',
       guestEmail: 'amanda.w@example.com',
-      guestPhone: '+1 (555) 888-7777',
+      guestPhone: '+386 40 888 777',
       subtotal: 135.0,
       tax: 11.14,
       total: 146.14,
