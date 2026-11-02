@@ -1,5 +1,7 @@
 "use client"
 
+import { useI18n } from "@/lib/i18n/provider"
+
 import { useSyncExternalStore } from "react"
 import { MoonIcon, SunIcon, DesktopIcon } from "@/components/icons"
 import { useTheme } from "next-themes"
@@ -10,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 export function ThemeToggle() {
+  const { t } = useI18n()
   // useSyncExternalStore avoids a setState-in-effect hydration flag:
   // false on the server/first client render, true afterwards.
   const mounted = useSyncExternalStore(
@@ -34,7 +37,7 @@ export function ThemeToggle() {
     return (
       <Button variant="ghost" size="icon" className="group hover:bg-primary/10">
         <MoonIcon size={20} weight="fill" className="text-primary" />
-        <span className="sr-only">Preklopi temo</span>
+        <span className="sr-only">{t.common.theme.toggle}</span>
       </Button>
     )
   }
@@ -65,7 +68,7 @@ export function ThemeToggle() {
               className="text-primary transition-transform group-hover:scale-110"
             />
           )}
-          <span className="sr-only">Preklopi temo</span>
+          <span className="sr-only">{t.common.theme.toggle}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="mt-2 min-w-[140px] space-y-1 bg-card border-border">

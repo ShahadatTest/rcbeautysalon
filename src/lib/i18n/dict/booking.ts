@@ -85,6 +85,13 @@ export const bookingSl = {
   checkoutFailed: "Ustvarjanje plačila ni uspelo. Poskusite znova.",
   unexpectedError: "Prišlo je do nepričakovane napake. Poskusite znova.",
 
+  // ---- Naslovi strani / koraka 0 ----
+  bookTitle: "Rezervirajte svoj termin",
+  bookSubtitleFlow0: "1. korak: izberite storitev",
+  bookSubtitleService: "Izberite termin in si zagotovite svoj čas",
+  bookWithStaff: (name: string) => `Rezerviraj pri ${name}`,
+  bookServiceAria: (name: string) => `Rezerviraj storitev ${name}`,
+
   // ---- Pomožniki ----
   /** Slovenska množina: 1 minuta, 2 minuti, 3–4 minute, 5+ minut */
   minutes: (n: number) => {
@@ -172,6 +179,12 @@ export const bookingEn: BookingDict = {
   noPaymentFailed: "Booking failed. Contact the salon or try again.",
   checkoutFailed: "Failed to create the payment. Please try again.",
   unexpectedError: "An unexpected error occurred. Please try again.",
+
+  bookTitle: "Book your appointment",
+  bookSubtitleFlow0: "Step 1: choose a service",
+  bookSubtitleService: "Pick a time and secure your slot",
+  bookWithStaff: (name: string) => `Book with ${name}`,
+  bookServiceAria: (name: string) => `Book service ${name}`,
 
   minutes: (n: number) => `${n} ${n === 1 ? "minute" : "minutes"}`,
   minutesShort: (n: number) => `${n} min`,

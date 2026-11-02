@@ -20,6 +20,7 @@ import {
   resolveAppUrl,
   type SeoContext,
 } from "@/lib/seo"
+import { getLocaleFromCookies } from "@/lib/i18n/server"
 import type { Organization } from "@prisma/client"
 
 const rougeScript = Rouge_Script({
@@ -134,9 +135,11 @@ export default async function RootLayout({
     orgCurrency = config?.currency || "EUR"
   }
 
+  const htmlLocale = await getLocaleFromCookies()
+
   return (
     <html
-      lang="sl"
+      lang={htmlLocale}
       className="scroll-smooth"
       data-scroll-behavior="smooth"
       suppressHydrationWarning

@@ -7,6 +7,7 @@ import { resolvePublishGate } from "@/lib/publish-gate"
 import { MaintenanceScreen } from "@/components/public/maintenance-screen"
 import { CartOrgScope } from "@/components/shop/cart-org-scope"
 import { PublicI18nProvider } from "@/components/providers/public-i18n-provider"
+import { getLocaleFromCookies } from "@/lib/i18n/server"
 
 export default async function CustomerLayout({
   children,
@@ -52,7 +53,7 @@ export default async function CustomerLayout({
     )
   }
 
-  const cta = resolvePublicCta(org?.vertical, "sl", org?.profileOverrides)
+  const cta = resolvePublicCta(org?.vertical, await getLocaleFromCookies(), org?.profileOverrides)
 
   return (
     <PublicI18nProvider org={org}>

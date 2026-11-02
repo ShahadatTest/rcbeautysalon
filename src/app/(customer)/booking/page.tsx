@@ -15,12 +15,14 @@ import {
 } from "@/app/actions/appointments"
 import { BookingForm } from "@/components/booking/booking-form"
 import { getStripeForOrg } from "@/lib/stripe"
+import { getServerI18n } from "@/lib/i18n/server"
 
 interface BookingPageProps {
   searchParams: Promise<{ service?: string; staff?: string }>
 }
 
 export default async function BookingPage(props: BookingPageProps) {
+  const { t } = await getServerI18n()
   const searchParams = await props.searchParams
   const serviceSlug = searchParams.service
   const staffId = searchParams.staff
@@ -89,7 +91,7 @@ export default async function BookingPage(props: BookingPageProps) {
           {/* Header */}
           <div className="mb-8 text-center">
             <h1 className="from-primary to-accent mb-2 bg-linear-to-r bg-clip-text text-4xl font-bold text-transparent">
-              Rezerviraj pri {staffData.name}
+              {t.booking.bookWithStaff(staffData.name)}
             </h1>
             <p className="text-muted-foreground text-lg">
               Izberite storitev in željeni termin
@@ -129,10 +131,10 @@ export default async function BookingPage(props: BookingPageProps) {
           {/* Header */}
           <div className="mb-10 text-center">
             <h1 className="from-primary to-accent mb-2 bg-linear-to-r bg-clip-text text-4xl font-bold text-transparent">
-              Rezervirajte svoj termin
+              {t.booking.bookTitle}
             </h1>
             <p className="text-muted-foreground text-lg">
-              1. korak: izberite storitev
+              {t.booking.bookSubtitleFlow0}
             </p>
           </div>
 
@@ -159,7 +161,7 @@ export default async function BookingPage(props: BookingPageProps) {
                     key={service.id}
                     href={p(`/booking?service=${service.slug}`)}
                     className="group overflow-hidden rounded-xl border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-                    aria-label={`Rezerviraj storitev ${service.name}`}
+                    aria-label={t.booking.bookServiceAria(service.name)}
                   >
                     {service.imageUrl && (
                       <div className="relative h-40 w-full overflow-hidden">
@@ -217,10 +219,10 @@ export default async function BookingPage(props: BookingPageProps) {
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="from-primary to-accent mb-2 bg-linear-to-r bg-clip-text text-4xl font-bold text-transparent">
-            Rezervirajte svoj termin
+            {t.booking.bookTitle}
           </h1>
           <p className="text-muted-foreground text-lg">
-            Izberite termin in si zagotovite svoj čas
+            {t.booking.bookSubtitleService}
           </p>
         </div>
 

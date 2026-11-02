@@ -10,6 +10,7 @@ import { MaintenanceScreen } from "@/components/public/maintenance-screen"
 import { CartOrgScope } from "@/components/shop/cart-org-scope"
 import { analyticsScriptIdFor } from "@/lib/analytics/measurement-id"
 import { PublicI18nProvider } from "@/components/providers/public-i18n-provider"
+import { getLocaleFromCookies } from "@/lib/i18n/server"
 
 /**
  * Whether the tenant's home page will actually render the #services and
@@ -99,7 +100,7 @@ export default async function PublicLayout({
     })
   }
 
-  const cta = resolvePublicCta(org?.vertical, "sl", org?.profileOverrides)
+  const cta = resolvePublicCta(org?.vertical, await getLocaleFromCookies(), org?.profileOverrides)
 
   return (
     <>
