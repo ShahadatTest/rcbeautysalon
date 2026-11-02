@@ -1,15 +1,19 @@
 "use server"
 
+import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { requirePermissionOrg } from "@/lib/auth/guards"
+import { parseSetupChecklistUi } from "@/lib/profiles/setup-checklist"
 
 // ============================================================
 // ACTIVATION CHECKLIST ("vodena namestitev") — owner UI actions.
 //
-// Only the DISMISS/REOPEN preference is persisted (Organization
-// .setupChecklist). Step completion is derived from real business
-// data on every dashboard render (src/lib/profiles/setup-checklist
-// .ts) — the checklist can never drift out of sync with reality.
+// Only UI preferences persist here (Organization.setupChecklist):
+//   • dismissedAt  — owner hid the card (compact activity row)
+//   • celebratedAt — the completion celebration already fired once
+// Step completion is derived from real business data on every
+// dashboard render (src/lib/profiles/setup-checklist.ts) — the
+// checklist can never drift out of sync with reality.
 // ============================================================
 
 export interface ChecklistUiStateResult {
@@ -17,25 +21,33 @@ export interface ChecklistUiStateResult {
   error?: string
 }
 
-function parseChecklistUi(value: unknown): { dismissedAt?: string } {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
-  const obj = value as Record<string, unknown>
-  return typeof obj.dismissedAt === "string" ? { dismissedAt: obj.dismissedAt } : {}
+async function updateChecklistUi(
+  orgId: string,
+  patch: (ui: ReturnType<typeof parseSetupChecklistUi>) => Record<string, unknown>,
+): Promise<ChecklistUiStateResult> {
+  const { org } = await requirePermissionOrg("settings.manage")
+  await prisma.organization.update({
+    where: { id: orgId },
+    data: {
+      setupChecklist: patch(parseSetupChecklistUi(org.setupChecklist)) as Prisma.InputJsonValue,
+    },
+  })
+  return { success: true }
+}
+
+function failure(scope: string, error: unknown, message: string): ChecklistUiStateResult {
+  console.error(`${scope} failed:`, error)
+  return { success: false, error: message }
 }
 
 /** Hide the persistent checklist card (collapses to the compact activity row). */
 export async function dismissSetupChecklist(): Promise<ChecklistUiStateResult> {
   try {
     const { org } = await requirePermissionOrg("settings.manage")
-    const ui = parseChecklistUi(org.setupChecklist)
-    await prisma.organization.update({
-      where: { id: org.id },
-      data: { setupChecklist: { ...ui, dismissedAt: new Date().toISOString() } },
-    })
+    await updateChecklistUi(org.id, (ui) => ({ ...ui, dismissedAt: new Date().toISOString() }))
     return { success: true }
   } catch (error) {
-    console.error("dismissSetupChecklist failed:", error)
-    return { success: false, error: "Skritje ni uspelo. Poskusite znova." }
+    return failure("dismissSetupChecklist", error, "Skritje ni uspelo. Poskusite znova.")
   }
 }
 
@@ -43,14 +55,23 @@ export async function dismissSetupChecklist(): Promise<ChecklistUiStateResult> {
 export async function reopenSetupChecklist(): Promise<ChecklistUiStateResult> {
   try {
     const { org } = await requirePermissionOrg("settings.manage")
-    const ui = parseChecklistUi(org.setupChecklist)
-    await prisma.organization.update({
-      where: { id: org.id },
-      data: { setupChecklist: { ...ui, dismissedAt: null } },
-    })
+    await updateChecklistUi(org.id, (ui) => ({ ...ui, dismissedAt: null }))
     return { success: true }
   } catch (error) {
-    console.error("reopenSetupChecklist failed:", error)
-    return { success: false, error: "Odpiranje ni uspelo. Poskusite znova." }
+    return failure("reopenSetupChecklist", error, "Odpiranje ni uspelo. Poskusite znova.")
+  }
+}
+
+/**
+ * Persist that the completion celebration already fired — the confetti
+ * greets the owner exactly ONCE, never on every dashboard visit.
+ */
+export async function markSetupCelebrated(): Promise<ChecklistUiStateResult> {
+  try {
+    const { org } = await requirePermissionOrg("settings.manage")
+    await updateChecklistUi(org.id, (ui) => ({ ...ui, celebratedAt: new Date().toISOString() }))
+    return { success: true }
+  } catch (error) {
+    return failure("markSetupCelebrated", error, "Shranjevanje ni uspelo. Poskusite znova.")
   }
 }

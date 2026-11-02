@@ -38,7 +38,7 @@ import { getSessionOrg } from "@/lib/tenant"
 import { ShareLinkCard } from "@/components/dashboard/share-link-card"
 import { GuidedEntryGate } from "@/components/dashboard/guided-entry"
 import { SetupChecklistCard } from "@/components/dashboard/setup-checklist"
-import { buildSetupChecklist } from "@/lib/profiles/setup-checklist"
+import { buildSetupChecklist, parseSetupChecklistUi } from "@/lib/profiles/setup-checklist"
 import type { OnboardingAnswers } from "@/app/actions/guided-entry"
 import { listProfileOptions } from "@/lib/profiles/registry"
 import { prisma } from "@/lib/prisma"
@@ -157,9 +157,13 @@ export default async function AdminDashboard() {
   // removes the staff step; onlineBooking "no" rewords the publish step.
   let checklist: ReturnType<typeof buildSetupChecklist> | null = null
   let checklistDismissed = false
+  let checklistCelebrated = false
   let onboardingAnswers: OnboardingAnswers = {}
   if (canManageSettings && shareOrg) {
     onboardingAnswers = parseOnboardingAnswers(shareOrg.onboardingAnswers)
+    const checklistUi = parseSetupChecklistUi(shareOrg.setupChecklist)
+    checklistDismissed = !!checklistUi.dismissedAt
+    checklistCelebrated = !!checklistUi.celebratedAt
     const catalogRef = shareOrg.verticalChosenAt ?? shareOrg.createdAt
     const [touchedServices, touchedProducts, staffCount, customerCount, appointmentCount, orderCount] =
       await Promise.all([
@@ -192,14 +196,7 @@ export default async function AdminDashboard() {
       workOrdersCapable: profile.capabilities.workOrders !== "disabled",
       published: shareOrg.publishState === "PUBLISHED",
     })
-    const ui = shareOrg.setupChecklist
-    checklistDismissed =
-      !!ui &&
-      typeof ui === "object" &&
-      !Array.isArray(ui) &&
-      typeof (ui as Record<string, unknown>).dismissedAt === "string"
   }
-
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -232,6 +229,8 @@ export default async function AdminDashboard() {
           dismissed={checklistDismissed}
           appointmentsCapable={profile.capabilities.appointments !== "disabled"}
           onlineBookingOptIn={onboardingAnswers.onlineBooking !== "no"}
+          publicUrl={publicUrl}
+          celebrated={checklistCelebrated}
           dict={t.dashboard.setupChecklist}
           guidedEntryDict={t.settings.guidedEntry}
         />

@@ -17,10 +17,22 @@
 //     data; this component only renders it and persists dismiss/reopen.
 // ============================================================
 
-import { useState, useTransition } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Check, ChevronDown, ChevronUp, Info, LayoutGrid, Sparkles, X } from "lucide-react"
+import {
+  AtSign,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Info,
+  LayoutGrid,
+  Link2,
+  MapPin,
+  Sparkles,
+  X,
+} from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -33,6 +45,7 @@ import type { DashboardDict } from "@/lib/i18n/dict/dashboard"
 import type { SettingsDict } from "@/lib/i18n/dict/settings"
 import {
   dismissSetupChecklist,
+  markSetupCelebrated,
   reopenSetupChecklist,
 } from "@/app/actions/setup-checklist"
 
@@ -55,6 +68,10 @@ export interface SetupChecklistCardProps {
    * published page still makes them findable).
    */
   onlineBookingOptIn: boolean
+  /** Public booking URL — powers the growth next-steps after activation. */
+  publicUrl: string | null
+  /** The completion celebration already fired once (persisted). */
+  celebrated: boolean
   dict: DashboardDict["setupChecklist"]
   guidedEntryDict: SettingsDict["guidedEntry"]
 }
@@ -71,12 +88,48 @@ export function SetupChecklistCard({
   dismissed,
   appointmentsCapable,
   onlineBookingOptIn,
+  publicUrl,
+  celebrated,
   dict,
   guidedEntryDict,
 }: SetupChecklistCardProps) {
   const router = useRouter()
   const [expanded, setExpanded] = useState(true)
   const [pending, startTransition] = useTransition()
+  const [copied, setCopied] = useState(false)
+  const confettiFired = useRef(false)
+
+  // P3 SLAVJE — the completion confetti fires exactly ONCE per tenant:
+  // the first render where EVERY step is done. The fired state persists
+  // (Organization.setupChecklist.celebratedAt) so future visits stay calm.
+  useEffect(() => {
+    if (!allDone || dismissed || celebrated || confettiFired.current) return
+    confettiFired.current = true
+    let cancelled = false
+    ;(async () => {
+      try {
+        const confetti = (await import("canvas-confetti")).default
+        if (cancelled) return
+        const colors = ["#f59e0b", "#fbbf24", "#d97706", "#10b981", "#f43f5e"]
+        confetti({
+          particleCount: 130,
+          spread: 75,
+          startVelocity: 38,
+          origin: { y: 0.25 },
+          colors,
+          zIndex: 9999,
+        })
+      } catch {
+        // Confetti is decoration — never break the dashboard over it.
+      }
+    })()
+    void markSetupCelebrated().catch(() => {
+      // Non-fatal: worst case the confetti greets again on the next visit.
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [allDone, dismissed, celebrated])
 
   const dismiss = () => {
     startTransition(async () => {
@@ -98,6 +151,19 @@ export function SetupChecklistCard({
       }
       router.refresh()
     })
+  }
+
+  const copyPublicUrl = async () => {
+    if (!publicUrl) return
+    try {
+      await navigator.clipboard.writeText(publicUrl)
+      setCopied(true)
+      toast.success(dict.growthCopyDone)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Clipboard blocked — show the link so the owner can copy manually.
+      toast.info(publicUrl)
+    }
   }
 
   const stepLabel = (key: SetupStepKey) => {
@@ -171,13 +237,15 @@ export function SetupChecklistCard({
               <span className="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
                 <Icon size={18} aria-hidden="true" />
               </span>
-              <h2 className="text-base font-semibold sm:text-lg">{dict.title}</h2>
+              <h2 className="text-base font-semibold sm:text-lg">
+                {allDone ? dict.growthTitle : dict.title}
+              </h2>
               <Badge variant="secondary" className="font-normal">
                 {profileLabel}
               </Badge>
             </div>
             <p className="text-muted-foreground mt-1.5 text-xs sm:text-sm">
-              {allDone ? dict.completedNote : dict.subtitle}
+              {allDone ? dict.growthSubtitle : dict.subtitle}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
@@ -238,19 +306,119 @@ export function SetupChecklistCard({
         {/* Body */}
         {expanded && (
           allDone ? (
-            <div className="mt-4 flex flex-col items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-900/50 dark:bg-green-950/30 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400">
-                  <Sparkles size={20} aria-hidden="true" />
-                </span>
-                <p className="text-sm font-semibold text-green-800 dark:text-green-300">
-                  {dict.completedTitle}
-                </p>
+            <div className="mt-4 space-y-3">
+              {/* Celebration ribbon — stays for context, stays calm */}
+              <div className="flex flex-col items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-900/50 dark:bg-green-950/30 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400">
+                    <Sparkles size={20} aria-hidden="true" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-green-800 dark:text-green-300">
+                      {dict.completedTitle}
+                    </p>
+                    <p className="text-xs text-green-700/80 dark:text-green-400/80">
+                      {dict.completedNote}
+                    </p>
+                  </div>
+                </div>
+                <GuidedEntryDialog
+                  triggerLabel={guidedEntryDict.reopenButton}
+                  dict={guidedEntryDict}
+                />
               </div>
-              <GuidedEntryDialog
-                triggerLabel={guidedEntryDict.reopenButton}
-                dict={guidedEntryDict}
-              />
+
+              {/* P3 — "Priporočeni naslednji koraki": the research-backed
+                  growth loop that replaces an empty finished checklist.
+                  One validation step + two distribution channels. */}
+              <ol className="space-y-2">
+                <li className="rounded-xl border p-3 transition-colors hover:border-primary/30 sm:p-3.5">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <ExternalLink size={16} aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium leading-tight">
+                        {dict.growthTestLabel}
+                      </p>
+                      <p className="text-muted-foreground mt-0.5 text-xs">
+                        {dict.growthTestDescription}
+                      </p>
+                    </div>
+                    {publicUrl && (
+                      <a
+                        href={publicUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0"
+                      >
+                        <Button size="sm" variant="outline" className="gap-1.5">
+                          {dict.growthTestCta}
+                          <ExternalLink size={13} aria-hidden="true" />
+                        </Button>
+                      </a>
+                    )}
+                  </div>
+                </li>
+
+                <li className="rounded-xl border p-3 transition-colors hover:border-primary/30 sm:p-3.5">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <AtSign size={16} aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium leading-tight">
+                        {dict.growthInstagramLabel}
+                      </p>
+                      <p className="text-muted-foreground mt-0.5 text-xs">
+                        {dict.growthInstagramDescription}
+                      </p>
+                    </div>
+                    {publicUrl && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0 gap-1.5"
+                        onClick={copyPublicUrl}
+                      >
+                        {copied ? (
+                          <Check size={13} aria-hidden="true" />
+                        ) : (
+                          <Link2 size={13} aria-hidden="true" />
+                        )}
+                        {copied ? dict.growthCopyDone : dict.growthCopyCta}
+                      </Button>
+                    )}
+                  </div>
+                </li>
+
+                <li className="rounded-xl border p-3 transition-colors hover:border-primary/30 sm:p-3.5">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <MapPin size={16} aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium leading-tight">
+                        {dict.growthGoogleLabel}
+                      </p>
+                      <p className="text-muted-foreground mt-0.5 text-xs">
+                        {dict.growthGoogleDescription}
+                      </p>
+                    </div>
+                    <a
+                      href="https://business.google.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0"
+                    >
+                      <Button size="sm" variant="outline" className="gap-1.5">
+                        {dict.growthGoogleCta}
+                        <ExternalLink size={13} aria-hidden="true" />
+                      </Button>
+                    </a>
+                  </div>
+                </li>
+              </ol>
             </div>
           ) : (
             <ol className="mt-4 space-y-1.5">

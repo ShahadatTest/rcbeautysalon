@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { buildSetupChecklist, type SetupChecklistInput } from "@/lib/profiles/setup-checklist"
+import {
+  buildSetupChecklist,
+  parseSetupChecklistUi,
+  type SetupChecklistInput,
+} from "@/lib/profiles/setup-checklist"
 
 // A fully "salon" capable tenant with everything still to do.
 const freshSalon: SetupChecklistInput = {
@@ -147,5 +151,31 @@ describe("buildSetupChecklist — P2 solo mode (second-level wizard answers)", (
     const c = buildSetupChecklist({ ...freshSalon })
     expect(c.steps.find((s) => s.key === "staff")?.done).toBe(false)
     expect(c.total).toBe(6)
+  })
+})
+
+describe("parseSetupChecklistUi (owner UI state in Organization.setupChecklist)", () => {
+  it("parses dismissedAt and celebratedAt when both are ISO strings", () => {
+    const ui = parseSetupChecklistUi({
+      dismissedAt: "2026-11-02T10:00:00.000Z",
+      celebratedAt: "2026-11-02T09:00:00.000Z",
+    })
+    expect(ui.dismissedAt).toBe("2026-11-02T10:00:00.000Z")
+    expect(ui.celebratedAt).toBe("2026-11-02T09:00:00.000Z")
+  })
+
+  it("tolerates junk: null, arrays, wrong types, unknown keys", () => {
+    expect(parseSetupChecklistUi(null)).toEqual({})
+    expect(parseSetupChecklistUi(undefined)).toEqual({})
+    expect(parseSetupChecklistUi([1, 2])).toEqual({})
+    expect(parseSetupChecklistUi({ dismissedAt: 42 })).toEqual({})
+    expect(parseSetupChecklistUi({ celebratedAt: true })).toEqual({})
+    expect(parseSetupChecklistUi({ dismissedAt: "2026-01-01", junk: "x" })).toEqual({
+      dismissedAt: "2026-01-01",
+    })
+  })
+
+  it("celebratedAt missing means the confetti has not fired yet", () => {
+    expect(parseSetupChecklistUi({ dismissedAt: "2026-01-01" }).celebratedAt).toBeUndefined()
   })
 })

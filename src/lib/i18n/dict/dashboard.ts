@@ -72,6 +72,18 @@ export const dashboardSl = {
     completedTitle: "Vse pripravljeno! 🎉",
     completedNote:
       "Namestitev je zaključena — vodeni vstop za zamenjavo dejavnosti je še vedno en klik stran.",
+    growthTitle: "Priporočeni naslednji koraki",
+    growthSubtitle: "Namestitev je zaključena — s temi koraki pridejo prve stranke.",
+    growthTestLabel: "Preizkusite rezervacijo kot stranka",
+    growthTestDescription: "Odpri svojo javno stran in rezerviraj termin — tako bo videla vsaka stranka.",
+    growthTestCta: "Odpri stran",
+    growthInstagramLabel: "Povezava v Instagram bio",
+    growthInstagramDescription: "Prilepite javno povezavo v bio — najmočnejši brezplačni kanal za nove stranke.",
+    growthCopyCta: "Kopiraj povezavo",
+    growthCopyDone: "Skopirano!",
+    growthGoogleLabel: "Google Business Profile",
+    growthGoogleDescription: "Da vas stranke najdejo v iskanju in na zemljevidu.",
+    growthGoogleCta: "Upravljaj profil",
     steps: {
       vertical: {
         label: "Izberite dejavnost",
@@ -188,6 +200,18 @@ export const dashboardEn: DashboardDict = {
     completedTitle: "All set! 🎉",
     completedNote:
       "Setup is complete — the guided entry for switching activities stays one click away.",
+    growthTitle: "Recommended next steps",
+    growthSubtitle: "Setup is complete — these steps bring the first customers.",
+    growthTestLabel: "Try a booking as a customer",
+    growthTestDescription: "Open your public page and book an appointment — this is what every customer sees.",
+    growthTestCta: "Open page",
+    growthInstagramLabel: "Link in your Instagram bio",
+    growthInstagramDescription: "Paste your public link into the bio — the strongest free channel for new customers.",
+    growthCopyCta: "Copy link",
+    growthCopyDone: "Copied!",
+    growthGoogleLabel: "Google Business Profile",
+    growthGoogleDescription: "So customers find you in search and on the map.",
+    growthGoogleCta: "Manage profile",
     steps: {
       vertical: {
         label: "Choose your activity",

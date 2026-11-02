@@ -134,3 +134,26 @@ export function buildSetupChecklist(input: SetupChecklistInput): SetupChecklist 
     nextKey: next?.key ?? null,
   }
 }
+
+// ============================================================
+// OWNER UI STATE stored in Organization.setupChecklist (JSON):
+//   { dismissedAt?: string, celebratedAt?: string }  (ISO stamps)
+//   • dismissedAt  — owner hid the persistent card (compact row)
+//   • celebratedAt — the completion confetti already fired (1×)
+// Step COMPLETION is never stored — it is derived from business data.
+// ============================================================
+
+export interface SetupChecklistUi {
+  dismissedAt?: string
+  celebratedAt?: string
+}
+
+/** Tolerant parser — junk from older versions degrades to empty state. */
+export function parseSetupChecklistUi(value: unknown): SetupChecklistUi {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+  const obj = value as Record<string, unknown>
+  const ui: SetupChecklistUi = {}
+  if (typeof obj.dismissedAt === "string") ui.dismissedAt = obj.dismissedAt
+  if (typeof obj.celebratedAt === "string") ui.celebratedAt = obj.celebratedAt
+  return ui
+}
