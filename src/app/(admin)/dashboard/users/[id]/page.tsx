@@ -25,6 +25,7 @@ import { formatSalonTime } from "@/lib/booking-time"
 import { getSessionSalonTimezone } from "@/lib/tenant"
 import { formatCurrency } from "@/lib/utils/format"
 import { getServerI18n } from "@/lib/i18n/server"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 const roleColors: Record<string, string> = {
   ADMIN: "bg-purple-500 text-white",
@@ -70,6 +71,8 @@ export async function generateMetadata({ params }: PageProps) {
 }
 
 export default async function UserDetailsPage({ params }: PageProps) {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("customers.manage")
   const [{ t, dateFnsLocale }, salonTz, session] = await Promise.all([
     getServerI18n(),
     getSessionSalonTimezone(),

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { getWorkOrderDetail } from "@/app/actions/work-orders"
 import { getServerI18n } from "@/lib/i18n/server"
 import { WorkOrderDetailClient } from "@/components/admin/work-orders/work-order-detail-client"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 // ============================================================
 // WORK ORDER DETAIL (EPIC #1 §9 — Phase 4)
@@ -16,6 +17,8 @@ export default async function WorkOrderDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("workorders.manage")
   const { id } = await params
   const [{ t, locale }, order] = await Promise.all([
     getServerI18n(),

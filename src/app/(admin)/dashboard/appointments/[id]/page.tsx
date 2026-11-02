@@ -20,6 +20,7 @@ import { getSessionSalonTimezone } from "@/lib/tenant"
 import { formatCurrency } from "@/lib/utils/format"
 import { AppointmentStatusActions } from "@/components/appointments/status-actions"
 import { getServerI18n } from "@/lib/i18n/server"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 export const dynamic = "force-dynamic"
 
@@ -63,6 +64,8 @@ export async function generateMetadata({ params }: PageProps) {
 }
 
 export default async function AppointmentDetailPage({ params }: PageProps) {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("appointments.view")
   const [{ t, dateFnsLocale }, salonTz] = await Promise.all([
     getServerI18n(),
     getSessionSalonTimezone(),

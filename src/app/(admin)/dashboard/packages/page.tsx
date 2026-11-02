@@ -7,6 +7,7 @@ import {
 import { getPackagesOverview } from "@/app/actions/catalog"
 import { getServerI18n } from "@/lib/i18n/server"
 import { PackagesClient } from "@/components/admin/catalog/packages-client"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 // ============================================================
 // PACKAGES PAGE (EPIC #1 Phase 4b, §11 universal catalog)
@@ -15,6 +16,8 @@ import { PackagesClient } from "@/components/admin/catalog/packages-client"
 // ============================================================
 
 export default async function PackagesPage() {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("products.manage")
   const [{ t }, overview] = await Promise.all([
     getServerI18n(),
     getPackagesOverview(),

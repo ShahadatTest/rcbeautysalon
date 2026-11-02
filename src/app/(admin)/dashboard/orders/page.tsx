@@ -6,6 +6,7 @@ import { getAdminOrders, getOrderStats } from "@/app/actions/orders"
 import { getServerI18n } from "@/lib/i18n/server"
 import { OrderSearch } from "@/components/dashboard/order-search"
 import { ExportOrdersButton } from "@/components/dashboard/export-orders-button"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 const statusColors: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
@@ -20,6 +21,8 @@ interface OrdersPageProps {
 }
 
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("orders.manage")
   const { search } = await searchParams
   const [{ t }, orders, stats] = await Promise.all([
     getServerI18n(),

@@ -4,6 +4,7 @@ import { listProjects, getProjectLinkOptions } from "@/app/actions/projects"
 import { getServerI18n } from "@/lib/i18n/server"
 import { ProjectsClient } from "@/components/admin/projects/projects-client"
 import { projectErrorText } from "@/lib/projects/error-text"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 // ============================================================
 // PROJECTS PAGE (EPIC #2 E2-3) — multi-day jobs with a task
@@ -14,6 +15,8 @@ import { projectErrorText } from "@/lib/projects/error-text"
 // ============================================================
 
 export default async function ProjectsPage() {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("workorders.manage")
   const profile = await getSessionEffectiveProfile()
   if (!profile.extensions.includes("projects")) notFound()
 

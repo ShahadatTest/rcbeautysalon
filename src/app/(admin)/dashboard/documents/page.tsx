@@ -9,6 +9,7 @@ import {
 import { getDocumentsOverview } from "@/app/actions/documents"
 import { getServerI18n } from "@/lib/i18n/server"
 import { DocumentsClient } from "@/components/admin/catalog/documents-client"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 // ============================================================
 // DOCUMENTS PAGE (EPIC #1 Phase 4b, §13 documents capability)
@@ -17,6 +18,8 @@ import { DocumentsClient } from "@/components/admin/catalog/documents-client"
 // ============================================================
 
 export default async function DocumentsPage() {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("finances.view")
   const [{ t }, overview] = await Promise.all([
     getServerI18n(),
     getDocumentsOverview(),

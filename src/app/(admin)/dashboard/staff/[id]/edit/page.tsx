@@ -11,12 +11,15 @@ import {
 } from "@/app/actions/staff"
 import type { StaffFormData } from "@/lib/validations/staff"
 import { getServerI18n } from "@/lib/i18n/server"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 interface EditStaffPageProps {
   params: Promise<{ id: string }>
 }
 
 export default async function EditStaffPage({ params }: EditStaffPageProps) {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("staff.manage")
   const { id } = await params
 
   // Fetch staff member, services and i18n in parallel

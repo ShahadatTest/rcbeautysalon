@@ -2,6 +2,7 @@ import { getServerI18n } from "@/lib/i18n/server"
 import { listFormDefinitions, listFormSubmissions } from "@/app/actions/forms"
 import { getSessionEffectiveProfile } from "@/lib/profiles/resolve"
 import { FormsClient } from "@/components/admin/forms/forms-client"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 // ============================================================
 // FORMS PAGE (EPIC #1 §8 — Phase 4)
@@ -12,6 +13,8 @@ import { FormsClient } from "@/components/admin/forms/forms-client"
 // ============================================================
 
 export default async function FormsPage() {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("inquiries.manage")
   const [{ t }, definitions, submissions] = await Promise.all([
     getServerI18n(),
     listFormDefinitions(),

@@ -6,12 +6,15 @@ import { ArrowLeftIcon } from "@/components/icons"
 import { getUserById } from "@/app/actions/users"
 import { UserEditForm } from "@/components/dashboard/user-edit-form"
 import { getServerI18n } from "@/lib/i18n/server"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 interface EditUserPageProps {
   params: Promise<{ id: string }>
 }
 
 export default async function EditUserPage({ params }: EditUserPageProps) {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("customers.manage")
   const { t } = await getServerI18n()
   const { id } = await params
   const user = await getUserById(id)

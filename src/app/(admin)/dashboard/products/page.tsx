@@ -11,12 +11,15 @@ import { getAdminProducts, getProductStats } from "@/app/actions/products"
 import { ProductSearch } from "@/components/dashboard/product-search"
 import { DeleteProductButton } from "@/components/dashboard/delete-product-button"
 import { getServerI18n } from "@/lib/i18n/server"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 interface ProductsPageProps {
   searchParams: Promise<{ search?: string }>
 }
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("products.manage")
   const { search } = await searchParams
   const [products, stats, { t }] = await Promise.all([
     getAdminProducts(search),

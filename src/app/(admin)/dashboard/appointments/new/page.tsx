@@ -15,8 +15,11 @@ import {
 } from "@/app/actions/services"
 import { getCustomers } from "@/app/actions/customers"
 import { getServerI18n } from "@/lib/i18n/server"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 export default async function NewAppointmentPage() {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("appointments.manage")
   const [{ t }, services, staff, customers] = await Promise.all([
     getServerI18n(),
     getActiveServicesForBooking(),

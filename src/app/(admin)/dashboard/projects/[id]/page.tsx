@@ -5,6 +5,7 @@ import { getSessionEffectiveProfile } from "@/lib/profiles/resolve"
 import { getProjectDetail } from "@/app/actions/projects"
 import { getServerI18n } from "@/lib/i18n/server"
 import { ProjectDetailClient } from "@/components/admin/projects/project-detail-client"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 // ============================================================
 // PROJECT DETAIL PAGE (EPIC #2 E2-3) — one project with its
@@ -18,6 +19,8 @@ export default async function ProjectDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("workorders.manage")
   const { id } = await params
   const profile = await getSessionEffectiveProfile()
   if (!profile.extensions.includes("projects")) notFound()

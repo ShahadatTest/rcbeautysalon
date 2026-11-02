@@ -62,7 +62,7 @@ const navigation: NavItem[] = [
   { nameKey: "services", href: "/dashboard/services", icon: ScissorsIcon, capability: "services", termKey: "servicePlural", permission: "services.manage" },
   { nameKey: "products", href: "/dashboard/products", icon: PackageIcon, capability: "shop", termKey: "productPlural", permission: "products.manage" },
   // Packages (bundles of services and/or products) — shown when either exists
-  { nameKey: "packages", href: "/dashboard/packages", icon: ToteIcon, anyCapabilities: ["shop", "services"] },
+  { nameKey: "packages", href: "/dashboard/packages", icon: ToteIcon, anyCapabilities: ["shop", "services"], permission: "products.manage" },
   // Work orders (workflow-driven jobs) — terminology comes from the profile
   { nameKey: "workOrders", href: "/dashboard/work-orders", icon: ReceiptIcon, capability: "workOrders", termKey: "orderPlural", permission: "workorders.manage" },
   // Documents (quotes/invoices) — gated by the documents capability (§13)
@@ -72,11 +72,11 @@ const navigation: NavItem[] = [
   { nameKey: "forms", href: "/dashboard/forms", icon: SlidersIcon, capability: "forms", permission: "inquiries.manage" },
   // Extension entity registries (vehicles, batches, …) — §13, rendered
   // only when the profile enables extensions that contribute entities
-  { nameKey: "records", href: "/dashboard/records", icon: StackIcon, requiresExtensions: true },
+  { nameKey: "records", href: "/dashboard/records", icon: StackIcon, requiresExtensions: true, permission: "workorders.manage" },
   // Projects & tasks (E2-3) — rendered only when the profile enables
   // the `projects` extension (runtime shipped in E2-3; other profiles
   // keep today's experience verbatim).
-  { nameKey: "projects", href: "/dashboard/projects", icon: FolderIcon, extension: "projects" },
+  { nameKey: "projects", href: "/dashboard/projects", icon: FolderIcon, extension: "projects", permission: "workorders.manage" },
   { nameKey: "staff", href: "/dashboard/staff", icon: UserCogIcon, capability: "staff", permission: "staff.manage" },
   // Custom roles (G8) — admin-only, gated in the filter below by isAdmin.
   { nameKey: "roles", href: "/dashboard/roles", icon: LockIcon },

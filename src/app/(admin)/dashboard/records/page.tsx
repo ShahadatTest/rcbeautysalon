@@ -2,6 +2,7 @@ import { getExtensionEntities } from "@/app/actions/records"
 import { getServerI18n } from "@/lib/i18n/server"
 import { RecordsClient } from "@/components/admin/records/records-client"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 // ============================================================
 // EXTENSION RECORDS PAGE (EPIC #1 §13 — Phase 6)
@@ -14,6 +15,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 // ============================================================
 
 export default async function RecordsPage() {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("workorders.manage")
   const [{ t }, entities] = await Promise.all([
     getServerI18n(),
     getExtensionEntities(),

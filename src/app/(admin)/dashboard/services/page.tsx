@@ -19,12 +19,15 @@ import { getAdminServices, getServiceStats } from "@/app/actions/services"
 import { formatCurrency } from "@/lib/utils/format"
 import { ServiceSearch } from "@/components/dashboard/service-search"
 import { getServerI18n } from "@/lib/i18n/server"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 interface ServicesPageProps {
   searchParams: Promise<{ search?: string }>
 }
 
 export default async function ServicesPage({ searchParams }: ServicesPageProps) {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("services.manage")
   const params = await searchParams
   const search = params.search || ""
 

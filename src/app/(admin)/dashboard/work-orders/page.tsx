@@ -11,6 +11,7 @@ import { getWorkOrdersOverview } from "@/app/actions/work-orders"
 import { getServerI18n } from "@/lib/i18n/server"
 import { WorkOrdersClient } from "@/components/admin/work-orders/work-orders-client"
 import { ProcessEditorDialog } from "@/components/admin/work-orders/process-editor-dialog"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 // ============================================================
 // WORK ORDERS PAGE (EPIC #1 §9/§10 — Phase 4)
@@ -20,6 +21,8 @@ import { ProcessEditorDialog } from "@/components/admin/work-orders/process-edit
 // ============================================================
 
 export default async function WorkOrdersPage() {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("workorders.manage")
   const [{ t, locale }, overview] = await Promise.all([
     getServerI18n(),
     getWorkOrdersOverview(),

@@ -4,8 +4,11 @@ import { ArrowLeftIcon } from "@/components/icons"
 import { ServiceForm } from "@/components/dashboard/service-form"
 import { getAllCategories, getAllActiveStaff } from "@/app/actions/services"
 import { getServerI18n } from "@/lib/i18n/server"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 export default async function NewServicePage() {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("services.manage")
   const [categories, staff, { t }] = await Promise.all([
     getAllCategories(),
     getAllActiveStaff(),

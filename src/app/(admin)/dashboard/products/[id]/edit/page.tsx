@@ -9,12 +9,15 @@ import { getProductById } from "@/app/actions/products"
 import { getAllCategories } from "@/app/actions/services"
 import { getServerI18n } from "@/lib/i18n/server"
 import { getSessionEffectiveProfile } from "@/lib/profiles/resolve"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 interface EditProductPageProps {
   params: Promise<{ id: string }>
 }
 
 export default async function EditProductPage({ params }: EditProductPageProps) {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("products.manage")
   const { id } = await params
 
   // Fetch product and categories in parallel

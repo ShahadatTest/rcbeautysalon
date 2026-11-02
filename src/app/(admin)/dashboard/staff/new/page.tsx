@@ -5,8 +5,11 @@ import { StaffForm } from "@/components/dashboard/staff-form"
 import { getActiveServicesForStaff, createStaffMember } from "@/app/actions/staff"
 import { getServerI18n } from "@/lib/i18n/server"
 import type { StaffFormData } from "@/lib/validations/staff"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 export default async function NewStaffPage() {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("staff.manage")
   const [services, { t }] = await Promise.all([
     getActiveServicesForStaff(),
     getServerI18n(),

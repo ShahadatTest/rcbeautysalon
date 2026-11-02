@@ -1,8 +1,7 @@
 import type { Metadata } from "next"
-import { redirect } from "next/navigation"
-import { auth } from "@/lib/auth/auth"
 import { listCustomRoles, listAssignableMembers } from "@/app/actions/custom-roles"
 import { permissionsFromJson } from "@/lib/permissions/roles"
+import { requireUnrestrictedPage } from "@/lib/auth/guards"
 import { RolesClient, type RoleRow, type MemberRow } from "@/components/dashboard/roles-client"
 
 export const metadata: Metadata = {
@@ -11,11 +10,10 @@ export const metadata: Metadata = {
 }
 
 export default async function RolesPage() {
-  // Custom roles are an owner/admin surface — staff are sent back.
-  const session = await auth()
-  if (session?.user?.role !== "ADMIN") {
-    redirect("/dashboard")
-  }
+  // E4-6b: administering the permission catalog escalates privileges —
+  // only an UNRESTRICTED admin (all keys) may enter; restricted admins
+  // and staff are sent back to the dashboard.
+  await requireUnrestrictedPage()
 
   const [roles, members] = await Promise.all([
     listCustomRoles(),

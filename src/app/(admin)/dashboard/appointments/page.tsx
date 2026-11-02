@@ -19,6 +19,7 @@ import { getSessionSalonTimezone } from "@/lib/tenant"
 import { formatCurrency } from "@/lib/utils/format"
 import { startOfDay, endOfDay } from "date-fns"
 import { getServerI18n } from "@/lib/i18n/server"
+import { requirePagePermission } from "@/lib/auth/guards"
 
 const statusColors: Record<string, string> = {
   PENDING: "bg-amber-500 text-white",
@@ -29,6 +30,8 @@ const statusColors: Record<string, string> = {
 }
 
 export default async function AppointmentsPage() {
+  // Custom roles (E4-6b): server-side page guard
+  await requirePagePermission("appointments.view")
   const [{ t, dateFnsLocale }, salonTz, appointments] = await Promise.all([
     getServerI18n(),
     getSessionSalonTimezone(),
