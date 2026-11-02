@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CheckCircleIcon } from "@/components/icons"
 import { AvailableStaffMember } from "@/lib/interfaces"
 import { cloudinaryPresets } from "@/lib/utils/cloudinary"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface StaffStepProps {
   availableStaff: AvailableStaffMember[]
@@ -19,6 +20,7 @@ export function StaffStep({
   onSelectStaff,
   error,
 }: StaffStepProps) {
+  const { t } = useI18n()
   return (
     <Card className="shadow-lg">
       <CardHeader>
@@ -26,15 +28,15 @@ export function StaffStep({
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-bold">
             2
           </div>
-          <CardTitle>Izberite specialista</CardTitle>
+          <CardTitle>{t.booking.chooseSpecialist}</CardTitle>
         </div>
-        <CardDescription>Izberite svojega specialista</CardDescription>
+        <CardDescription>{t.booking.chooseSpecialistDesc}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-col gap-4">
           {availableStaff.length === 0 ? (
             <p className="text-center text-muted-foreground">
-              Za to storitev ni prostega osebja
+              {t.booking.noStaffForService}
             </p>
           ) : (
             availableStaff.map((staff) => (

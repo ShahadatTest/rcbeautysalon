@@ -4,13 +4,14 @@ import { useEffect, useState, useActionState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm, useWatch } from "react-hook-form"
 import {
-  bookingSchema,
-  authenticatedBookingSchema,
+  buildBookingSchema,
+  buildAuthenticatedBookingSchema,
 } from "@/lib/validations/booking"
 import { createCheckoutSession } from "@/app/actions/stripe"
 import { createAppointment, listBookingResources, type BookingResource } from "@/app/actions/appointments"
 import { ServiceStep } from "./steps/service-step"
 import { toast } from "sonner"
+import { useI18n } from "@/lib/i18n/provider"
 import { ServiceSelectionStep } from "./steps/service-selection-step"
 import { StaffStep } from "./steps/staff-step"
 import { StaffDisplayStep } from "./steps/staff-display-step"
@@ -36,6 +37,7 @@ export function BookingForm(props: BookingFormProps) {
     paymentsEnabled = true,
     defaultValues = {},
   } = props
+  const { locale, t } = useI18n()
 
   const router = useRouter()
   const [flowError, setFlowError] = useState<string | null>(null)
@@ -70,8 +72,11 @@ export function BookingForm(props: BookingFormProps) {
 
   const selectedService = getSelectedService()
 
-  // Use appropriate schema based on authentication status
-  const schema = isAuthenticated ? authenticatedBookingSchema : bookingSchema
+  // Use appropriate schema based on authentication status — locale-aware
+  // factory keeps validation messages in the visitor's language.
+  const schema = isAuthenticated
+    ? buildAuthenticatedBookingSchema(locale)
+    : buildBookingSchema(locale)
 
   const {
     control,
@@ -157,8 +162,8 @@ export function BookingForm(props: BookingFormProps) {
       // Missing staff: keep the inline StaffStep error (same message as the
       // schema) AND toast, so the failure is visible next to the button too.
       if (!parsedValues.staffId) {
-        setError("staffId", { message: "Izberite osebo za termin" })
-        toast.error("Izberite osebo pred potrditvijo.")
+        setError("staffId", { message: t.booking.staffRequired })
+        toast.error(t.booking.staffRequiredToast)
         return { ok: false }
       }
 
@@ -195,7 +200,7 @@ export function BookingForm(props: BookingFormProps) {
             return { ok: true }
           }
           const employeeError =
-            result.error || "Ustvarjanje termina ni uspelo. Poskusite znova."
+            result.error || t.booking.employeeCreateFailed
           setFlowError(employeeError)
           toast.error(employeeError)
           return { ok: false }
@@ -243,9 +248,7 @@ export function BookingForm(props: BookingFormProps) {
           })
 
           if (fallback.success && fallback.appointmentId) {
-            toast.info(
-              "Rezervacija je bila oddana brez spletnega plačila — salon jo bo potrdil, polog pa poravnal ob obisku."
-            )
+            toast.info(t.booking.noPaymentToast)
             if (isAuthenticated) {
               router.push(`/my-appointments?new=${fallback.appointmentId}`)
             } else {
@@ -255,8 +258,7 @@ export function BookingForm(props: BookingFormProps) {
           }
 
           const fallbackError =
-            fallback.error ||
-            "Rezervacija ni uspela. Kontaktirajte salon ali poskusite znova."
+            fallback.error || t.booking.noPaymentFailed
           setFlowError(fallbackError)
           toast.error(fallbackError)
           return { ok: false }
@@ -266,14 +268,14 @@ export function BookingForm(props: BookingFormProps) {
         // the summary card sits below the fold on mobile, so an inline
         // box alone reads as "nothing happened" (real-world finding).
         const message =
-          result.error || "Ustvarjanje plačila ni uspelo. Poskusite znova."
+          result.error || t.booking.checkoutFailed
         setFlowError(message)
         toast.error(message)
         return { ok: false }
       } catch (err) {
         console.error("Error creating booking:", err)
-        setFlowError("Prišlo je do nepričakovane napake. Poskusite znova.")
-        toast.error("Prišlo je do nepričakovane napake. Poskusite znova.")
+        setFlowError(t.booking.unexpectedError)
+        toast.error(t.booking.unexpectedError)
         return { ok: false }
       }
     },
@@ -287,7 +289,8 @@ export function BookingForm(props: BookingFormProps) {
         <Alert className="mb-6 border-primary/30 bg-linear-to-r from-primary/5 via-primary/10 to-accent/5 dark:border-primary/40 dark:from-primary/10 dark:via-primary/15 dark:to-accent/10">
           <SparkleIcon size={18} className="text-primary dark:text-primary" />
           <AlertDescription className="text-foreground/80 dark:text-foreground/90">
-            Rezervirate kot zaposleni. Upoštevan bo <strong className="text-primary">popust 20&nbsp;%</strong>.
+            {t.booking.employeeBanner}{" "}
+            <strong className="text-primary">{t.booking.employeeBannerDiscount}</strong>.
           </AlertDescription>
         </Alert>
       )}
@@ -306,7 +309,7 @@ export function BookingForm(props: BookingFormProps) {
                 services={props.staffServices}
                 selectedServiceId={selectedServiceId}
                 onSelectService={handleServiceSelect}
-                error={!selectedServiceId && flowError ? "Izberite storitev" : undefined}
+                error={!selectedServiceId && flowError ? t.booking.chooseServiceError : undefined}
               />
             </>
           ) : (

@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { useI18n } from "@/lib/i18n/provider"
 
 // F1 (E3-8 follow-up): the booking form submits through the React 19
 // `action={}` pathway, which resets UNCONTROLLED inputs after every
@@ -23,6 +24,7 @@ interface CustomerInfoStepProps {
 }
 
 export function CustomerInfoStep({ values, onChange, errors, isAuthenticated }: CustomerInfoStepProps) {
+  const { t } = useI18n()
   return (
     <Card className="shadow-lg">
       <CardHeader>
@@ -30,24 +32,24 @@ export function CustomerInfoStep({ values, onChange, errors, isAuthenticated }: 
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-bold">
             4
           </div>
-          <CardTitle>Vaši podatki</CardTitle>
+          <CardTitle>{t.booking.yourDetails}</CardTitle>
         </div>
         <CardDescription>
           {isAuthenticated
-            ? "Potrdite svoje kontaktne podatke"
-            : "Vnesite svoje kontaktne podatke"}
+            ? t.booking.confirmDetailsDesc
+            : t.booking.enterDetailsDesc}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="firstName">
-              Ime <span className="text-destructive">*</span>
+              {t.booking.firstName} <span className="text-destructive">*</span>
             </Label>
             <Input
               id="firstName"
               name="firstName"
-              placeholder="Janez"
+              placeholder={t.booking.firstNamePlaceholder}
               disabled={isAuthenticated}
               value={values.firstName}
               onChange={(e) => onChange("firstName", e.target.value)}
@@ -58,12 +60,12 @@ export function CustomerInfoStep({ values, onChange, errors, isAuthenticated }: 
           </div>
           <div className="space-y-2">
             <Label htmlFor="lastName">
-              Priimek <span className="text-destructive">*</span>
+              {t.booking.lastName} <span className="text-destructive">*</span>
             </Label>
             <Input
               id="lastName"
               name="lastName"
-              placeholder="Novak"
+              placeholder={t.booking.lastNamePlaceholder}
               disabled={isAuthenticated}
               value={values.lastName}
               onChange={(e) => onChange("lastName", e.target.value)}
@@ -75,13 +77,13 @@ export function CustomerInfoStep({ values, onChange, errors, isAuthenticated }: 
         </div>
         <div className="space-y-2">
           <Label htmlFor="email">
-            E-pošta <span className="text-destructive">*</span>
+            {t.booking.email} <span className="text-destructive">*</span>
           </Label>
           <Input
             id="email"
             name="email"
             type="email"
-            placeholder="janez@primer.si"
+            placeholder={t.booking.emailPlaceholder}
             disabled={isAuthenticated}
             value={values.email}
             onChange={(e) => onChange("email", e.target.value)}
@@ -90,24 +92,24 @@ export function CustomerInfoStep({ values, onChange, errors, isAuthenticated }: 
         </div>
         <div className="space-y-2">
           <Label htmlFor="phone">
-            Telefon <span className="text-destructive">*</span>
+            {t.booking.phone} <span className="text-destructive">*</span>
           </Label>
           <Input
             id="phone"
             name="phone"
             type="tel"
-            placeholder="040 123 456"
+            placeholder={t.booking.phonePlaceholder}
             value={values.phone}
             onChange={(e) => onChange("phone", e.target.value)}
           />
           {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="notes">Posebne želje (neobvezno)</Label>
+          <Label htmlFor="notes">{t.booking.specialRequests}</Label>
           <Textarea
             id="notes"
             name="notes"
-            placeholder="Kakšne posebne želje ali preference?"
+            placeholder={t.booking.notesPlaceholder}
             rows={3}
             value={values.notes}
             onChange={(e) => onChange("notes", e.target.value)}

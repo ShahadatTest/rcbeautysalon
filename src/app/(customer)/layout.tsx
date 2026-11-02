@@ -6,6 +6,7 @@ import { resolvePublicCta } from "@/lib/public-cta"
 import { resolvePublishGate } from "@/lib/publish-gate"
 import { MaintenanceScreen } from "@/components/public/maintenance-screen"
 import { CartOrgScope } from "@/components/shop/cart-org-scope"
+import { PublicI18nProvider } from "@/components/providers/public-i18n-provider"
 
 export default async function CustomerLayout({
   children,
@@ -31,7 +32,7 @@ export default async function CustomerLayout({
       return <MaintenanceScreen />
     }
     return (
-      <>
+      <PublicI18nProvider org={org}>
         <PublicNavbar
           org={{
             slug: org.slug,
@@ -47,14 +48,14 @@ export default async function CustomerLayout({
         </div>
         <main>{children}</main>
         <Footer />
-      </>
+      </PublicI18nProvider>
     )
   }
 
   const cta = resolvePublicCta(org?.vertical, "sl", org?.profileOverrides)
 
   return (
-    <>
+    <PublicI18nProvider org={org}>
       <PublicNavbar
         org={{
           slug: org?.slug ?? null,
@@ -66,6 +67,6 @@ export default async function CustomerLayout({
       <CartOrgScope slug={org?.slug ?? null} />
       <main>{children}</main>
       <Footer />
-    </>
+    </PublicI18nProvider>
   )
 }

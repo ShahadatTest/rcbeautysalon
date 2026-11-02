@@ -5,20 +5,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CheckCircleIcon } from "@/components/icons"
 import { AvailableStaffMember } from "@/lib/interfaces"
 import { cloudinaryPresets } from "@/lib/utils/cloudinary"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface StaffDisplayStepProps {
   staff: AvailableStaffMember
 }
 
 export function StaffDisplayStep({ staff }: StaffDisplayStepProps) {
+  const { t } = useI18n()
   return (
     <Card className="border-primary/20 shadow-lg">
       <CardHeader>
         <div className="flex items-center gap-2">
           <CheckCircleIcon size={24} weight="fill" className="text-primary" />
-          <CardTitle>Vaš specialist</CardTitle>
+          <CardTitle>{t.booking.yourSpecialist}</CardTitle>
         </div>
-        <CardDescription>Rezervirate pri tem specialistu</CardDescription>
+        <CardDescription>{t.booking.yourSpecialistDesc}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4">

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { ClockIcon, CheckCircleIcon } from "@/components/icons"
 import { cn } from "@/lib/utils"
 import { ServiceListItem } from "@/lib/interfaces"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface ServiceSelectionStepProps {
   services: ServiceListItem[]
@@ -19,6 +20,7 @@ export function ServiceSelectionStep({
   error,
 }: ServiceSelectionStepProps) {
   const fmt = useFormatPrice()
+  const { t } = useI18n()
   return (
     <Card className="border-primary/20 shadow-lg">
       <CardHeader>
@@ -26,9 +28,9 @@ export function ServiceSelectionStep({
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
             1
           </div>
-          <CardTitle>Izberite storitev</CardTitle>
+          <CardTitle>{t.booking.chooseService}</CardTitle>
         </div>
-        <CardDescription>Izberite storitev za svoj termin</CardDescription>
+        <CardDescription>{t.booking.chooseServiceDesc}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 sm:grid-cols-2">

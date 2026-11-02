@@ -76,8 +76,9 @@ Varnost:
 - Fallback na okolje je **namenoma odstranjen** (E4-3b): brez lastnega ključa se plačila elegantno degradirajo (prijazno sporočilo, brez sesutja)
 
 ### 🌐 Dvojezičnost (i18n)
-- **Slovenščina (privzeto)** + angleščina za **nadzorno ploščo in avtentikacijo** (preklopnik v admin glavi)
-- Javne najemniške strani (domov, rezervacije, trgovina, košarica) so trenutno v slovenščini — prevod javnih strani je načrtovan
+- **Slovenščina (privzeto)** + angleščina (preklopnik v admin glavi **in javnem navbarju** — isti cookie, izbira velja povsod)
+- **Javno prevedeno**: navbar + mobilni meni in **celoten rezervacijski čarovnik** (koraki, polja, povzetek, gumbi, napake, validacijska sporočila, datumi po lokalni konvenciji)
+- Še v slovenščini: vsebina domače strani (hero/sekcije — podatki najemnika), trgovina/košarica, podnožje; prevod je načrtovan
 
 ### 👥 Vloge
 | Vloga | Dostop |

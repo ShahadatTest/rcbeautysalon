@@ -2,6 +2,7 @@ import { useFormatPrice } from "@/lib/currency"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ClockIcon } from "@/components/icons"
+import { useI18n } from "@/lib/i18n/provider"
 
 interface ServiceStepProps {
   service: {
@@ -14,6 +15,7 @@ interface ServiceStepProps {
 
 export function ServiceStep({ service }: ServiceStepProps) {
   const fmt = useFormatPrice()
+  const { t } = useI18n()
   return (
     <Card className="border-primary/20 shadow-lg">
       <CardHeader>
@@ -21,9 +23,9 @@ export function ServiceStep({ service }: ServiceStepProps) {
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
             1
           </div>
-          <CardTitle>Izbrana storitev</CardTitle>
+          <CardTitle>{t.booking.selectedService}</CardTitle>
         </div>
-        <CardDescription>Vaša izbrana storitev</CardDescription>
+        <CardDescription>{t.booking.selectedServiceDesc}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4">
@@ -40,7 +42,7 @@ export function ServiceStep({ service }: ServiceStepProps) {
           </div>
           <p className="text-sm text-muted-foreground">
             <ClockIcon size={14} className="mr-1 inline" weight="regular" />
-            {service.duration} minut
+            {t.booking.minutes(service.duration)}
           </p>
         </div>
       </CardContent>

@@ -17,8 +17,9 @@ import {
   SpinnerGapIcon,
 } from "@/components/icons"
 import { format } from "date-fns"
-import { sl } from "date-fns/locale"
 import { AvailableStaffMember, TimeSlot } from "@/lib/interfaces"
+import { useI18n } from "@/lib/i18n/provider"
+import { getDateFnsLocale } from "@/lib/i18n/dictionaries"
 
 interface BookingSummaryCardProps {
   service: {
@@ -55,6 +56,8 @@ export function BookingSummaryCard({
   paymentsEnabled = true,
 }: BookingSummaryCardProps) {
   const fmt = useFormatPrice()
+  const { t, locale } = useI18n()
+  const dfLocale = getDateFnsLocale(locale)
   const selectedSlot = availableSlots.find((s) => s.time === selectedTime)
 
   // Calculate employee discount (20%)
@@ -67,24 +70,24 @@ export function BookingSummaryCard({
     <div className="space-y-4">
       <Card className="sticky top-4 border-border/50 shadow-xl">
         <CardHeader className="rounded-t-lg bg-linear-to-br from-primary/10 via-primary/5 to-accent/10 dark:from-primary/20 dark:via-primary/10 dark:to-accent/15">
-          <CardTitle className="text-foreground">Povzetek rezervacije</CardTitle>
+          <CardTitle className="text-foreground">{t.booking.summaryTitle}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 pt-6">
           <div className="space-y-3 text-sm">
             <div>
-              <p className="font-semibold text-muted-foreground">Storitev</p>
-              <p className="text-base font-medium text-foreground">{service?.name || "Ni izbrano"}</p>
+              <p className="font-semibold text-muted-foreground">{t.booking.service}</p>
+              <p className="text-base font-medium text-foreground">{service?.name || t.booking.notSelected}</p>
             </div>
             <Separator className="bg-border/50" />
             <div>
-              <p className="font-semibold text-muted-foreground">Osebje</p>
+              <p className="font-semibold text-muted-foreground">{t.booking.staff}</p>
               <p className="text-base font-medium text-foreground">
-                {selectedStaff ? selectedStaff.name : "Ni izbrano"}
+                {selectedStaff ? selectedStaff.name : t.booking.notSelected}
               </p>
             </div>
             <Separator className="bg-border/50" />
             <div>
-              <p className="font-semibold text-muted-foreground">Datum in ura</p>
+              <p className="font-semibold text-muted-foreground">{t.booking.dateTime}</p>
               <p className="text-base font-medium text-foreground">
                 {selectedDate && selectedTime ? (
                   <>
@@ -93,20 +96,20 @@ export function BookingSummaryCard({
                       className="mr-1 inline text-primary"
                       weight="regular"
                     />
-                    {format(selectedDate, "d. MMMM yyyy", { locale: sl })} ob{" "}
+                    {format(selectedDate, locale === "sl" ? "d. MMMM yyyy" : "MMMM d, yyyy", { locale: dfLocale })} {t.booking.atSeparator}{" "}
                     {selectedSlot?.formattedTime || selectedTime}
                   </>
                 ) : (
-                  "Ni izbrano"
+                  t.booking.notSelected
                 )}
               </p>
             </div>
             <Separator className="bg-border/50" />
             <div>
-              <p className="font-semibold text-muted-foreground">Trajanje</p>
+              <p className="font-semibold text-muted-foreground">{t.booking.duration}</p>
               <p className="text-base font-medium text-foreground">
                 <ClockIcon size={14} className="mr-1 inline text-primary" weight="regular" />
-                {service?.duration || 0} minut
+                {t.booking.minutes(service?.duration || 0)}
               </p>
             </div>
           </div>
@@ -115,27 +118,27 @@ export function BookingSummaryCard({
 
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Cena storitve</span>
+              <span className="text-muted-foreground">{t.booking.servicePrice}</span>
               <span className="font-medium text-foreground">{fmt(originalPrice)}</span>
             </div>
             {isEmployee && (
               <div className="flex justify-between text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                <span>Popust za zaposlene (20&nbsp;%)</span>
+                <span>{t.booking.employeeDiscount}</span>
                 <span>-{fmt(discountAmount)}</span>
               </div>
             )}
             {isEmployee && (
               <div className="flex justify-between text-sm font-semibold">
-                <span className="text-foreground">Končna cena</span>
+                <span className="text-foreground">{t.booking.finalPrice}</span>
                 <span className="text-primary">{fmt(finalPrice)}</span>
               </div>
             )}
             <Separator className="my-2 bg-border/50" />
             <div className="flex justify-between text-lg font-bold">
-              <span className="text-foreground">Obvezni polog</span>
+              <span className="text-foreground">{t.booking.requiredDeposit}</span>
               {isEmployee ? (
                 <span className="text-emerald-600 dark:text-emerald-400">
-                  Ni potreben
+                  {t.booking.notRequired}
                 </span>
               ) : (
                 <span className="text-primary">
@@ -156,12 +159,11 @@ export function BookingSummaryCard({
                 />
                 <div className="space-y-1">
                   <p className="text-base font-bold text-amber-950 dark:text-amber-300">
-                    Nepovratni polog
+                    {t.booking.nonRefundableTitle}
                   </p>
                   <p className="text-sm text-amber-900 dark:text-amber-400">
-                    Polog {fmt(salonConfig.bookingDeposit)} je potreben za
-                    potrditev termina in je{" "}
-                    <strong className="font-bold">nepovraten</strong>.
+                    {t.booking.nonRefundableIntro(fmt(salonConfig.bookingDeposit))}
+                    <strong className="font-bold">{t.booking.nonRefundableStrong}</strong>.
                   </p>
                 </div>
               </div>
@@ -174,11 +176,10 @@ export function BookingSummaryCard({
                 </div>
                 <div className="space-y-1">
                   <p className="text-base font-bold text-emerald-800 dark:text-emerald-300">
-                    Rezervacija zaposlenega
+                    {t.booking.employeeBoxTitle}
                   </p>
                   <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-                    Polog ni potreben. Plačilo bo obračunano po opravljeni
-                    storitvi.
+                    {t.booking.employeeBoxBody}
                   </p>
                 </div>
               </div>
@@ -211,17 +212,17 @@ export function BookingSummaryCard({
             ) : isEmployee ? (
               <>
                 <CurrencyDollarIcon size={20} className="mr-2" weight="regular" />
-                Potrdi rezervacijo zaposlenega
+                {t.booking.confirmEmployee}
               </>
             ) : paymentsEnabled ? (
               <>
                 <CurrencyDollarIcon size={20} className="mr-2" weight="regular" />
-                Plačaj {fmt(salonConfig.bookingDeposit)} in potrdi rezervacijo
+                {t.booking.payAndConfirm(fmt(salonConfig.bookingDeposit))}
               </>
             ) : (
               <>
                 <CalendarCheckIcon size={20} className="mr-2" weight="regular" />
-                Oddaj rezervacijo (brez pologa)
+                {t.booking.submitNoPayment}
               </>
             )}
           </Button>

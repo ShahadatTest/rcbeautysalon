@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { SpinnerGapIcon } from "@/components/icons"
 import { format, addDays } from "date-fns"
-import { sl } from "date-fns/locale"
 import { getAvailableTimeSlots } from "@/app/actions/appointments"
 import { TimeSlot } from "@/lib/interfaces"
 import type { BookingResource } from "@/app/actions/appointments"
+import { useI18n } from "@/lib/i18n/provider"
+import { getDateFnsLocale } from "@/lib/i18n/dictionaries"
 import {
   Select,
   SelectContent,
@@ -51,6 +52,8 @@ export function DateTimeStep({
   selectedResourceId = null,
   onSelectResource,
 }: DateTimeStepProps) {
+  const { t, locale } = useI18n()
+  const dfLocale = getDateFnsLocale(locale)
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
 
@@ -92,14 +95,14 @@ export function DateTimeStep({
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-bold">
             3
           </div>
-          <CardTitle>Izberite datum in uro</CardTitle>
+          <CardTitle>{t.booking.pickDateTime}</CardTitle>
         </div>
-        <CardDescription>Izberite, kdaj želite obiskati salon</CardDescription>
+        <CardDescription>{t.booking.pickDateTimeDesc}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {!selectedStaffId ? (
           <p className="text-center text-sm text-muted-foreground">
-            Najprej izberite osebje
+            {t.booking.pickStaffFirst}
           </p>
         ) : (
           <>
@@ -126,17 +129,17 @@ export function DateTimeStep({
             {resources.length > 0 && onSelectResource && (
               <div className="space-y-2">
                 <Label htmlFor="booking-resource" className="block text-sm font-medium">
-                  Prostor / vir (neobvezno)
+                  {t.booking.resourceLabel}
                 </Label>
                 <Select
                   value={selectedResourceId ?? "none"}
                   onValueChange={(v) => onSelectResource(v === "none" ? null : v)}
                 >
                   <SelectTrigger id="booking-resource" className="w-full sm:w-72">
-                    <SelectValue placeholder="Izberite prostor ali vir" />
+                    <SelectValue placeholder={t.booking.resourcePlaceholder} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Brez posebnega prostora</SelectItem>
+                    <SelectItem value="none">{t.booking.resourceNone}</SelectItem>
                     {resources.map((r) => (
                       <SelectItem key={r.id} value={r.id}>
                         {r.name}
@@ -146,7 +149,7 @@ export function DateTimeStep({
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Termin bo rezerviran tudi za izbrani prostor — preverjamo, da je prost prost.
+                  {t.booking.resourceNote}
                 </p>
               </div>
             )}
@@ -154,7 +157,7 @@ export function DateTimeStep({
             {selectedDate && (
               <div className="space-y-2">
                 <Label className="block text-base font-semibold">
-                  Prosti termini za {format(selectedDate, "d. MMMM yyyy", { locale: sl })}
+                  {t.booking.slotsFor(format(selectedDate, locale === "sl" ? "d. MMMM yyyy" : "MMMM d, yyyy", { locale: dfLocale }))}
                 </Label>
                 {loadingSlots ? (
                   <div className="flex justify-center py-8">
@@ -162,7 +165,7 @@ export function DateTimeStep({
                   </div>
                 ) : availableSlots.length === 0 ? (
                   <p className="text-center text-muted-foreground">
-                    Za ta dan ni prostih terminov
+                    {t.booking.noSlots}
                   </p>
                 ) : (
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">

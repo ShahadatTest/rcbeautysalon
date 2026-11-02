@@ -18,6 +18,8 @@ import { MenuIcon, CloseIcon, UserIcon, LogoutIcon, CalendarCheckIcon, SettingsI
 import { useNavigationStore } from "@/store/navigation-store"
 import { NavCartButton } from "@/components/shop/nav-cart-button"
 import { orgPath } from "@/lib/org-path"
+import { useI18n } from "@/lib/i18n/provider"
+import { LanguageSwitcher } from "@/components/admin/language-switcher"
 
 interface NavLinkItem {
   href: string
@@ -42,6 +44,7 @@ export function PublicNavbar({ org, cta, availableSections }: PublicNavbarProps)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { data: session, status } = useSession()
   const { activeSection } = useNavigationStore()
+  const { t } = useI18n()
 
   const homeHref = orgPath(org.slug, "/")
   // #services/#shop are conditionally rendered — drop them when the tenant
@@ -50,14 +53,14 @@ export function PublicNavbar({ org, cta, availableSections }: PublicNavbarProps)
   const showShop = availableSections?.shop !== false
   const navLinks: NavLinkItem[] = [
     ...(showServices
-      ? [{ href: `${homeHref}#services`, sectionId: "services", label: "Storitve" }]
+      ? [{ href: `${homeHref}#services`, sectionId: "services", label: t.public.navServices }]
       : []),
-    { href: `${homeHref}#about`, sectionId: "about", label: "O nas" },
-    { href: `${homeHref}#team`, sectionId: "team", label: "Ekipa" },
+    { href: `${homeHref}#about`, sectionId: "about", label: t.public.navAbout },
+    { href: `${homeHref}#team`, sectionId: "team", label: t.public.navTeam },
     ...(showShop
-      ? [{ href: `${homeHref}#shop`, sectionId: "shop", label: "Trgovina" }]
+      ? [{ href: `${homeHref}#shop`, sectionId: "shop", label: t.public.navShop }]
       : []),
-    { href: `${homeHref}#contact`, sectionId: "contact", label: "Kontakt" },
+    { href: `${homeHref}#contact`, sectionId: "contact", label: t.public.navContact },
   ]
 
   const isLoading = status === "loading"
@@ -106,6 +109,7 @@ export function PublicNavbar({ org, cta, availableSections }: PublicNavbarProps)
             </Link>
           ))}
           <div className="flex items-center gap-1.5 xl:gap-2 ml-3 xl:ml-4 pl-3 xl:pl-4 border-l border-border/50">
+            <LanguageSwitcher />
             <ThemeToggle />
             <NavCartButton />
             {isLoading ? (
@@ -117,7 +121,7 @@ export function PublicNavbar({ org, cta, availableSections }: PublicNavbarProps)
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="text-foreground/80 hover:bg-secondary hover:text-primary gap-1.5">
                     <UserIcon size={18} />
-                    <span className="hidden 2xl:inline max-w-20 truncate">{session.user.name || "Račun"}</span>
+                    <span className="hidden 2xl:inline max-w-20 truncate">{session.user.name || t.public.account}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
@@ -125,7 +129,7 @@ export function PublicNavbar({ org, cta, availableSections }: PublicNavbarProps)
                     <DropdownMenuItem asChild>
                       <Link href="/dashboard" className="flex items-center gap-2 cursor-pointer">
                         <SettingsIcon size={16} />
-                        Nadzorna plošča
+                        {t.public.dashboard}
                       </Link>
                     </DropdownMenuItem>
                   )}
@@ -133,7 +137,7 @@ export function PublicNavbar({ org, cta, availableSections }: PublicNavbarProps)
                     <DropdownMenuItem asChild>
                       <Link href="/staff-portal" className="flex items-center gap-2 cursor-pointer">
                         <SettingsIcon size={16} />
-                        Portal za osebje
+                        {t.public.staffPortal}
                       </Link>
                     </DropdownMenuItem>
                   )}
@@ -142,25 +146,25 @@ export function PublicNavbar({ org, cta, availableSections }: PublicNavbarProps)
                       <DropdownMenuItem asChild>
                         <Link href="/my-account" className="flex items-center gap-2 cursor-pointer">
                           <UserCogIcon size={16} />
-                          Moj račun
+                          {t.public.myAccount}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href="/my-appointments" className="flex items-center gap-2 cursor-pointer">
                           <CalendarCheckIcon size={16} />
-                          Moji termini
+                          {t.public.myAppointments}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href="/my-orders" className="flex items-center gap-2 cursor-pointer">
                           <ReceiptIcon size={16} />
-                          Moja naročila
+                          {t.public.myOrders}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href="/my-reviews" className="flex items-center gap-2 cursor-pointer">
                           <StarIcon size={16} />
-                          Moje ocene
+                          {t.public.myReviews}
                         </Link>
                       </DropdownMenuItem>
                     </>
@@ -171,14 +175,14 @@ export function PublicNavbar({ org, cta, availableSections }: PublicNavbarProps)
                     className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive"
                   >
                     <LogoutIcon size={16} />
-                    Odjava
+                    {t.public.logout}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
               <Link href="/login">
                 <Button variant="ghost" size="sm" className="text-foreground/80 hover:bg-secondary hover:text-primary">
-                  Prijava
+                  {t.public.login}
                 </Button>
               </Link>
             )}
@@ -194,12 +198,13 @@ export function PublicNavbar({ org, cta, availableSections }: PublicNavbarProps)
 
         {/* Mobile Menu Button - Shows below md (< 768px) */}
         <div className="flex items-center gap-2 md:hidden">
+          <LanguageSwitcher />
           <ThemeToggle />
           <NavCartButton />
           <button
             className="text-foreground/70 hover:text-primary transition-colors p-2 -mr-2"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Preklopi meni"
+            aria-label={t.public.toggleMenu}
           >
             {mobileMenuOpen ? (
               <CloseIcon size={24} weight="bold" />
@@ -244,14 +249,14 @@ export function PublicNavbar({ org, cta, availableSections }: PublicNavbarProps)
               <div className="space-y-1">
                 {/* User name header */}
                 <div className="px-3 py-2 text-sm font-medium text-muted-foreground">
-                  {session.user.name || "Račun"}
+                  {session.user.name || t.public.account}
                 </div>
 
                 {session.user.role === "ADMIN" && (
                   <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full h-11 text-foreground/80 hover:bg-secondary hover:text-primary gap-2 justify-start">
                       <SettingsIcon size={18} />
-                      Nadzorna plošča
+                      {t.public.dashboard}
                     </Button>
                   </Link>
                 )}
@@ -259,7 +264,7 @@ export function PublicNavbar({ org, cta, availableSections }: PublicNavbarProps)
                   <Link href="/staff-portal" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full h-11 text-foreground/80 hover:bg-secondary hover:text-primary gap-2 justify-start">
                       <SettingsIcon size={18} />
-                      Portal za osebje
+                      {t.public.staffPortal}
                     </Button>
                   </Link>
                 )}
@@ -268,25 +273,25 @@ export function PublicNavbar({ org, cta, availableSections }: PublicNavbarProps)
                     <Link href="/my-account" onClick={() => setMobileMenuOpen(false)}>
                       <Button variant="ghost" className="w-full h-11 text-foreground/80 hover:bg-secondary hover:text-primary gap-2 justify-start">
                         <UserCogIcon size={18} />
-                        Moj račun
+                        {t.public.myAccount}
                       </Button>
                     </Link>
                     <Link href="/my-appointments" onClick={() => setMobileMenuOpen(false)}>
                       <Button variant="ghost" className="w-full h-11 text-foreground/80 hover:bg-secondary hover:text-primary gap-2 justify-start">
                         <CalendarCheckIcon size={18} />
-                        Moji termini
+                        {t.public.myAppointments}
                       </Button>
                     </Link>
                     <Link href="/my-orders" onClick={() => setMobileMenuOpen(false)}>
                       <Button variant="ghost" className="w-full h-11 text-foreground/80 hover:bg-secondary hover:text-primary gap-2 justify-start">
                         <ReceiptIcon size={18} />
-                        Moja naročila
+                        {t.public.myOrders}
                       </Button>
                     </Link>
                     <Link href="/my-reviews" onClick={() => setMobileMenuOpen(false)}>
                       <Button variant="ghost" className="w-full h-11 text-foreground/80 hover:bg-secondary hover:text-primary gap-2 justify-start">
                         <StarIcon size={18} />
-                        Moje ocene
+                        {t.public.myReviews}
                       </Button>
                     </Link>
                   </>
@@ -300,13 +305,13 @@ export function PublicNavbar({ org, cta, availableSections }: PublicNavbarProps)
                   }}
                 >
                   <LogoutIcon size={18} />
-                  Odjava
+                  {t.public.logout}
                 </Button>
               </div>
             ) : (
               <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="ghost" className="w-full h-11 text-foreground/80 hover:bg-secondary hover:text-primary">
-                  Prijava
+                  {t.public.login}
                 </Button>
               </Link>
             )}

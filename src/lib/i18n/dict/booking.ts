@@ -1,0 +1,178 @@
+// Popolnoma prevedi ta imenski prostor (slovenščina + angleščina).
+// Pokriva rezervacijski čarovnik (javna pot /booking, /s/{slug}/booking).
+
+export const bookingSl = {
+  // ---- Korak 1: prikaz/izbira storitve ----
+  selectedService: "Izbrana storitev",
+  selectedServiceDesc: "Vaša izbrana storitev",
+  chooseService: "Izberite storitev",
+  chooseServiceDesc: "Izberite storitev za svoj termin",
+  chooseServiceError: "Izberite storitev",
+
+  // ---- Korak 2: specialista ----
+  chooseSpecialist: "Izberite specialista",
+  chooseSpecialistDesc: "Izberite svojega specialista",
+  noStaffForService: "Za to storitev ni prostega osebja",
+  yourSpecialist: "Vaš specialist",
+  yourSpecialistDesc: "Rezervirate pri tem specialistu",
+
+  // ---- Korak 3: datum in ura ----
+  pickDateTime: "Izberite datum in uro",
+  pickDateTimeDesc: "Izberite, kdaj želite obiskati salon",
+  pickStaffFirst: "Najprej izberite osebje",
+  resourceLabel: "Prostor / vir (neobvezno)",
+  resourcePlaceholder: "Izberite prostor ali vir",
+  resourceNone: "Brez posebnega prostora",
+  resourceNote:
+    "Termin bo rezerviran tudi za izbrani prostor — preverjamo, da je prost prost.",
+  slotsFor: (date: string) => `Prosti termini za ${date}`,
+  noSlots: "Za ta dan ni prostih terminov",
+
+  // ---- Korak 4: kontakt ----
+  yourDetails: "Vaši podatki",
+  confirmDetailsDesc: "Potrdite svoje kontaktne podatke",
+  enterDetailsDesc: "Vnesite svoje kontaktne podatke",
+  firstName: "Ime",
+  lastName: "Priimek",
+  email: "E-pošta",
+  phone: "Telefon",
+  specialRequests: "Posebne želje (neobvezno)",
+  firstNamePlaceholder: "Janez",
+  lastNamePlaceholder: "Novak",
+  emailPlaceholder: "janez@primer.si",
+  phonePlaceholder: "040 123 456",
+  notesPlaceholder: "Kakšne posebne želje ali preference?",
+
+  // ---- Povzetek ----
+  summaryTitle: "Povzetek rezervacije",
+  service: "Storitev",
+  staff: "Osebje",
+  dateTime: "Datum in ura",
+  duration: "Trajanje",
+  notSelected: "Ni izbrano",
+  atSeparator: "ob",
+  servicePrice: "Cena storitve",
+  employeeDiscount: "Popust za zaposlene (20 %)",
+  finalPrice: "Končna cena",
+  requiredDeposit: "Obvezni polog",
+  notRequired: "Ni potreben",
+  nonRefundableTitle: "Nepovratni polog",
+  nonRefundableIntro: (amount: string) =>
+    `Polog ${amount} je potreben za potrditev termina in je `,
+  nonRefundableStrong: "nepovraten",
+  employeeBoxTitle: "Rezervacija zaposlenega",
+  employeeBoxBody:
+    "Polog ni potreben. Plačilo bo obračunano po opravljeni storitvi.",
+
+  // ---- Gumbi ----
+  payAndConfirm: (amount: string) => `Plačaj ${amount} in potrdi rezervacijo`,
+  confirmEmployee: "Potrdi rezervacijo zaposlenega",
+  submitNoPayment: "Oddaj rezervacijo (brez pologa)",
+
+  // ---- Zaposleni banner ----
+  employeeBanner: "Rezervirate kot zaposleni.",
+  employeeBannerDiscount: "popust 20 %",
+
+  // ---- Napake / obvestila ----
+  staffRequired: "Izberite osebo za termin",
+  staffRequiredToast: "Izberite osebo pred potrditvijo.",
+  employeeCreateFailed:
+    "Ustvarjanje termina ni uspelo. Poskusite znova.",
+  noPaymentToast:
+    "Rezervacija je bila oddana brez spletnega plačila — salon jo bo potrdil, polog pa poravnal ob obisku.",
+  noPaymentFailed:
+    "Rezervacija ni uspela. Kontaktirajte salon ali poskusite znova.",
+  checkoutFailed: "Ustvarjanje plačila ni uspelo. Poskusite znova.",
+  unexpectedError: "Prišlo je do nepričakovane napake. Poskusite znova.",
+
+  // ---- Pomožniki ----
+  /** Slovenska množina: 1 minuta, 2 minuti, 3–4 minute, 5+ minut */
+  minutes: (n: number) => {
+    const mod100 = n % 100
+    if (mod100 === 1) return `${n} minuta`
+    if (mod100 === 2) return `${n} minuti`
+    if (mod100 === 3 || mod100 === 4) return `${n} minute`
+    return `${n} minut`
+  },
+  minutesShort: (n: number) => `${n} min`,
+}
+
+export type BookingDict = typeof bookingSl
+
+export const bookingEn: BookingDict = {
+  selectedService: "Selected service",
+  selectedServiceDesc: "Your selected service",
+  chooseService: "Choose a service",
+  chooseServiceDesc: "Choose a service for your appointment",
+  chooseServiceError: "Choose a service",
+
+  chooseSpecialist: "Choose a specialist",
+  chooseSpecialistDesc: "Choose your specialist",
+  noStaffForService: "No staff available for this service",
+  yourSpecialist: "Your specialist",
+  yourSpecialistDesc: "You are booking with this specialist",
+
+  pickDateTime: "Pick a date and time",
+  pickDateTimeDesc: "Choose when you would like to visit the salon",
+  pickStaffFirst: "Choose a staff member first",
+  resourceLabel: "Space / resource (optional)",
+  resourcePlaceholder: "Choose a space or resource",
+  resourceNone: "No special space",
+  resourceNote:
+    "The slot will also be reserved for the chosen space — we make sure it is free.",
+  slotsFor: (date: string) => `Available slots for ${date}`,
+  noSlots: "No available slots for this day",
+
+  yourDetails: "Your details",
+  confirmDetailsDesc: "Confirm your contact details",
+  enterDetailsDesc: "Enter your contact details",
+  firstName: "First name",
+  lastName: "Last name",
+  email: "Email",
+  phone: "Phone",
+  specialRequests: "Special requests (optional)",
+  firstNamePlaceholder: "John",
+  lastNamePlaceholder: "Smith",
+  emailPlaceholder: "john@example.com",
+  phonePlaceholder: "040 123 456",
+  notesPlaceholder: "Any special requests or preferences?",
+
+  summaryTitle: "Booking summary",
+  service: "Service",
+  staff: "Staff",
+  dateTime: "Date and time",
+  duration: "Duration",
+  notSelected: "Not selected",
+  atSeparator: "at",
+  servicePrice: "Service price",
+  employeeDiscount: "Employee discount (20%)",
+  finalPrice: "Final price",
+  requiredDeposit: "Required deposit",
+  notRequired: "Not required",
+  nonRefundableTitle: "Non-refundable deposit",
+  nonRefundableIntro: (amount: string) =>
+    `The deposit of ${amount} is required to confirm the appointment and is `,
+  nonRefundableStrong: "non-refundable",
+  employeeBoxTitle: "Employee booking",
+  employeeBoxBody:
+    "No deposit required. Payment will be charged after the service.",
+
+  payAndConfirm: (amount: string) => `Pay ${amount} and confirm booking`,
+  confirmEmployee: "Confirm employee booking",
+  submitNoPayment: "Submit booking (no deposit)",
+
+  employeeBanner: "You are booking as an employee.",
+  employeeBannerDiscount: "20% discount",
+
+  staffRequired: "Choose a staff member",
+  staffRequiredToast: "Choose a staff member before confirming.",
+  employeeCreateFailed: "Failed to create the appointment. Please try again.",
+  noPaymentToast:
+    "Your booking was submitted without online payment — the salon will confirm it and collect the deposit on arrival.",
+  noPaymentFailed: "Booking failed. Contact the salon or try again.",
+  checkoutFailed: "Failed to create the payment. Please try again.",
+  unexpectedError: "An unexpected error occurred. Please try again.",
+
+  minutes: (n: number) => `${n} ${n === 1 ? "minute" : "minutes"}`,
+  minutesShort: (n: number) => `${n} min`,
+}

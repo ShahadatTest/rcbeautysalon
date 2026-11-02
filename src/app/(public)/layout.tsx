@@ -9,6 +9,7 @@ import { resolvePublishGate } from "@/lib/publish-gate"
 import { MaintenanceScreen } from "@/components/public/maintenance-screen"
 import { CartOrgScope } from "@/components/shop/cart-org-scope"
 import { analyticsScriptIdFor } from "@/lib/analytics/measurement-id"
+import { PublicI18nProvider } from "@/components/providers/public-i18n-provider"
 
 /**
  * Whether the tenant's home page will actually render the #services and
@@ -59,7 +60,7 @@ export default async function PublicLayout({
     // analytics script (visits here are not public traffic and the
     // owner's measurement ID is scoped to the published site only).
     return (
-      <>
+      <PublicI18nProvider org={org}>
         <PublicNavbar
           org={{
             slug: org.slug,
@@ -76,7 +77,7 @@ export default async function PublicLayout({
         </div>
         <main>{children}</main>
         <Footer />
-      </>
+      </PublicI18nProvider>
     )
   }
 
@@ -116,18 +117,20 @@ gtag('config', '${analyticsId}');`}
           </Script>
         </>
       )}
-      <PublicNavbar
-        org={{
-          slug: org?.slug ?? null,
-          name: org?.name ?? "Salon",
-          logo: org?.logo ?? null,
-        }}
-        cta={cta.enabled ? { label: cta.label, href: cta.href } : null}
-        availableSections={org ? await resolveAvailableSections(org.id) : undefined}
-      />
-      <CartOrgScope slug={org?.slug ?? null} />
-      <main>{children}</main>
-      <Footer />
+      <PublicI18nProvider org={org}>
+        <PublicNavbar
+          org={{
+            slug: org?.slug ?? null,
+            name: org?.name ?? "Salon",
+            logo: org?.logo ?? null,
+          }}
+          cta={cta.enabled ? { label: cta.label, href: cta.href } : null}
+          availableSections={org ? await resolveAvailableSections(org.id) : undefined}
+        />
+        <CartOrgScope slug={org?.slug ?? null} />
+        <main>{children}</main>
+        <Footer />
+      </PublicI18nProvider>
     </>
   )
 }
