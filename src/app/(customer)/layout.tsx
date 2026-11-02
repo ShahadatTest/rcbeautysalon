@@ -5,6 +5,7 @@ import { getPublicOrg, ORG_HEADER } from "@/lib/tenant"
 import { resolvePublicCta } from "@/lib/public-cta"
 import { resolvePublishGate } from "@/lib/publish-gate"
 import { MaintenanceScreen } from "@/components/public/maintenance-screen"
+import { CartOrgScope } from "@/components/shop/cart-org-scope"
 
 export default async function CustomerLayout({
   children,
@@ -39,6 +40,7 @@ export default async function CustomerLayout({
           }}
           cta={null}
         />
+        <CartOrgScope slug={org.slug} />
         <div className="bg-amber-100 text-amber-950 border-b border-amber-200 px-4 py-2 text-center text-sm font-medium dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
           Predogled — ta stran še ni objavljena. Obiščevalci vidijo vzdrževalno
           stran, dokler je ne objavite v nastavitvah.
@@ -61,6 +63,7 @@ export default async function CustomerLayout({
         }}
         cta={cta.enabled ? { label: cta.label, href: cta.href } : null}
       />
+      <CartOrgScope slug={org?.slug ?? null} />
       <main>{children}</main>
       <Footer />
     </>

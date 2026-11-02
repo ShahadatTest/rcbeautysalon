@@ -10,8 +10,23 @@ export interface CartItem {
   price: number
 }
 
+/**
+ * Multi-tenant cart (per-salon isolation).
+ *
+ * `cartsByOrg` holds one cart per organization slug and is the ONLY
+ * persisted slice — switching salon therefore switches basket, and two
+ * salons can never see each other's products.
+ *
+ * `items` is a transient runtime mirror of the ACTIVE org's cart so every
+ * existing consumer keeps the exact same API as before (`items`,
+ * `addItem`, `getTotalItems`, …). `setActiveOrg` is called once per page
+ * by <CartOrgScope /> mounted in the (public)/(customer) layouts.
+ */
 interface CartState {
   items: CartItem[]
+  cartsByOrg: Record<string, CartItem[]>
+  activeOrg: string
+  setActiveOrg: (slug: string | null) => void
   addItem: (product: Omit<CartItem, "quantity">) => void
   removeItem: (productId: string) => void
   updateQuantity: (productId: string, quantity: number) => void
@@ -21,40 +36,70 @@ interface CartState {
   deleteItem: (productId: string) => void
 }
 
+type CartPersistedState = { cartsByOrg: Record<string, CartItem[]> }
+
 type CartPersist = (
   config: StateCreator<CartState>,
-  options: PersistOptions<CartState>
+  options: PersistOptions<CartState, CartPersistedState>
 ) => StateCreator<CartState>
+
+/** Bare routes (platform root) share the fallback cart of the default org. */
+const ORG_FALLBACK = ""
+
+const orgItems = (state: {
+  cartsByOrg: Record<string, CartItem[]>
+  activeOrg: string
+}): CartItem[] => state.cartsByOrg[state.activeOrg] ?? []
 
 export const useCartStore = create<CartState>(
   (persist as CartPersist)(
     (set, get) => ({
       items: [],
+      cartsByOrg: {},
+      activeOrg: ORG_FALLBACK,
+
+      setActiveOrg: (slug) => {
+        const activeOrg = slug ?? ORG_FALLBACK
+        set({ activeOrg, items: get().cartsByOrg[activeOrg] ?? [] })
+      },
 
       addItem: (product) => {
-        const items = get().items
+        const state = get()
+        const items = orgItems(state)
         const existingItem = items.find(
           (item) => item.productId === product.productId
         )
 
-        if (existingItem) {
-          set({
-            items: items.map((item) =>
+        const nextItems = existingItem
+          ? items.map((item) =>
               item.productId === product.productId
                 ? { ...item, quantity: item.quantity + 1 }
                 : item
-            ),
-          })
-          toast.success(`Količina izdelka ${product.name} v košarici je povečana.`)
+            )
+          : [...items, { ...product, quantity: 1 }]
+
+        set({
+          cartsByOrg: { ...state.cartsByOrg, [state.activeOrg]: nextItems },
+          items: nextItems,
+        })
+
+        if (existingItem) {
+          toast.success(
+            `Količina izdelka ${product.name} v košarici je povečana.`
+          )
         } else {
-          set({ items: [...items, { ...product, quantity: 1 }] })
           toast.success(`${product.name} je bil dodan v košarico.`)
         }
       },
 
       removeItem: (productId) => {
+        const state = get()
+        const nextItems = orgItems(state).filter(
+          (item) => item.productId !== productId
+        )
         set({
-          items: get().items.filter((item) => item.productId !== productId),
+          cartsByOrg: { ...state.cartsByOrg, [state.activeOrg]: nextItems },
+          items: nextItems,
         })
       },
 
@@ -63,33 +108,64 @@ export const useCartStore = create<CartState>(
           get().removeItem(productId)
           return
         }
+        const state = get()
+        const nextItems = orgItems(state).map((item) =>
+          item.productId === productId ? { ...item, quantity } : item
+        )
         set({
-          items: get().items.map((item) =>
-            item.productId === productId ? { ...item, quantity } : item
-          ),
+          cartsByOrg: { ...state.cartsByOrg, [state.activeOrg]: nextItems },
+          items: nextItems,
         })
       },
 
-      clearCart: () => set({ items: [] }),
+      clearCart: () => {
+        const state = get()
+        set({
+          cartsByOrg: { ...state.cartsByOrg, [state.activeOrg]: [] },
+          items: [],
+        })
+      },
 
       getTotalItems: () => {
-        return get().items.reduce((total, item) => total + item.quantity, 0)
+        return orgItems(get()).reduce((total, item) => total + item.quantity, 0)
       },
 
       getTotalPrice: () => {
-        return get().items.reduce(
+        return orgItems(get()).reduce(
           (total, item) => total + item.price * item.quantity,
           0
         )
       },
+
+      // Alias kept for API compatibility — previously a duplicate of removeItem.
       deleteItem: (productId) => {
-        set({
-          items: get().items.filter((item) => item.productId !== productId),
-        })
+        get().removeItem(productId)
       },
     }),
     {
       name: "cart-storage",
+      version: 1,
+      // Persist ONLY the per-org carts — items/activeOrg are runtime mirrors.
+      partialize: (state) => ({ cartsByOrg: state.cartsByOrg }),
+      migrate: (persisted) => {
+        const old = persisted as
+          | (Partial<CartState> & { items?: CartItem[] })
+          | null
+        if (old && Array.isArray(old.items)) {
+          // v0 stored one flat, cross-tenant cart — it belonged to no
+          // specific tenant, so it stays reachable on bare routes only.
+          return { cartsByOrg: { [ORG_FALLBACK]: old.items } }
+        }
+        return { cartsByOrg: old?.cartsByOrg ?? {} }
+      },
+      onRehydrateStorage: () => (state) => {
+        // After localStorage hydration, re-sync the transient mirror.
+        if (state) {
+          useCartStore.setState({
+            items: state.cartsByOrg[state.activeOrg] ?? [],
+          })
+        }
+      },
     }
   )
 )

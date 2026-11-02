@@ -6,9 +6,13 @@ import { CartContent } from "@/components/shop/cart-content"
 import { getPublicOrg } from "@/lib/tenant"
 import { orgPath } from "@/lib/org-path"
 
-export const metadata: Metadata = {
-  title: "Nakupovalna košarica | Poslovna platforma",
-  description: "Pregledajte in upravljajte izdelke v svoji košarici.",
+export async function generateMetadata(): Promise<Metadata> {
+  // Per-tenant title: "Nakupovalna košarica | <Salon>" (P0-3)
+  const org = await getPublicOrg()
+  return {
+    title: `Nakupovalna košarica | ${org?.name ?? "Poslovna platforma"}`,
+    description: "Pregledajte in upravljajte izdelke v svoji košarici.",
+  }
 }
 
 export default async function CartPage() {
