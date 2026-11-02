@@ -57,8 +57,10 @@ export default async function AdminDashboard() {
     : []
   const canAppointments = hasPermission(perms, "appointments.view")
   const canFinances = hasPermission(perms, "finances.view")
-  // Share-link helper (owner growth tool): only for members who manage
-  // settings — staff members do not run the Instagram/GBP channels.
+  // Share-link helper (owner growth tool): gated by settings.manage like
+  // every settings surface — in the legacy model staff members hold ALL
+  // permission keys, so they see it too (harmless: a public link + tips);
+  // custom roles only see it when they truly manage settings.
   const canManageSettings = hasPermission(perms, "settings.manage")
   const shareOrg = canManageSettings ? await getSessionOrg() : null
   const publicUrl = shareOrg?.slug
