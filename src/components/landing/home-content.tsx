@@ -18,6 +18,7 @@ import { HowItWorksSection } from "@/components/landing/how-it-works-section"
 import { TestimonialsSection, type LandingTestimonial } from "@/components/landing/testimonials-section"
 import { SectionWrapper } from "@/components/layouts/section-wrapper"
 import { AccentSpan, splitLastWord, splitOnComma } from "./section-title"
+import { useFormatPrice } from "@/lib/currency"
 import { useNavigationStore } from "@/store/navigation-store"
 
 // Fallback visuals for organizations without content imagery
@@ -94,6 +95,7 @@ export function HomeContent({
   const primaryCta = ctaLinks?.primaryCta ?? content.hero.primaryCta
   const secondaryCta = ctaLinks ? ctaLinks.secondaryCta : content.hero.secondaryCta
   const { setActiveSection } = useNavigationStore()
+  const fmt = useFormatPrice()
 
   const prefix = org.slug ? `/s/${org.slug}` : ""
   const toHref = (href: string) =>
@@ -207,7 +209,7 @@ export function HomeContent({
                           </h3>
                           <div className="flex items-center justify-between text-sm text-white/90 transition-colors duration-300">
                             <span className="group-hover:text-accent/90 font-medium">
-                              €{service.price.toString()}
+                              {fmt(Number(service.price))}
                             </span>
                             {service.duration && (
                               <span className="text-white/70 group-hover:text-accent/70 transition-colors">
